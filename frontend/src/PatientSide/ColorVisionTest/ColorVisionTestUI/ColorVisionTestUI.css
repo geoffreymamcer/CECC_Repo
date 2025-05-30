@@ -1,0 +1,213 @@
+@media screen and (max-width: 768px) {
+  .colorVisionTestUI {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+    text-align: center;
+    color: #8c0a14;
+    height: 100vh;
+    padding: 1rem;
+  }
+
+  .colorVisionTestUIhHeader {
+    margin: 20px;
+    flex: 0 0 20%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+  }
+
+  .questionsComponent {
+    flex: 1;
+  }
+
+  .ishihara-image {
+    min-width: 150px;
+    max-width: 250px;
+  }
+
+  .progress-bar-container {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background-color: white;
+    text-align: center;
+  }
+
+  .progressBar {
+    width: 100%;
+    height: 1rem;
+    background-color: rgba(140, 10, 20, 0.28); /* #8c0a14 with 28% opacity */
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+
+  .progressBarFill {
+    height: 100%;
+    background-color: #8c0a14;
+    border-radius: 10px;
+    transition: width 0.5s ease-in-out;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .progressBarText {
+    font-size: 0.9rem;
+    color: #333;
+  }
+
+  .radio-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .choice-box {
+    display: block;
+    padding: 12px 16px;
+    width: 250px;
+    border: 2px solid #8c0a14;
+    border-radius: 8px;
+    background-color: #f0f0f0;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+  }
+
+  .choice-box:hover {
+    background-color: #e0e0e0;
+  }
+
+  .radio-input:checked + .choice-box {
+    background-color: #8c0a14;
+    color: white;
+    border-color: #8c0a14;
+  }
+
+  .questionAndChoicesContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .choices {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .nextAndpreviousButoonContainer {
+    padding: 1rem 0;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: space-between;
+    gap: 20px;
+  }
+
+  .nextButton {
+    background-color: #8c0a14;
+    height: 40px;
+    width: 110px;
+    gap: 10px;
+    color: white;
+    font-weight: bold;
+    font-size: 0.85rem;
+    border-radius: 5px;
+  }
+
+  .previousButton {
+    border: 2px solid #8c0a14;
+    color: #8c0a14;
+    height: 40px;
+    width: 110px;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    border-radius: 5px;
+  }
+
+  .nextButton:hover,
+  .previousButton:hover {
+    cursor: pointer;
+  }
+
+  .text-input {
+    width: 100%;
+    padding: 8px 12px;
+    margin-top: 8px;
+    border: 2px solid #8c0a14;
+    border-radius: 8px;
+    font-size: 1rem;
+    outline: none;
+  }
+
+  .text-input:focus {
+    border-color: #8c0a14;
+    box-shadow: 0 0 0 2px rgba(140, 10, 20, 0.1);
+  }
+  .progressBarFill {
+    height: 100%;
+    background-color: #8c0a14;
+    border-radius: 10px;
+    transition: width 0.3s ease-in-out;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .testResultContainer {
+    padding: 1rem;
+    max-width: 100%;
+    margin: 0 auto;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .resultSummary {
+    background-color: #f5f5f5;
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+  }
+
+  .plateResults {
+    margin-top: 1rem;
+  }
+
+  .plateResult {
+    padding: 0.5rem;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .plateResult.correct {
+    color: #2e7d32;
+  }
+
+  .plateResult.incorrect {
+    color: #c62828;
+  }
+
+  .disclaimer {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #fff3e0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+}

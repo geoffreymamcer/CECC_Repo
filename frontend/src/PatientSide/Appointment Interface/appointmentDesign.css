@@ -1,0 +1,148 @@
+.AppointmentInterface {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+@media only screen and (max-width: 768px) {
+  .appointmentInterfaceBanner {
+    background-image: url("/portalBannerBackgroud.png");
+    background-size: cover;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 15vh;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    color: white;
+    margin-bottom: 30px;
+  }
+
+  .appointmentInputs {
+    display: flex;
+    flex-direction: column;
+    padding: 7%;
+    gap: 25px; /* 👈 Adds space between child divs */
+    padding-bottom: 110px;
+  }
+
+  .bookAppointmentText {
+    color: #8c0a14;
+    text-decoration: underline;
+    text-decoration-thickness: 3px;
+    font-size: 28px;
+  }
+
+  .appointmentField {
+    border: 1px solid rgb(190, 188, 188);
+    height: 45px;
+    padding: 12px 15px;
+    font-size: 16px;
+    border-radius: 5px;
+    outline: none;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+
+  .inputsContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  /* Glowing effect when input is focused */
+  .appointmentField:focus {
+    border-color: #8c0a14; /* optional: subtle border color change */
+    box-shadow: 0 0 8px 1px #8c0a14; /* red glow */
+  }
+
+  .inputLabel {
+    font-weight: bold;
+    font-size: 17px;
+  }
+
+  .service_list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 2 columns */
+    grid-template-rows: repeat(2, 1fr); /* 2 rows */
+    gap: 10px; /* optional spacing between items */
+    width: 100%;
+  }
+
+  .service {
+    all: unset; /* resets default button styles */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100px;
+    background-color: #ffcdd2;
+    color: rgb(46, 45, 45);
+    font-weight: bold;
+    font-size: 17px;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    transform: translateY(0);
+    box-shadow: none;
+    cursor: pointer;
+  }
+
+  .service.active {
+    background-color: #8c0a14;
+    color: white;
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .service:hover {
+    cursor: pointer;
+  }
+
+  .dateOfVisit {
+    height: 45px;
+    border: 1px solid rgb(196, 190, 190);
+    border-radius: 5px;
+    padding: 15px 12px;
+    font-size: 16.5px;
+  }
+
+  .timeOfVisit {
+    height: 45px;
+    border: 1px solid rgb(196, 190, 190);
+    border-radius: 5px;
+    padding: 12px 15px;
+    font-size: 16px;
+  }
+
+  .radiosInput {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .radio {
+    margin-right: 5px;
+  }
+
+  .additionalNotes {
+    border: 1px solid rgb(196, 190, 190);
+    padding: 10px;
+    font-size: 15px;
+    border-radius: 8px;
+  }
+
+  .bookAppointmentButton {
+    background-color: #8c0a14;
+    color: white;
+    height: 45px;
+    font-weight: bold;
+    font-size: 17px;
+    border-radius: 10px;
+  }
+
+  .bookAppointmentButton:hover {
+    cursor: pointer;
+    background-color: #911923;
+  }
+}

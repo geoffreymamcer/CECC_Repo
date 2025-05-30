@@ -1,0 +1,296 @@
+@media only screen and (max-width: 768px) {
+  .PortalBanner {
+    background-image: url("/portalBannerBackgroud.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    color: white;
+    min-height: 20vh;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    padding: 2rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .lastLogin {
+    text-align: right;
+    font-size: 0.8rem; /* Using rem for font size */
+    color: rgb(207, 210, 212);
+  }
+
+  .AppointmentContainer {
+    display: flex;
+    flex-direction: column;
+    color: #8c0a14;
+    border: 2px solid #8c0a14;
+    border-left: 0.625rem solid #8c0a14; /* Using rem for border width */
+    margin-top: 1%; /* Keep percentage for top margin */
+    border-radius: 0.9375rem; /* Using rem for border radius */
+    padding: 0.9375rem; /* Using rem for padding */
+    width: 100%; /* Keep percentage for width */
+    /* Remove fixed height to allow content to dictate height */
+  }
+
+  .appointmentBanner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Consider using a percentage or vw for height if you want it relative to the viewport */
+    /* height: 35vh; */
+    padding: 1rem; /* Add some padding around the banner */
+  }
+
+  .appointmentText {
+    font-size: 1.25rem; /* Using rem for font size */
+  }
+
+  .container1 {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem; /* Add some spacing below this container */
+  }
+
+  .appointmentStatus {
+    font-weight: bold;
+    background-color: rgb(216, 216, 13);
+    padding: 0.4375rem; /* Using rem for padding */
+    border-radius: 0.625rem; /* Using rem for border radius */
+    font-size: 0.9rem; /* Using rem for font size */
+  }
+
+  .container2 {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    font-size: 0.9rem; /* Using rem for font size */
+    /* Remove fixed height */
+    margin-bottom: 1rem; /* Add some spacing below this container */
+  }
+
+  .doctorName {
+    font-size: 1rem; /* Using rem for font size */
+  }
+  .residency {
+    display: block;
+    font-size: 0.875rem; /* Using rem for font size */
+    font-weight: normal;
+  }
+  .doctorInfo {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 0.3rem; /* Add some spacing below doctor info */
+  }
+
+  .imagePlaceholder {
+    width: 3.125rem; /* Using rem for width */
+    border-radius: 50%; /* Keep percentage for circle */
+    margin-right: 0.3125rem; /* Using rem for margin */
+  }
+
+  .appointmentDate {
+    font-size: 1.3rem; /* Using rem for font size */
+    font-weight: bold;
+    margin-bottom: 0.2rem; /* Add some spacing below the date */
+  }
+
+  .buildingName {
+    font-size: 1.125rem; /* Using rem for font size */
+  }
+
+  .roomNumber {
+    display: block;
+  }
+
+  .container3 {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .rescheduleButton {
+    width: 48%; /* Keep percentage for width */
+    border: 0.125rem solid #8c0a14; /* Using rem for border width */
+    border-radius: 0.625rem; /* Using rem for border radius */
+    height: 2.5rem; /* Using rem for height */
+    font-size: 1.125rem; /* Using rem for font size */
+    font-weight: bold;
+    color: #8c0a14;
+  }
+
+  .appointmentDetailsButton {
+    width: 48%; /* Keep percentage for width */
+    border-radius: 0.625rem; /* Using rem for border radius */
+    height: 2.5rem; /* Using rem for height */
+    font-size: 1.125rem; /* Using rem for font size */
+    font-weight: bold;
+    color: white;
+    background-color: #8c0a14;
+  }
+
+  .featuresContainer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 15px;
+    width: 100%;
+    max-height: calc(
+      100vh - 80px
+    ); /* Adjust 80px to your navbar height + any header */
+    overflow-y: auto;
+    padding-bottom: 80px; /* Same as navbar height for safe space */
+  }
+
+  .featureCard {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: #f8f8f8;
+    justify-content: center;
+    width: 95%;
+    border: 2px solid rgb(206, 206, 203);
+    gap: 15px; /* Add this for spacing between children */
+    transition: transform 0.2s ease-in-out; /* Smooth transition for the transform property */
+  }
+
+  .featureCard:hover {
+    transform: scale(1.05);
+    cursor: pointer;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+  }
+
+  .emoji_container {
+    margin-right: 15px;
+    font-size: 1.5em;
+    background-color: #8c0a14;
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    text-align: center;
+    line-height: 1;
+    box-sizing: border-box;
+  }
+
+  .featureTextContainer {
+    flex-grow: 1; /* Allow the text to take up available space */
+  }
+
+  .featureName {
+    color: #8c0a14; /* Match the title color */
+    margin-bottom: 5px;
+    font-size: 1.1em;
+  }
+
+  .feautureDescription {
+    color: #555;
+    font-size: 0.9em;
+    margin-bottom: 0;
+  }
+
+  .arrowContainer {
+    margin-left: 15px; /* Space between the text and the arrow */
+    font-size: 1.5em; /* Adjust the size of the arrow */
+    color: #555; /* Adjust the arrow color */
+  }
+
+  .portalNavBar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #f0f0f0; /* Use one background color */
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid #e0e0e0;
+    z-index: 100;
+  }
+
+  .portalNavBar p {
+    display: flex; /* Arrange icon and text horizontally in each item */
+    flex-direction: column; /* Stack icon and text vertically on smaller screens if needed */
+    align-items: center; /* Center icon and text horizontally */
+    justify-content: center; /* Center icon and text vertically */
+    margin: 0; /* Remove default paragraph margins */
+    color: #555; /* Default text color */
+    font-size: 0.8em; /* Adjust font size */
+    text-align: center; /* Center the text */
+  }
+
+  .portalNavBar p span {
+    font-size: 1.5em; /* Adjust icon size */
+    margin-bottom: 5px; /* Space between icon and text */
+    display: block; /* Ensure it takes full width of the paragraph for centering */
+  }
+
+  .nav {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 5px; /* Optional: for rounded corners */
+  }
+
+  .nav.active {
+    background-color: #8c0a14;
+    color: white;
+  }
+
+  .nav span {
+    margin-right: 5px; /* Space between icon and text */
+  }
+}
+
+@media (max-width: 375px) {
+  /* Adjust the breakpoint as needed */
+  .appointmentText {
+    font-size: 1.1rem;
+  }
+
+  .appointmentStatus {
+    font-size: 0.8rem;
+    padding: 0.3rem;
+  }
+
+  .doctorName {
+    font-size: 0.9rem;
+  }
+
+  .residency {
+    font-size: 0.8rem;
+  }
+
+  .imagePlaceholder {
+    width: 2.5rem;
+    margin-right: 0.2rem;
+  }
+
+  .appointmentDate {
+    font-size: 1.2rem;
+  }
+
+  .buildingName {
+    font-size: 1rem;
+  }
+
+  .rescheduleButton,
+  .appointmentDetailsButton {
+    font-size: 1rem;
+    height: 2.2rem;
+  }
+}
