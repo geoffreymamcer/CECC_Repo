@@ -1,7 +1,7 @@
-const express = require("express");
-const router = express.Router();
-const { loginPatient } = require("../controllers/patientLogInController");
+import { Router } from "express";
+const router = Router();
+import { loginPatient } from "../controllers/patientLogInController";
 
 router.post("/login", loginPatient);
 
-module.exports = router;
+export default router;

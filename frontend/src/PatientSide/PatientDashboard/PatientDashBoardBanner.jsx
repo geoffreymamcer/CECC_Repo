@@ -1,33 +1,59 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import "./PortalDashboard.css";
 
-function PatientBanner({ name }) {
+function PatientBanner() {
   const [time, setTime] = useState(new Date());
-  const [appointment, setAppointment] = useState(null);
+  const [userName, setUserName] = useState("");
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
+    
+    const fetchUserData = async () => {
+      // First try to get from localStorage (for performance)
+      const userString = localStorage.getItem('user');
+      if (userString) {
+        try {
+          const userData = JSON.parse(userString);
+          if (userData.firstName) {
+            setUserName(userData.firstName);
+            return; // If we have the name, we're done
+          }
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+        }
+      }
+      
+      // If not found in localStorage, try to fetch from the backend
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          const response = await axios.get('http://localhost:5000/api/users/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.data?.data?.user?.firstName) {
+            const firstName = response.data.data.user.firstName;
+            setUserName(firstName);
+            
+            // Update localStorage for future use
+            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+            localStorage.setItem('user', JSON.stringify({ ...currentUser, firstName }));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    
+    fetchUserData();
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    // Simulated fetch from alternative backend or dummy data
-    const fetchAppointment = async () => {
-      try {
-        // Replace this with an API call or local storage retrieval
-        const dummyAppointment = {
-          dateOfVisit: "2025-06-03",
-          timeOfVisit: "10 AM",
-        };
 
-        setAppointment(dummyAppointment);
-      } catch (error) {
-        console.error("Error fetching appointment:", error);
-      }
-    };
-
-    fetchAppointment();
-  }, []);
 
   const getGreeting = (hour) => {
     if (hour < 12) return "Good morning";
@@ -50,18 +76,12 @@ function PatientBanner({ name }) {
   return (
     <div className="PortalBanner">
       <h1>
-        {greeting}, {name}!
+        {greeting}, {userName || 'there'}!
       </h1>
       <p>Your Eye Health Journey Matters to Us</p>
-      {appointment && (
-        <div className="appointment-info">
-          <p>Your Next Appointment:</p>
-          <p className="appointment-details">
-            Date: {formatDate(appointment.dateOfVisit)}
-          </p>
-          <p className="appointment-details">Time: {appointment.timeOfVisit}</p>
-        </div>
-      )}
+      
+
+
       <p className="lastLogin">Last Log in: {time.toLocaleDateString()}</p>
     </div>
   );

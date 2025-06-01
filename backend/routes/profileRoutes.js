@@ -2,26 +2,35 @@ import express from "express";
 import {
   getAllProfiles,
   getProfileById,
+  getProfileByPatientId,
   createProfile,
   updateProfile,
-  deleteProfile,
-} from "../controllers/ProfileController.js";
+  getMyProfile,
+  deleteProfile
+} from "../controllers/profileController.js";
 
 const router = express.Router();
+import { auth } from "../middleware/auth.js";
+
+// Get profile for the logged-in user
+router.get("/me", auth, getMyProfile);
 
 // Get all profiles
 router.get("/", getAllProfiles);
 
-// Get a specific profile by ID
-router.get("/:id", getProfileById);
+// Get profile by MongoDB _id
+router.get("/id/:id", getProfileById);
 
-// Create a new profile
+// Get profile by patient ID
+router.get("/:patientId", getProfileByPatientId);
+
+// Create new profile
 router.post("/", createProfile);
 
-// Update a profile
-router.put("/:id", updateProfile);
+// Update profile
+router.put("/:patientId", updateProfile);
 
-// Delete a profile
-router.delete("/:id", deleteProfile);
+// Delete profile by MongoDB _id
+router.delete("/id/:id", deleteProfile);
 
 export default router;

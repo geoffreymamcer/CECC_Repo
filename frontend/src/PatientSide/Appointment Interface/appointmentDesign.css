@@ -6,7 +6,7 @@
 
 @media only screen and (max-width: 768px) {
   .appointmentInterfaceBanner {
-    background-image: url("/portalBannerBackgroud.png");
+    background-image: url("../PatientDashboard/PatientDashboardAssets/portalBannerBackgroud.png");
     background-size: cover;
     display: flex;
     flex-direction: column;

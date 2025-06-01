@@ -151,7 +151,7 @@
   }
 
   .image_container {
-    background-image: url("/login banner image.webp");
+    background-image: url("./LoginAndSignUpAssets/login banner image.webp");
     background-size: cover;
     background-position: center;
     width: 50%;

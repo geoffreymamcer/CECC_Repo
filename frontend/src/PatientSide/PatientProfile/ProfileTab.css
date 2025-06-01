@@ -1,0 +1,277 @@
+
+  
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  .profile-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .profile-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .profile-header h2 {
+    color: #800020;
+    font-size: 28px;
+  }
+  
+  .profile-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+  }
+  
+  .profile-picture-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .profile-picture-container {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #800020;
+  }
+  
+  .profile-picture {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .profile-picture-edit {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background-color: #800020;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  
+  .edit-icon-label {
+    display: block;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .edit-icon {
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: bold;
+  }
+  
+  .patient-name {
+    color:#800020;
+    font-size: 24px;
+    font-weight: 600;
+  }
+  
+  .patient-id {
+    color: #666666;
+    font-size: 16px;
+  }
+  
+  .profile-info, .profile-form {
+    width: 100%;
+    max-width: 500px;
+  }
+  
+  .info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 0;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .info-label {
+    font-weight: 600;
+    color: #800020;
+  }
+  
+  .info-value {
+    color: #666666;
+  }
+  
+  .profile-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .form-group label {
+    font-weight: 600;
+    color: #800020;
+  }
+  
+  .form-group input {
+    padding: 10px 15px;
+    border: 1px solid #cccccc;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+  }
+  
+  .form-group input:focus {
+    outline: none;
+    border-color: #800020;
+  }
+  
+  .form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  .profile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 500px;
+    margin-top: 30px;
+  }
+  
+  button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  
+  .btn-edit {
+    background-color: #800020;
+    color: #ffffff;
+  }
+  
+  .btn-edit:hover {
+    background-color: #5c0018;
+  }
+  
+  .btn-save {
+    background-color: #800020;
+    color: #ffffff;
+  }
+  
+  .btn-save:hover {
+    background-color: #5c0018;
+  }
+  
+  .btn-cancel {
+    background-color: #ffffff;
+    color: #800020;
+    border: 1px solid #800020;
+  }
+  
+  .btn-cancel:hover {
+    background-color: #f8f8f8;
+  }
+  
+  .btn-logout {
+    background-color: #ffffff;
+    color: #800020;
+    border: 1px solid #800020;
+  }
+  
+  .btn-logout:hover {
+    background-color: #f8f8f8;
+  }
+  
+  .btn-delete {
+    background-color: #ffffff;
+    color: #d32f2f;
+    border: 1px solid #d32f2f;
+  }
+  
+  .btn-delete:hover {
+    background-color: #ffebee;
+  }
+  
+  /* Responsive Design */
+  @media (min-width: 768px) {
+    .profile-content {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+    
+    .profile-picture-section {
+      flex: 0 0 200px;
+    }
+    
+    .profile-info, .profile-form {
+      flex: 1;
+    }
+    
+    .profile-actions {
+      flex-direction: row;
+      justify-content: center;
+    }
+    
+    .profile-actions button {
+      flex: 1;
+      max-width: 200px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .profile-container {
+      padding: 15px;
+    }
+    
+    .profile-header h2 {
+      font-size: 24px;
+    }
+    
+    .profile-picture-container {
+      width: 120px;
+      height: 120px;
+    }
+    
+    .patient-name {
+      font-size: 20px;
+    }
+    
+    .info-item {
+      flex-direction: column;
+      gap: 5px;
+    }
+    
+    button {
+      padding: 10px 15px;
+      font-size: 14px;
+    }
+  }

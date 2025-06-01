@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import Services from "./servicesContainer";
+import axios from "axios";
 
 function AppointmentInput() {
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [emailAddress, setEmailAddress] = useState("");
   const [selectedService, setSelectedService] = useState("");
   const [dateOfVisit, setDateOfVisit] = useState("");
   const [timeOfVisit, setTimeOfVisit] = useState("9 AM");
@@ -17,34 +16,37 @@ function AppointmentInput() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    try {
-      // Simulate user data (you can replace with actual user context)
-      const dummyUser = {
-        uid: "dummy-uid-123",
-        firstName: "John",
-        lastName: "Doe",
-      };
+    if (!selectedService || !dateOfVisit || !timeOfVisit || !visitStatus) {
+      alert("Please fill in all required fields.");
+      return;
+    }
 
+    try {
+      // Get JWT token from localStorage
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("You must be logged in to book an appointment.");
+        return;
+      }
+
+      // Only send appointment-specific fields
       const appointmentData = {
-        firstName: dummyUser.firstName,
-        lastName: dummyUser.lastName,
-        phoneNumber,
-        emailAddress,
-        service: selectedService,
-        dateOfVisit,
-        timeOfVisit,
+        appointmentDate: dateOfVisit,
+        appointmentTime: timeOfVisit,
+        serviceType: selectedService,
         visitStatus,
         additionalNotes,
-        userId: dummyUser.uid,
-        createdAt: new Date(),
       };
 
-      console.log("Simulated appointment booking:", appointmentData);
-      alert("Appointment booked successfully");
+      // Book appointment (no patientId, name, or phone number in body)
+      const response = await axios.post(
+        "http://localhost:5000/api/appointments",
+        appointmentData,
+        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+      );
 
+      alert("Appointment booked successfully!");
       // Reset form
-      setPhoneNumber("");
-      setEmailAddress("");
       setSelectedService("");
       setDateOfVisit("");
       setTimeOfVisit("9 AM");
@@ -52,41 +54,16 @@ function AppointmentInput() {
       setAdditionalNotes("");
     } catch (error) {
       console.error("Error booking appointment:", error);
-      alert("Error booking appointment");
+      alert(
+        error.response?.data?.message ||
+          "Failed to book appointment. Please try again."
+      );
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="appointmentInputs">
       <h2 className="bookAppointmentText">BOOK YOUR APPOINTMENT</h2>
-
-      <div className="inputsContainer">
-        <label className="inputLabel" htmlFor="phoneNumber">
-          Phone Number
-        </label>
-        <input
-          id="phoneNumber"
-          required
-          className="appointmentField phoneNumber"
-          placeholder="Enter your phone number"
-          value={phoneNumber}
-          onChange={(e) => setPhoneNumber(e.target.value)}
-        />
-      </div>
-
-      <div className="inputsContainer">
-        <label className="inputLabel" htmlFor="emailAddress">
-          Email Address
-        </label>
-        <input
-          id="emailAddress"
-          className="appointmentField emailAddress"
-          placeholder="Enter your email"
-          required
-          value={emailAddress}
-          onChange={(e) => setEmailAddress(e.target.value)}
-        />
-      </div>
 
       <div className="inputsContainer">
         <label htmlFor="">Select Service</label>
@@ -102,6 +79,7 @@ function AppointmentInput() {
           id="dateOfVisit"
           type="date"
           value={dateOfVisit}
+          min={new Date().toISOString().split("T")[0]} 
           onChange={(e) => setDateOfVisit(e.target.value)}
         />
       </div>

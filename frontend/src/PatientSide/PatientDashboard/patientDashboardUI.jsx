@@ -4,6 +4,7 @@ import PatientBanner from "./PatientDashBoardBanner";
 import PatientSchedule from "./PatientScheduleContainer";
 import PortalFeatures from "./PortalFeatureContainer";
 import AppointmentInterface from "../Appointment Interface/AppointmentInterface";
+import ProfileTab from "../PatientProfile/PatientPortalProfileTab";
 
 function DashboardUI() {
   const [firstName, setFirstName] = useState("");
@@ -32,7 +33,7 @@ function DashboardUI() {
 
       {/* Add other views here as needed */}
       {activeNav === "products" && <div>Products page here</div>}
-      {activeNav === "profile" && <div>Profile page here</div>}
+      {activeNav === "profile" && <ProfileTab/>}
 
       <PatientNavBar activeNav={activeNav} setActiveNav={setActiveNav} />
     </div>

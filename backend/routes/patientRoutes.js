@@ -1,13 +1,13 @@
-const express = require("express");
-const router = express.Router();
-const {
+import { Router } from "express";
+const router = Router();
+import {
   createPatient,
   getAllPatients,
-} = require("../controllers/patientController");
-const { auth, requireRole } = require("../middleware/auth");
+} from "../controllers/patientController";
+import { auth, requireRole } from "../middleware/auth";
 
 // Explicitly require admin role
 router.post("/create", auth, requireRole("admin"), createPatient);
 router.get("/", auth, requireRole("admin"), getAllPatients);
 
-module.exports = router;
+export default router;

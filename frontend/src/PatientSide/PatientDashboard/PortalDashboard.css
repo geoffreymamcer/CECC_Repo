@@ -1,6 +1,6 @@
 @media only screen and (max-width: 768px) {
   .PortalBanner {
-    background-image: url("/portalBannerBackgroud.png");
+    background-image: url("./PatientDashboardAssets/portalBannerBackgroud.png");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -14,6 +14,25 @@
     flex-direction: column;
     justify-content: space-between;
     margin-bottom: 12px;
+  }
+
+  .rescheduleDate, .rescheduleTime{
+    width: 100%;
+    height: 30px;
+    border-radius: 5px;
+    padding: 5px;
+    font-size: 15px;
+    border: 1px solid rgb(196, 190, 190);
+    
+  }
+  .submitReschedule, .cancelReschedule{
+   width: 100%;
+  height: 35px;
+  background-color: #8c0a14;
+  color: white;
+  border-radius: 5px;
+  margin-top: 5px;
+    
   }
 
   .lastLogin {
@@ -253,6 +272,13 @@
 
   .nav span {
     margin-right: 5px; /* Space between icon and text */
+
+    
+  }
+
+  .rescheduleForm{
+    display: flex;
+    flex-direction: column;
   }
 }
 
@@ -293,4 +319,7 @@
     font-size: 1rem;
     height: 2.2rem;
   }
+  
+
+
 }

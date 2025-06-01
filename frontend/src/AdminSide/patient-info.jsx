@@ -1,7 +1,6 @@
 // patient-info.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import Dropdown from "./dropdown-component";
 import "./AdminSide.css";
 
 const PatientInformation = (props) => {
@@ -136,7 +135,7 @@ const PatientInformation = (props) => {
 
     try {
       const response = await axios.put(
-        `http://localhost:5000/api/profiles/${props.patientId}`,
+        `http://localhost:5000/api/profiles/id/${props.patientId}`,
         {
           firstName: formData.fullName.split(" ")[0],
           middleName: formData.fullName.split(" ").slice(1, -1).join(" ") || "",
@@ -202,7 +201,7 @@ const PatientInformation = (props) => {
 
     try {
       const response = await axios.delete(
-        `http://localhost:5000/api/profiles/${props.patientId}`
+        `http://localhost:5000/api/profiles/id/${props.patientId}`
       );
 
       if (response.status === 200) {
@@ -336,7 +335,13 @@ const PatientInformation = (props) => {
       name: "civilStatus",
       value: formData.civilStatus,
       type: "text",
-      component: "input",
+      component: "dropdown",
+      options: [
+        "Single",
+        "Married",
+        "Widowed",
+        "Legally Separated",
+      ]
     },
     {
       label: "Referral By",

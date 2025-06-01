@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import Input from "../../InputField";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import "./patientPortalLogin.css";
 
 function SignUpForm() {
-  const [username, setUsername] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -30,24 +30,39 @@ function SignUpForm() {
     }
 
     try {
-      // Simulated successful registration
-      const dummyUser = {
-        uid: "dummy-uid-123",
-        firstName,
-        middleName,
-        lastName,
-        username,
-        email,
-        role: "patient",
-      };
+      // Create user account
+      const response = await axios.post(
+        "http://localhost:5000/api/users/signup",
+        {
+          firstName,
+          middleName,
+          lastName,
+          phone_number: phoneNumber,
+          email,
+          password,
+          role: "patient",
+        }
+      );
 
-      console.log("User created:", dummyUser);
-      localStorage.setItem("user", JSON.stringify(dummyUser));
-      alert("Account Created Successfully");
-      navigate("/");
+      if (response.data.status === "success") {
+        // Store the token and user data
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+
+        // Create initial profile
+        await axios.post("http://localhost:5000/api/profiles", {
+          patientId: response.data.user.patientId,
+          firstName,
+          middleName,
+          lastName,
+        });
+
+        alert("Account Created Successfully");
+        navigate("/");
+      }
     } catch (err) {
       console.error("Error creating user:", err);
-      setError("Failed to create account.");
+      setError(err.response?.data?.message || "Failed to create account.");
     } finally {
       setIsCreatingUser(false);
     }
@@ -61,6 +76,7 @@ function SignUpForm() {
         className="loginCredential patientSignupFirstName"
         value={firstName}
         onChange={(e) => setFirstname(e.target.value)}
+        required
       />
 
       <input
@@ -77,14 +93,16 @@ function SignUpForm() {
         className="loginCredential patientSignupLastName"
         value={lastName}
         onChange={(e) => setLastName(e.target.value)}
+        required
       />
 
       <input
         type="text"
-        placeholder="Username"
-        className="loginCredential patientSignupUserName"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
+        placeholder="Phone Number"
+        className="loginCredential patientSignupPhoneNumber"
+        value={phoneNumber}
+        onChange={(e) => setPhoneNumber(e.target.value)}
+        required
       />
 
       <input
@@ -93,6 +111,7 @@ function SignUpForm() {
         className="loginCredential patientSignupEmail"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+        required
       />
 
       <input
@@ -101,6 +120,7 @@ function SignUpForm() {
         className="loginCredential patientSignupPassword"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        required
       />
 
       <input
@@ -109,11 +129,12 @@ function SignUpForm() {
         className="loginCredential patientSignupConfirmPassword"
         value={confirmPassword}
         onChange={(e) => setConfirmPassword(e.target.value)}
+        required
       />
 
       <input
         type="submit"
-        value="Sign Up"
+        value={isCreatingUser ? "Creating Account..." : "Sign Up"}
         className="loginCredential signupButton"
         disabled={isCreatingUser}
       />
