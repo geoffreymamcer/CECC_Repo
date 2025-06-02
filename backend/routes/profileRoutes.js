@@ -6,7 +6,7 @@ import {
   createProfile,
   updateProfile,
   getMyProfile,
-  deleteProfile
+  deleteProfile,
 } from "../controllers/profileController.js";
 
 const router = express.Router();
@@ -27,8 +27,8 @@ router.get("/:patientId", getProfileByPatientId);
 // Create new profile
 router.post("/", createProfile);
 
-// Update profile
-router.put("/:patientId", updateProfile);
+// Update profile by MongoDB _id
+router.put("/id/:id", updateProfile);
 
 // Delete profile by MongoDB _id
 router.delete("/id/:id", deleteProfile);

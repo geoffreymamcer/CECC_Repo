@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import './ProfileTab.css';
+import React, { useState, useEffect } from "react";
+import "./ProfileTab.css";
 
 function ProfileTab() {
   const [profile, setProfile] = useState(null);
@@ -12,30 +12,32 @@ function ProfileTab() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/api/profiles/me', {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:5000/api/profiles/me", {
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
         });
-        if (!res.ok) throw new Error('Failed to fetch profile');
+        if (!res.ok) throw new Error("Failed to fetch profile");
         const data = await res.json();
         setProfile(data);
         setFormData({
-          firstName: data.firstName || '',
-          middleName: data.middleName || '',
-          lastName: data.lastName || '',
-          phone_number: data.phone_number || '',
-          email: data.email || '',
-          dob: data.dob ? new Date(data.dob).toISOString().split('T')[0] : '',
-          address: data.address || '',
-          gender: data.gender || '',
-          occupation: data.occupation || '',
-          civilStatus: data.civilStatus || ''
+          firstName: data.firstName || "",
+          middleName: data.middleName || "",
+          lastName: data.lastName || "",
+          phone_number: data.phone_number || "",
+          email: data.email || "",
+          dob: data.dob ? new Date(data.dob).toISOString().split("T")[0] : "",
+          address: data.address || "",
+          gender: data.gender || "",
+          occupation: data.occupation || "",
+          civilStatus: data.civilStatus || "",
         });
         setTempProfilePic(data.profilePicture || null);
       } catch (err) {
+        console.error("Error fetching profile:", err);
+        setError(err.message || "Failed to fetch profile");
         setProfile(null);
       } finally {
         setLoading(false);
@@ -46,86 +48,175 @@ function ProfileTab() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
-  const handleProfilePicChange = (e) => {
+  const compressImage = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+
+          // Max dimensions
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+
+          // Calculate new dimensions while maintaining aspect ratio
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Get compressed image as base64 string
+          const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7); // 0.7 is the quality (0-1)
+          resolve(compressedBase64);
+        };
+
+        img.onerror = (error) => {
+          reject(error);
+        };
+      };
+
+      reader.onerror = (error) => {
+        reject(error);
+      };
+    });
+  };
+
+  const handleProfilePicChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setTempProfilePic(reader.result);
-      };
-      reader.readAsDataURL(file);
+      try {
+        // Validate file type
+        if (!file.type.startsWith("image/")) {
+          setError("Please select an image file");
+          return;
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          setError("Image size should be less than 5MB");
+          return;
+        }
+
+        // Compress the image
+        const compressedImage = await compressImage(file);
+        setTempProfilePic(compressedImage);
+        setError(null); // Clear any previous errors
+      } catch (err) {
+        console.error("Error processing image:", err);
+        setError("Error processing image. Please try again.");
+      }
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const updatedProfile = {
         ...formData,
-        profilePicture: tempProfilePic
+        profilePicture: tempProfilePic,
       };
-      
-      const res = await fetch(`/api/profiles/${profile.patientId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(updatedProfile),
-      });
-      
+
+      const res = await fetch(
+        `http://localhost:5000/api/profiles/id/${profile._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(updatedProfile),
+        }
+      );
+
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to update profile');
+        throw new Error(errorData.message || "Failed to update profile");
       }
-      
+
       const data = await res.json();
       setProfile(data);
       setEditMode(false);
-      alert('Profile updated successfully!');
+      alert("Profile updated successfully!");
     } catch (err) {
       setError(err.message);
-      console.error('Error updating profile:', err);
+      console.error("Error updating profile:", err);
     }
   };
 
   const handleDeleteAccount = async () => {
-    if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete your account? This action cannot be undone."
+      )
+    ) {
       try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`/api/profiles/id/${profile._id}`, {
-          method: 'DELETE',
+        const token = localStorage.getItem("token");
+        const user = JSON.parse(localStorage.getItem("user"));
+
+        if (!user || !user.id) {
+          throw new Error("User information not found");
+        }
+
+        const res = await fetch(`http://localhost:5000/api/users/${user.id}`, {
+          method: "DELETE",
           headers: {
-            'Authorization': `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
         });
-        
+
         if (!res.ok) {
           const errorData = await res.json();
-          throw new Error(errorData.message || 'Failed to delete account');
+          throw new Error(errorData.message || "Failed to delete account");
         }
-        
-        // Clear token and redirect to login
-        localStorage.removeItem('token');
-        window.location.href = '/login';
+
+        // Clear all auth data and redirect to login
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        sessionStorage.clear();
+        window.location.href = "/";
       } catch (err) {
         setError(err.message);
-        console.error('Error deleting account:', err);
+        console.error("Error deleting account:", err);
       }
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    // Redirect to login page
-    window.location.href = '/login';
+    // Clear all authentication-related data
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    sessionStorage.clear(); // Clear any session data if exists
+
+    // Redirect to the login page
+    window.location.href = "/";
   };
 
   if (loading) {
@@ -144,27 +235,35 @@ function ProfileTab() {
       <div className="profile-content">
         <div className="profile-picture-section">
           <div className="profile-picture-container">
-            <img 
-              src={profile.profilePicture || '/default-profile.png'} 
-              alt="Profile" 
+            <img
+              src={
+                editMode
+                  ? tempProfilePic ||
+                    profile.profilePicture ||
+                    "/default-profile.png"
+                  : profile.profilePicture || "/default-profile.png"
+              }
+              alt="Profile"
               className="profile-picture"
             />
             {editMode && (
               <div className="profile-picture-edit">
                 <label htmlFor="profile-pic-upload" className="edit-icon-label">
                   <span className="edit-icon">+</span>
-                  <input 
-                    id="profile-pic-upload" 
-                    type="file" 
-                    accept="image/*" 
+                  <input
+                    id="profile-pic-upload"
+                    type="file"
+                    accept="image/*"
                     onChange={handleProfilePicChange}
-                    style={{ display: 'none' }}
+                    style={{ display: "none" }}
                   />
                 </label>
               </div>
             )}
           </div>
-          <h3 className="patient-name">{profile.firstName} {profile.lastName}</h3>
+          <h3 className="patient-name">
+            {profile.firstName} {profile.lastName}
+          </h3>
           <p className="patient-id">Patient ID: {profile.patientId}</p>
         </div>
 
@@ -290,9 +389,11 @@ function ProfileTab() {
             </div>
 
             <div className="form-actions">
-              <button type="submit" className="btn-save">Save Changes</button>
-              <button 
-                type="button" 
+              <button type="submit" className="btn-save">
+                Save Changes
+              </button>
+              <button
+                type="button"
                 className="btn-cancel"
                 onClick={() => setEditMode(false)}
               >
@@ -308,7 +409,7 @@ function ProfileTab() {
             </div>
             <div className="info-item">
               <span className="info-label">Middle Name:</span>
-              <span className="info-value">{profile.middleName || '-'}</span>
+              <span className="info-value">{profile.middleName || "-"}</span>
             </div>
             <div className="info-item">
               <span className="info-label">Last Name:</span>
@@ -324,36 +425,35 @@ function ProfileTab() {
             </div>
             <div className="info-item">
               <span className="info-label">Date of Birth:</span>
-              <span className="info-value">{profile.dob ? new Date(profile.dob).toLocaleDateString() : '-'}</span>
+              <span className="info-value">
+                {profile.dob ? new Date(profile.dob).toLocaleDateString() : "-"}
+              </span>
             </div>
             <div className="info-item">
               <span className="info-label">Address:</span>
-              <span className="info-value">{profile.address || '-'}</span>
+              <span className="info-value">{profile.address || "-"}</span>
             </div>
             <div className="info-item">
               <span className="info-label">Gender:</span>
-              <span className="info-value">{profile.gender || '-'}</span>
+              <span className="info-value">{profile.gender || "-"}</span>
             </div>
             <div className="info-item">
               <span className="info-label">Occupation:</span>
-              <span className="info-value">{profile.occupation || '-'}</span>
+              <span className="info-value">{profile.occupation || "-"}</span>
             </div>
             <div className="info-item">
               <span className="info-label">Civil Status:</span>
-              <span className="info-value">{profile.civilStatus || '-'}</span>
+              <span className="info-value">{profile.civilStatus || "-"}</span>
             </div>
           </div>
         )}
       </div>
 
       {error && <div className="error-message">{error}</div>}
-      
+
       <div className="profile-actions">
         {!editMode && (
-          <button 
-            className="btn-edit"
-            onClick={() => setEditMode(true)}
-          >
+          <button className="btn-edit" onClick={() => setEditMode(true)}>
             Edit Profile
           </button>
         )}
@@ -366,6 +466,6 @@ function ProfileTab() {
       </div>
     </div>
   );
-};
+}
 
 export default ProfileTab;

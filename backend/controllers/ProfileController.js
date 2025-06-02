@@ -72,9 +72,23 @@ export const createProfile = async (req, res) => {
 // Update profile
 export const updateProfile = async (req, res) => {
   try {
-    const { patientId } = req.params;
-    const profile = await Profile.findOneAndUpdate({ patientId }, req.body, {
+    const { id } = req.params;
+    const updateData = { ...req.body };
+
+    // Handle profile picture update
+    if (updateData.profilePicture) {
+      // Validate base64 image
+      if (!updateData.profilePicture.startsWith("data:image")) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid image format. Please upload a valid image.",
+        });
+      }
+    }
+
+    const profile = await Profile.findByIdAndUpdate(id, updateData, {
       new: true,
+      runValidators: true,
     });
 
     if (!profile) {
@@ -92,7 +106,7 @@ export const updateProfile = async (req, res) => {
       message: error.message || "Error updating profile",
     });
   }
-}
+};
 
 // Delete a profile
 export const deleteProfile = async (req, res) => {
@@ -111,11 +125,15 @@ export const deleteProfile = async (req, res) => {
 export const getMyProfile = async (req, res) => {
   try {
     if (!req.user.patientId) {
-      return res.status(400).json({ message: "No patientId in token. Please re-login or contact support." });
+      return res.status(400).json({
+        message: "No patientId in token. Please re-login or contact support.",
+      });
     }
     const profile = await Profile.findOne({ patientId: req.user.patientId });
     if (!profile) {
-      return res.status(404).json({ message: "Profile not found for current user" });
+      return res
+        .status(404)
+        .json({ message: "Profile not found for current user" });
     }
     res.status(200).json(profile);
   } catch (error) {

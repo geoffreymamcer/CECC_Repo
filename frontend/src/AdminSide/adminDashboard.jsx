@@ -10,7 +10,8 @@ import Input from "./InputField";
 import "./AdminSide.css";
 import Sidebar from "./sideBarMenu";
 import PatientList from "./patient";
-import PatientAnalytics from "./patientAnalytics";
+import PatientAnalytics from "./PatientAnalytics/PatientAnalytics";
+
 import SalesAnalytics from "./salesAnalytics";
 import Appointments from "./Appointment/Appointments";
 import Inventory from "./Inventory";

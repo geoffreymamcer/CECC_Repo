@@ -1,0 +1,218 @@
+/* Base Styles */
+.patient-analytics {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  color: #333;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.header h1 {
+  color: #800000;
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Time Range Selector */
+.time-range-selector {
+  display: flex;
+  gap: 8px;
+}
+
+.time-range-selector button {
+  padding: 6px 12px;
+  border: 1px solid #800000;
+  background: white;
+  color: #800000;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.time-range-selector button.active {
+  background: #800000;
+  color: white;
+}
+
+.time-range-selector button:hover {
+  background: #600000;
+  color: white;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.tabs button {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #666;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tabs button.active {
+  color: #800000;
+  border-bottom-color: #800000;
+}
+
+.tabs button:hover {
+  color: #800000;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  padding: 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card h2 {
+  color: #800000;
+  font-size: 18px;
+  margin-top: 0;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* Chart Containers */
+.pie-chart-container,
+.line-chart-container,
+.bar-chart-container,
+.geo-map-container {
+  height: 250px;
+  position: relative;
+}
+
+/* Pie Chart Styles */
+.pie-chart {
+  width: 150px;
+  height: 150px;
+  margin: 0 auto;
+}
+
+.pie-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+}
+
+.color-box {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 5px;
+  border-radius: 2px;
+}
+
+/* Line & Bar Chart Styles */
+.line-chart,
+.bar-chart {
+  width: 100%;
+  height: 100%;
+}
+
+/* Geo Map Styles */
+.map-placeholder {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.map-title {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-weight: 500;
+  color: #800000;
+  z-index: 1;
+}
+
+.map-points {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.map-point {
+  position: absolute;
+  background-color: rgba(128, 0, 0, 0.7);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.map-point:hover {
+  background-color: rgba(128, 0, 0, 1);
+  box-shadow: 0 0 0 2px rgba(128, 0, 0, 0.3);
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .time-range-selector {
+    align-self: flex-end;
+  }
+}

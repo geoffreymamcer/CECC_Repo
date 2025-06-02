@@ -36,7 +36,9 @@ export const signup = async (req, res) => {
     });
 
     // Prevent duplicate profiles: check if one exists before creating
-    const existingProfile = await Profile.findOne({ patientId: newUser.patientId });
+    const existingProfile = await Profile.findOne({
+      patientId: newUser.patientId,
+    });
     if (!existingProfile) {
       try {
         await Profile.create({
@@ -47,7 +49,7 @@ export const signup = async (req, res) => {
           email,
           phone_number,
           address: "", // To be filled by admin
-          dob: "",     // To be filled by admin
+          dob: "", // To be filled by admin
         });
       } catch (profileError) {
         // Cleanup: delete the user if profile creation fails
@@ -61,7 +63,7 @@ export const signup = async (req, res) => {
 
     // Create token
     const token = jwt.sign(
-      { id: newUser._id, role: newUser.role },
+      { id: newUser._id, patientId: newUser.patientId, role: newUser.role },
       process.env.JWT_SECRET || "your-secret-key",
       { expiresIn: "24h" }
     );
@@ -95,26 +97,26 @@ export const signup = async (req, res) => {
 export const getMe = async (req, res) => {
   try {
     // The user ID is set by the auth middleware
-    const user = await User.findById(req.user.id).select('-password');
-    
+    const user = await User.findById(req.user.id).select("-password");
+
     if (!user) {
       return res.status(404).json({
-        status: 'error',
-        message: 'User not found'
+        status: "error",
+        message: "User not found",
       });
     }
 
     res.status(200).json({
-      status: 'success',
+      status: "success",
       data: {
-        user
-      }
+        user,
+      },
     });
   } catch (error) {
-    console.error('Get me error:', error);
+    console.error("Get me error:", error);
     res.status(500).json({
-      status: 'error',
-      message: 'An error occurred while fetching user data'
+      status: "error",
+      message: "An error occurred while fetching user data",
     });
   }
 };
@@ -186,6 +188,39 @@ export const login = async (req, res) => {
     res.status(500).json({
       status: "error",
       message: error.message || "An error occurred during login",
+    });
+  }
+};
+
+export const deleteUser = async (req, res) => {
+  try {
+    // Only allow users to delete their own account
+    if (req.user.id !== req.params.id) {
+      return res.status(403).json({
+        status: "error",
+        message: "You can only delete your own account",
+      });
+    }
+
+    // Delete the user
+    const user = await User.findByIdAndDelete(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: "Account deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete user error:", error);
+    res.status(500).json({
+      status: "error",
+      message: error.message || "An error occurred while deleting the account",
     });
   }
 };

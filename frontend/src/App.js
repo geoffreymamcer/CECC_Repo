@@ -7,7 +7,7 @@ import PatientLogInUI from "./PatientSide/LoginAndSignUp/patientLogIn";
 import DashboardUI from "./PatientSide/PatientDashboard/patientDashboardUI";
 import PatientProtectedRoute from "./PatientSide/PatientDashboard/PatientProtectedRoute";
 import PatientSignUp from "./PatientSide/LoginAndSignUp/patientSignUp";
-
+import PatientAnalytics from "./AdminSide/PatientAnalytics/PatientAnalytics";
 
 function App() {
   return (
@@ -16,9 +16,15 @@ function App() {
         <Route path="/cecc-admin-login" element={<AdminLogIn />} />
         <Route path="/" element={<PatientLogInUI />} />
         <Route path="/patient-signup" element={<PatientSignUp />} />
-
-        <Route path="/user-dashboard" element={<PatientProtectedRoute><DashboardUI /></PatientProtectedRoute>} />
-
+        <Route
+          path="/user-dashboard"
+          element={
+            <PatientProtectedRoute>
+              <DashboardUI />
+            </PatientProtectedRoute>
+          }
+        />
+        <Route path="/patient-analytics" element={<PatientAnalytics />} />
         <Route
           path="/cecc-admin-dashboard"
           element={
