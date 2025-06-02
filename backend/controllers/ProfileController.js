@@ -49,6 +49,15 @@ export const getProfileByPatientId = async (req, res) => {
 // Create new profile
 export const createProfile = async (req, res) => {
   try {
+    const { patientId } = req.body;
+    // Check for duplicate patientId
+    const existingProfile = await Profile.findOne({ patientId });
+    if (existingProfile) {
+      return res.status(400).json({
+        status: "error",
+        message: "Profile already exists for this patientId",
+      });
+    }
     const profile = await Profile.create(req.body);
     res.status(201).json(profile);
   } catch (error) {
@@ -83,7 +92,7 @@ export const updateProfile = async (req, res) => {
       message: error.message || "Error updating profile",
     });
   }
-};
+}
 
 // Delete a profile
 export const deleteProfile = async (req, res) => {
@@ -93,6 +102,22 @@ export const deleteProfile = async (req, res) => {
       return res.status(404).json({ message: "Profile not found" });
     }
     res.status(200).json({ message: "Profile deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get profile for the logged-in user
+export const getMyProfile = async (req, res) => {
+  try {
+    if (!req.user.patientId) {
+      return res.status(400).json({ message: "No patientId in token. Please re-login or contact support." });
+    }
+    const profile = await Profile.findOne({ patientId: req.user.patientId });
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found for current user" });
+    }
+    res.status(200).json(profile);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -49,14 +49,6 @@ function SignUpForm() {
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data.user));
 
-        // Create initial profile
-        await axios.post("http://localhost:5000/api/profiles", {
-          patientId: response.data.user.patientId,
-          firstName,
-          middleName,
-          lastName,
-        });
-
         alert("Account Created Successfully");
         navigate("/");
       }

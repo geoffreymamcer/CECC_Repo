@@ -16,7 +16,7 @@ const registerPatient = async (req, res) => {
       return res.status(400).json({
         message: "Email or username already exists",
       });
-    }
+    }z
 
     // Create new patient
     const patient = await PatientAuth.create({

@@ -11,6 +11,8 @@ const profileSchema = new mongoose.Schema(
     firstName: { type: String, required: true },
     middleName: { type: String },
     lastName: { type: String, required: true },
+    email: { type: String },
+    phone_number: { type: String },
     profilePicture: { type: String, default: null },
     dob: { type: Date },
     age: { type: Number },

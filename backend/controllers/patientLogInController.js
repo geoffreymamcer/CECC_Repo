@@ -18,9 +18,14 @@ const loginPatient = async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // Create token
+    // Prevent login if patientId is missing
+    if (!patient.patientId) {
+      return res.status(400).json({ message: "Account is missing patientId. Please contact support." });
+    }
+
+    // Create token (include patientId)
     const token = jwt.sign(
-      { id: patient._id, role: "patient" },
+      { id: patient._id, patientId: patient.patientId, role: "patient" },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
@@ -29,6 +34,7 @@ const loginPatient = async (req, res) => {
       token,
       user: {
         id: patient._id,
+        patientId: patient.patientId,
         email: patient.email,
         firstName: patient.firstName,
         lastName: patient.lastName,

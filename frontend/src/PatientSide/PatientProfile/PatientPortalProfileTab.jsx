@@ -7,6 +7,7 @@ function ProfileTab() {
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({});
   const [tempProfilePic, setTempProfilePic] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -27,8 +28,11 @@ function ProfileTab() {
           lastName: data.lastName || '',
           phone_number: data.phone_number || '',
           email: data.email || '',
-          date_of_birth: data.date_of_birth || '',
+          dob: data.dob ? new Date(data.dob).toISOString().split('T')[0] : '',
           address: data.address || '',
+          gender: data.gender || '',
+          occupation: data.occupation || '',
+          civilStatus: data.civilStatus || ''
         });
         setTempProfilePic(data.profilePicture || null);
       } catch (err) {
@@ -59,25 +63,69 @@ function ProfileTab() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you would typically send the updated data to your backend
-    setEditMode(false);
-    // In a real app, you would update the parent state or make an API call here
+    try {
+      const token = localStorage.getItem('token');
+      const updatedProfile = {
+        ...formData,
+        profilePicture: tempProfilePic
+      };
+      
+      const res = await fetch(`/api/profiles/${profile.patientId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(updatedProfile),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to update profile');
+      }
+      
+      const data = await res.json();
+      setProfile(data);
+      setEditMode(false);
+      alert('Profile updated successfully!');
+    } catch (err) {
+      setError(err.message);
+      console.error('Error updating profile:', err);
+    }
   };
 
-  const handleDeleteAccount = () => {
-    // Add delete account logic here
+  const handleDeleteAccount = async () => {
     if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-      console.log("Account deletion requested");
-      // API call to delete account would go here
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/profiles/id/${profile._id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || 'Failed to delete account');
+        }
+        
+        // Clear token and redirect to login
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      } catch (err) {
+        setError(err.message);
+        console.error('Error deleting account:', err);
+      }
     }
   };
 
   const handleLogout = () => {
-    // Add logout logic here
-    console.log("User logged out");
-    // Clear session/token and redirect would go here
+    localStorage.removeItem('token');
+    // Redirect to login page
+    window.location.href = '/login';
   };
 
   if (loading) {
@@ -178,12 +226,12 @@ function ProfileTab() {
             </div>
 
             <div className="form-group">
-              <label htmlFor="date_of_birth">Date of Birth</label>
+              <label htmlFor="dob">Date of Birth</label>
               <input
                 type="date"
-                id="date_of_birth"
-                name="date_of_birth"
-                value={formData.date_of_birth}
+                id="dob"
+                name="dob"
+                value={formData.dob}
                 onChange={handleInputChange}
               />
             </div>
@@ -197,6 +245,48 @@ function ProfileTab() {
                 value={formData.address}
                 onChange={handleInputChange}
               />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="gender">Gender</label>
+              <select
+                id="gender"
+                name="gender"
+                value={formData.gender}
+                onChange={handleInputChange}
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="occupation">Occupation</label>
+              <input
+                type="text"
+                id="occupation"
+                name="occupation"
+                value={formData.occupation}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="civilStatus">Civil Status</label>
+              <select
+                id="civilStatus"
+                name="civilStatus"
+                value={formData.civilStatus}
+                onChange={handleInputChange}
+              >
+                <option value="">Select Civil Status</option>
+                <option value="Single">Single</option>
+                <option value="Married">Married</option>
+                <option value="Divorced">Divorced</option>
+                <option value="Widowed">Widowed</option>
+              </select>
             </div>
 
             <div className="form-actions">
@@ -234,16 +324,30 @@ function ProfileTab() {
             </div>
             <div className="info-item">
               <span className="info-label">Date of Birth:</span>
-              <span className="info-value">{profile.date_of_birth}</span>
+              <span className="info-value">{profile.dob ? new Date(profile.dob).toLocaleDateString() : '-'}</span>
             </div>
             <div className="info-item">
               <span className="info-label">Address:</span>
-              <span className="info-value">{profile.address}</span>
+              <span className="info-value">{profile.address || '-'}</span>
+            </div>
+            <div className="info-item">
+              <span className="info-label">Gender:</span>
+              <span className="info-value">{profile.gender || '-'}</span>
+            </div>
+            <div className="info-item">
+              <span className="info-label">Occupation:</span>
+              <span className="info-value">{profile.occupation || '-'}</span>
+            </div>
+            <div className="info-item">
+              <span className="info-label">Civil Status:</span>
+              <span className="info-value">{profile.civilStatus || '-'}</span>
             </div>
           </div>
         )}
       </div>
 
+      {error && <div className="error-message">{error}</div>}
+      
       <div className="profile-actions">
         {!editMode && (
           <button 
