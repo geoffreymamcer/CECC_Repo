@@ -28,9 +28,21 @@ function AdminLogIn() {
         password,
       });
 
+      const { token, user } = response.data;
+
       // Store the token and user data in localStorage
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify({
+        ...user,
+        role: "admin" // Ensure role is set to admin
+      }));
+
+      // Set the authorization header for all future axios requests
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+      // Configure axios base URL
+      axios.defaults.baseURL = "http://localhost:5000";
 
       // Navigate to admin dashboard on successful login
       navigate("/cecc-admin-dashboard");

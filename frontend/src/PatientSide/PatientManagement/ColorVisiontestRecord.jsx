@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FiDownload, FiCheckCircle } from "react-icons/fi";
+import { FiDownload, FiCheckCircle, FiXCircle } from "react-icons/fi";
 import "./PatientManagement.css";
 import ColorVisionTestHistory from "../PatientProfile/ColorVisionTestHistory";
 
@@ -40,6 +40,7 @@ const ColorVisionTest = ({ handleDownloadPDF }) => {
 
     fetchColorVisionTests();
   }, []);
+
   if (loading) {
     return <div className="loading-message">Loading color vision test records...</div>;
   }
@@ -59,6 +60,48 @@ const ColorVisionTest = ({ handleDownloadPDF }) => {
   // Use the most recent test record
   const latestTest = testRecords[0];
 
+  // Function to determine result status and corresponding class
+  const getResultStatus = (accuracy) => {
+    if (accuracy >= 90) return { status: "Normal", className: "normal" };
+    if (accuracy >= 70) return { status: "Mild", className: "mild" };
+    if (accuracy >= 50) return { status: "Moderate", className: "moderate" };
+    return { status: "Severe", className: "severe" };
+  };
+
+  // Format date
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const resultStatus = getResultStatus(latestTest.accuracy);
+
+  // Get recommended follow-up tests
+  const getRecommendedTests = () => {
+    if (!latestTest.followUpTests) return [];
+    
+    return Object.entries(latestTest.followUpTests)
+      .filter(([_, isRecommended]) => isRecommended)
+      .map(([testName, _]) => {
+        // Convert test names to more readable format
+        const testLabels = {
+          ishihara: "Ishihara Test",
+          farnsworth: "Farnsworth D-15",
+          anomaloscope: "Anomaloscope Test",
+          lantern: "Lantern Test",
+          colorimetry: "Colorimetry Analysis"
+        };
+        return testLabels[testName] || testName;
+      });
+  };
+
+  const recommendedTests = getRecommendedTests();
+
   return (
     <div className="color-vision-record">
       <div className="section-header">
@@ -75,12 +118,14 @@ const ColorVisionTest = ({ handleDownloadPDF }) => {
         <div className="detail-row">
           <span className="detail-label">Test Date:</span>
           <span>
-            {new Date(latestTest.testDate).toLocaleDateString()}
+            {formatDate(latestTest.testDate)}
           </span>
         </div>
         <div className="detail-row">
           <span className="detail-label">Result:</span>
-          <span className="result-badge">{latestTest.testResult}</span>
+          <span className={`result-badge ${resultStatus.className}`}>
+            {resultStatus.status}
+          </span>
         </div>
 
         <div className="test-metrics">
@@ -98,7 +143,7 @@ const ColorVisionTest = ({ handleDownloadPDF }) => {
           </div>
           <div className="metric">
             <span className="metric-value">
-              {latestTest.accuracy.toFixed(1)}%
+              {Math.round(latestTest.accuracy)}%
             </span>
             <span className="metric-label">Accuracy</span>
           </div>
@@ -115,9 +160,9 @@ const ColorVisionTest = ({ handleDownloadPDF }) => {
         {/* Recommended follow-up tests section */}
         <div className="follow-up-tests">
           <h4 className="follow-up-tests-title">Recommended Follow-up Tests</h4>
-          {latestTest.followUpTests && latestTest.followUpTests.length > 0 ? (
+          {recommendedTests.length > 0 ? (
             <ul className="test-list">
-              {latestTest.followUpTests.map((test, index) => (
+              {recommendedTests.map((test, index) => (
                 <li key={index} className="test-item">
                   <FiCheckCircle className="test-icon" />
                   <span>{test}</span>
@@ -125,7 +170,9 @@ const ColorVisionTest = ({ handleDownloadPDF }) => {
               ))}
             </ul>
           ) : (
-            <p className="no-tests-message">No follow-up tests recommended at this time. Please wait for the doctor's evaluation of your test.</p>
+            <p className="no-tests-message">
+              No follow-up tests recommended at this time.
+            </p>
           )}
         </div>
 

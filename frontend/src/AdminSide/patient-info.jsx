@@ -41,36 +41,76 @@ const PatientInformation = (props) => {
     occupationalHistory: "",
     digitalHistory: "",
   });
+
+  // Add state for visit data
+  const [visitData, setVisitData] = useState([]);
+  const [loadingVisits, setLoadingVisits] = useState(false);
+  const [visitError, setVisitError] = useState(null);
   
   // State to track if medical history exists for this patient
   const [medicalHistoryId, setMedicalHistoryId] = useState(null);
 
-  // Fetch medical history data when patient ID changes
+  // Fetch medical history and visit data when patient ID changes
   useEffect(() => {
-    const fetchMedicalHistory = async () => {
+    const fetchData = async () => {
       if (props.patientId) {
         try {
           const token = localStorage.getItem('token');
-          const response = await axios.get(`http://localhost:5000/api/medicalhistory/${props.patientId}`, {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
           
-          if (response.data) {
+          // Fetch medical history
+          const medHistoryResponse = await axios.get(
+            `http://localhost:5000/api/medicalhistory/${props.patientId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            }
+          );
+          
+          if (medHistoryResponse.data) {
             setMedicalHistoryData({
-              ocularHistory: response.data.ocularHistory || "",
-              healthHistory: response.data.healthHistory || "",
-              familyMedicalHistory: response.data.familyMedicalHistory || "",
-              medications: response.data.medications || "",
-              allergies: response.data.allergies || "",
-              occupationalHistory: response.data.occupationalHistory || "",
-              digitalHistory: response.data.digitalHistory || "",
+              ocularHistory: medHistoryResponse.data.ocularHistory || "",
+              healthHistory: medHistoryResponse.data.healthHistory || "",
+              familyMedicalHistory: medHistoryResponse.data.familyMedicalHistory || "",
+              medications: medHistoryResponse.data.medications || "",
+              allergies: medHistoryResponse.data.allergies || "",
+              occupationalHistory: medHistoryResponse.data.occupationalHistory || "",
+              digitalHistory: medHistoryResponse.data.digitalHistory || "",
             });
-            setMedicalHistoryId(response.data._id);
+            setMedicalHistoryId(medHistoryResponse.data._id);
           }
+
+          // Fetch visit data
+          setLoadingVisits(true);
+          const visitResponse = await axios.get(
+            `http://localhost:5000/api/visits/patient/${props.patientId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            }
+          );
+
+          // Sort visits by date (newest first)
+          const sortedVisits = visitResponse.data.sort((a, b) => 
+            new Date(b.visitDate) - new Date(a.visitDate)
+          );
+          setVisitData(sortedVisits);
+          
+          // Update form data with the most recent visit information if available
+          if (sortedVisits.length > 0) {
+            const latestVisit = sortedVisits[0];
+            setFormData(prev => ({
+              ...prev,
+              chiefComplaint: latestVisit.chiefComplaint || prev.chiefComplaint,
+              associatedComplaint: latestVisit.associatedComplaint || prev.associatedComplaint,
+              diagnosis: latestVisit.diagnosis || prev.diagnosis,
+              treatmentPlan: latestVisit.treatmentPlan || prev.treatmentPlan,
+            }));
+          }
+
         } catch (error) {
-          // If 404, it means no medical history exists yet for this patient
+          // Handle medical history 404 separately
           if (error.response && error.response.status === 404) {
             console.log("No medical history found for this patient");
             setMedicalHistoryData({
@@ -84,20 +124,17 @@ const PatientInformation = (props) => {
             });
             setMedicalHistoryId(null);
           } else {
-            console.error("Error fetching medical history:", error);
+            console.error("Error fetching data:", error);
+            setVisitError("Failed to fetch patient data");
           }
+        } finally {
+          setLoadingVisits(false);
         }
       }
     };
 
-    fetchMedicalHistory();
-    
-    // Update formData when props change
-    setFormData((prev) => ({
-      ...prev,
-      dob: formatDate(props.dob) || prev.dob,
-    }));
-  }, [props.patientId, props.dob]);
+    fetchData();
+  }, [props.patientId]);
 
   const getAgeCategory = (calculatedAge) => {
     if (calculatedAge >= 0 && calculatedAge <= 12) return "Child: 0-12";
@@ -184,7 +221,6 @@ const PatientInformation = (props) => {
 
   const handleSave = async () => {
     const token = localStorage.getItem('token');
-    // Show confirmation dialog
     const isConfirmed = window.confirm(
       "Are you sure you want to save these changes?"
     );
@@ -194,8 +230,8 @@ const PatientInformation = (props) => {
     }
 
     try {
-      // Update the profile - now using _id directly but without visit-specific details
-      const profileResponse = await axios.put(
+      // Update the profile
+      await axios.put(
         `http://localhost:5000/api/profiles/${props.patientId}`,
         {
           firstName: formData.fullName.split(" ")[0],
@@ -210,7 +246,6 @@ const PatientInformation = (props) => {
           civilStatus: formData.civilStatus,
           referralBy: formData.referralBy,
           ageCategory: formData.ageCategory
-          // Removed visit-specific details from profile
         },
         {
           headers: {
@@ -219,13 +254,22 @@ const PatientInformation = (props) => {
         }
       );
 
-      // Update or create medical history
-      let medicalHistoryResponse;
+      // Create or update medical history
+      const medicalHistoryPayload = {
+        patientId: props.patientId,
+        ocularHistory: medicalHistoryData.ocularHistory,
+        healthHistory: medicalHistoryData.healthHistory,
+        familyMedicalHistory: medicalHistoryData.familyMedicalHistory,
+        medications: medicalHistoryData.medications,
+        allergies: medicalHistoryData.allergies,
+        occupationalHistory: medicalHistoryData.occupationalHistory,
+        digitalHistory: medicalHistoryData.digitalHistory,
+      };
+
       if (medicalHistoryId) {
-        // Update existing medical history
-        medicalHistoryResponse = await axios.put(
+        await axios.put(
           `http://localhost:5000/api/medicalhistory/${medicalHistoryId}`,
-          medicalHistoryData,
+          medicalHistoryPayload,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -233,84 +277,47 @@ const PatientInformation = (props) => {
           }
         );
       } else {
-        // Create new medical history
-        medicalHistoryResponse = await axios.put(
-          `http://localhost:5000/api/medicalhistory/patient/${props.patientId}`,
-          {
-            patientId: props.patientId, // This is now the custom ID
-            ...medicalHistoryData
-          },
+        await axios.post(
+          "http://localhost:5000/api/medicalhistory",
+          medicalHistoryPayload,
           {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }
         );
-        
-        // Save the new medical history ID
-        if (medicalHistoryResponse.data && medicalHistoryResponse.data._id) {
-          setMedicalHistoryId(medicalHistoryResponse.data._id);
-        }
-      }
-      
-      // Create a new visit record if visit-specific details are provided
-      let visitResponse = { status: 200 }; // Default to success if no visit is created
-      
-      if (formData.chiefComplaint) {
-        console.log('Creating new visit record with details:', {
-          patientId: props.patientId,
-          chiefComplaint: formData.chiefComplaint,
-          associatedComplaint: formData.associatedComplaint,
-          diagnosis: formData.diagnosis,
-          treatmentPlan: formData.treatmentPlan,
-          visitDate: new Date()
-        });
-        
-        visitResponse = await axios.post(
-          'http://localhost:5000/api/visits',
-          {
-            patientId: props.patientId,
-            chiefComplaint: formData.chiefComplaint,
-            associatedComplaint: formData.associatedComplaint,
-            diagnosis: formData.diagnosis,
-            treatmentPlan: formData.treatmentPlan,
-            visitDate: new Date()
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        
-        // Clear visit-specific fields after creating the visit
-        setFormData(prev => ({
-          ...prev,
-          chiefComplaint: '',
-          associatedComplaint: '',
-          diagnosis: '',
-          treatmentPlan: ''
-        }));
       }
 
-      if (profileResponse.status === 200 && 
-          (medicalHistoryResponse.status === 200 || medicalHistoryResponse.status === 201) &&
-          visitResponse.status === 200 || visitResponse.status === 201) {
-        alert("Patient information updated successfully!" + 
-              (formData.chiefComplaint ? " A new visit record has been created." : ""));
-        setIsEditing(false);
-        // Notify parent component to refresh data
-        if (props.onUpdate) {
-          props.onUpdate();
+      // Create a new visit record
+      const visitPayload = {
+        patientId: props.patientId,
+        visitDate: new Date(),
+        chiefComplaint: formData.chiefComplaint,
+        associatedComplaint: formData.associatedComplaint,
+        diagnosis: formData.diagnosis,
+        treatmentPlan: formData.treatmentPlan,
+      };
+
+      await axios.post(
+        "http://localhost:5000/api/visits",
+        visitPayload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
+      );
+
+      alert("Changes saved successfully!");
+      if (props.onUpdate) {
+        props.onUpdate();
       }
     } catch (error) {
-      console.error("Error updating patient information:", error);
-      alert(
-        error.response?.data?.message ||
-        "Failed to update information. Please check your connection and try again."
-      );
+      console.error("Error saving changes:", error);
+      alert("Failed to save changes. Please try again.");
     }
+
+    setIsEditing(false);
   };
 
   const handleDelete = async () => {
@@ -645,11 +652,14 @@ const PatientInformation = (props) => {
     </>
   );
 
+  // Add visit history section to the render
+
+
   return (
     <div className="patient-details">
       {renderSection("Personal Information", personalInfo)}
       {renderSection("Medical History", medicalHistory)}
-      {renderSection("Visit-Specific Details", visitDetails)}
+      {renderSection("Current Visit Details", visitDetails)}
 
       <div className="patient-info-actions">
         {!isEditing ? (

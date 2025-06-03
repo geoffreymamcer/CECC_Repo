@@ -15,7 +15,7 @@ import PatientAnalytics from "./PatientAnalytics/PatientAnalytics";
 import SalesAnalytics from "./SalesAnalytics/SalesAnalytics";
 import Appointments from "./Appointment/Appointments";
 import Inventory from "./Inventory";
-import Feedbacks from "./Feedback";
+import ColorVisionTestTab from "./ColorVisionTest/ColorVisionTestTab";
 
 import { useNavigate } from "react-router-dom";
 import FloatingButton from "./floating-button";
@@ -54,8 +54,8 @@ function Dashboard() {
         return <Appointments />;
       case "inventory":
         return <Inventory />;
-      case "feedbacks":
-        return <Feedbacks />;
+      case "Color Vision Test":
+        return <ColorVisionTestTab />;
       default:
         return <h2>Welcome to the Admin Dashboard</h2>;
     }

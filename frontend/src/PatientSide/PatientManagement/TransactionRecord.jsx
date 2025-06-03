@@ -34,14 +34,14 @@ const Transactions = ({ visit, handleDownloadPDF }) => {
           {visit.products.map((item, index) => (
             <div key={index} className="receipt-item">
               <span>{item.name}</span>
-              <span>${item.price.toFixed(2)}</span>
+              <span>P{item.price.toFixed(2)}</span>
             </div>
           ))}
 
           <div className="receipt-total">
             <span>Total:</span>
             <span>
-              $
+              P
               {visit.products
                 .reduce((sum, item) => sum + item.price, 0)
                 .toFixed(2)}

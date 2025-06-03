@@ -1,7 +1,7 @@
 /* Base Styles */
 .appointment-interface {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 20px;
   color: #333;
@@ -43,18 +43,19 @@
 .content-container {
   display: flex;
   gap: 30px;
+  width: 100%;
 }
 
 .calendar-section {
-  flex: 1;
-  min-width: 350px;
+  flex: 0 0 350px; /* Fixed width for calendar */
 }
 
 .tables-section {
-  flex: 2;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 30px;
+  min-width: 0; /* Allows the flex container to shrink below its content size */
 }
 
 /* Calendar Styles */
@@ -135,6 +136,7 @@
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   padding: 20px;
+  width: 100%;
 }
 
 .appointment-table-container h3 {
@@ -147,6 +149,14 @@
 .appointment-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 800px; /* Minimum width to ensure readability */
+}
+
+.appointment-table-wrapper {
+  overflow-x: auto;
+  margin: 0 -20px; /* Negative margin to allow full-width scrolling */
+  padding: 0 20px; /* Padding to maintain visual consistency */
+  width: calc(100% + 40px); /* Compensate for negative margins */
 }
 
 .appointment-table th, 
@@ -154,12 +164,16 @@
   padding: 12px 15px;
   text-align: left;
   border-bottom: 1px solid #e0e0e0;
+  white-space: nowrap; /* Prevent text wrapping */
 }
 
 .appointment-table th {
   background-color: #f8f8f8;
   color: #800000;
   font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .appointment-table tr:hover {
@@ -253,25 +267,58 @@
 }
 
 /* Responsive Styles */
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .content-container {
     flex-direction: column;
   }
   
   .calendar-section {
-    min-width: 100%;
+    flex: none;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  
+  .tables-section {
+    width: 100%;
   }
 }
 
 @media (max-width: 768px) {
-  .appointment-table {
-    display: block;
-    overflow-x: auto;
+  .appointment-interface {
+    padding: 10px;
   }
-  
-  .header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
+
+  .appointment-table-container {
+    padding: 15px;
+  }
+
+  .appointment-table-wrapper {
+    margin: 0 -15px;
+    padding: 0 15px;
+    width: calc(100% + 30px);
+  }
+
+  .appointment-table th,
+  .appointment-table td {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .appointment-table input[type="checkbox"] {
+    transform: scale(1);
+  }
+
+  .add-appointment-button {
+    width: 100%;
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .appointment-table th,
+  .appointment-table td {
+    padding: 6px;
+    font-size: 12px;
   }
 }

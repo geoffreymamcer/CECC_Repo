@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import PatientCard from "./PatientPortalCard";
 import RecordsTabs from "./RecordsTab";
 import VisitHistory from "./VisitHistory";
 import MedicalRecord from "./MedicalRecord";
@@ -23,7 +22,7 @@ const EyeCareRecordsViewer = () => {
   const visits = [
     {
       date: "2023-05-10",
-      doctor: "Dr. Robert Chen",
+      doctor: "Dr. Philip Richard Budiongan",
       reason: "Annual checkup",
       diagnosis: "Mild myopia (-1.25 both eyes)",
       treatment: "Prescription glasses recommended. Follow-up in 1 year.",
@@ -34,9 +33,9 @@ const EyeCareRecordsViewer = () => {
         notes: "Anti-reflective coating recommended",
       },
       products: [
-        { name: "Eyeglass Frame - Model A", price: 120 },
-        { name: "Anti-Reflective Coating", price: 45 },
-        { name: "Lens Upgrade - Thin & Light", price: 80 },
+        { name: "Eyeglass Frame - Model A", price: 6600 },
+        { name: "Anti-Reflective Coating", price: 2475 },
+        { name: "Lens Upgrade - Thin & Light", price: 4400 },
       ],
       colorVisionTest: {
         testType: "Ishihara Plate Test (Remote)",
@@ -55,7 +54,7 @@ const EyeCareRecordsViewer = () => {
     },
     {
       date: "2022-05-15",
-      doctor: "Dr. Emily Rodriguez",
+      doctor: "Dr. Philip Richard Budiongan",
       reason: "Eye strain complaints",
       diagnosis: "Computer vision syndrome",
       treatment: "20-20-20 rule education. Artificial tears recommended.",
@@ -75,7 +74,6 @@ const EyeCareRecordsViewer = () => {
         <h1>Candelaria Eye Care Clinic</h1>
       </header>
 
-      <PatientCard patient={patient} />
 
       <RecordsTabs
         activeTab={activeTab}

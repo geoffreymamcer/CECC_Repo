@@ -26,7 +26,7 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
     },
     { id: "appointments", label: "Appointments" },
     { id: "inventory", label: "Inventory" },
-    { id: "feedbacks", label: "Feedbacks" },
+    { id: "Color Vision Test", label: "Color Vision Test" },
   ];
 
   return (

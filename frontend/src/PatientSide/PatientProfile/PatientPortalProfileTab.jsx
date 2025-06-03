@@ -175,7 +175,7 @@ function ProfileTab() {
       };
 
       const res = await fetch(
-        `http://localhost:5000/api/profiles/id/${profile._id}`,
+        `http://localhost:5000/api/profiles/${profile.patientId}`,
         {
           method: "PUT",
           headers: {

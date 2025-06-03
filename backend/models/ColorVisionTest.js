@@ -7,6 +7,10 @@ const colorVisionTestSchema = new mongoose.Schema(
       ref: "User", 
       required: true 
     },
+    patientName: {
+      type: String,
+      required: true
+    },
     correctPlates: { 
       type: Number, 
       required: true 
@@ -31,7 +35,17 @@ const colorVisionTestSchema = new mongoose.Schema(
       type: String,
       sparse: true,
       index: true
-    } // Client-side generated ID to prevent duplicates
+    }, // Client-side generated ID to prevent duplicates
+    followUpTests: {
+      type: Object,
+      default: {
+        ishihara: false,
+        farnsworth: false,
+        anomaloscope: false,
+        lantern: false,
+        colorimetry: false
+      }
+    }
   },
   { timestamps: true }
 );
