@@ -24,7 +24,18 @@ const MedicalRecord = ({ handleDownloadPDF }) => {
         
         // Decode token to get patientId
         const tokenData = JSON.parse(atob(token.split('.')[1]));
-        const patientId = tokenData.patientId;
+        
+        // Use any available ID format (id, _id, or patientId)
+        const patientId = tokenData.id || tokenData._id || tokenData.patientId;
+        
+        console.log('User data from token:', tokenData);
+        console.log('Using patient ID:', patientId);
+        
+        if (!patientId) {
+          setError("Could not determine patient ID. Please log out and log in again.");
+          setLoading(false);
+          return;
+        }
         
         // Fetch medical history
         const medicalHistoryResponse = await axios.get(
@@ -92,7 +103,6 @@ const MedicalRecord = ({ handleDownloadPDF }) => {
 
       {/* Medical History Section */}
       <div className="record-section">
-        <h4>Medical History</h4>
         {medicalHistory ? (
           <div className="record-details">
             <div className="detail-section">

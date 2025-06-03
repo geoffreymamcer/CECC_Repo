@@ -19,13 +19,18 @@ const VisitHistory = ({ selectedVisit, setSelectedVisit }) => {
 
         // Get the patient ID from the token payload
         const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-        const patientId = tokenPayload.patientId;
-
+        
+        // Check for multiple possible ID formats
+        const patientId = tokenPayload.patientId || tokenPayload.id || tokenPayload._id;
+        
+        console.log('Token payload:', tokenPayload);
+        console.log('Extracted patient ID:', patientId);
+        
         if (!patientId) {
           throw new Error("Patient ID not found in token");
         }
 
-        const response = await fetch(`http://localhost:5000/api/appointments/${patientId}`, {
+        const response = await fetch(`http://localhost:5000/api/visits/patient/${patientId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -37,9 +42,9 @@ const VisitHistory = ({ selectedVisit, setSelectedVisit }) => {
 
         const data = await response.json();
         
-        // Sort appointments from newest to oldest
+        // Sort visits from newest to oldest
         const sortedVisits = data.sort((a, b) => {
-          return new Date(b.appointmentDate) - new Date(a.appointmentDate);
+          return new Date(b.visitDate) - new Date(a.visitDate);
         });
 
         setVisits(sortedVisits);
@@ -93,11 +98,11 @@ const VisitHistory = ({ selectedVisit, setSelectedVisit }) => {
             onClick={() => setSelectedVisit(index)}
           >
             <div className="visit-date">
-              {new Date(visit.appointmentDate).toLocaleDateString()}
+              {new Date(visit.visitDate).toLocaleDateString()}
             </div>
             <div className="visit-summary">
               <div className="visit-doctor">Dr. Philip Richard Budiongan</div>
-              <div className="visit-reason">{visit.serviceType}</div>
+              <div className="visit-reason">{visit.chiefComplaint}</div>
             </div>
             <FiChevronRight className="visit-arrow" />
           </div>

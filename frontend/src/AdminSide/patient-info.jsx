@@ -194,7 +194,7 @@ const PatientInformation = (props) => {
     }
 
     try {
-      // Update the profile - now using _id directly
+      // Update the profile - now using _id directly but without visit-specific details
       const profileResponse = await axios.put(
         `http://localhost:5000/api/profiles/${props.patientId}`,
         {
@@ -209,11 +209,8 @@ const PatientInformation = (props) => {
           occupation: formData.occupation,
           civilStatus: formData.civilStatus,
           referralBy: formData.referralBy,
-          ageCategory: formData.ageCategory,
-          chiefComplaint: formData.chiefComplaint,
-          associatedComplaint: formData.associatedComplaint,
-          diagnosis: formData.diagnosis,
-          treatmentPlan: formData.treatmentPlan
+          ageCategory: formData.ageCategory
+          // Removed visit-specific details from profile
         },
         {
           headers: {
@@ -255,10 +252,52 @@ const PatientInformation = (props) => {
           setMedicalHistoryId(medicalHistoryResponse.data._id);
         }
       }
+      
+      // Create a new visit record if visit-specific details are provided
+      let visitResponse = { status: 200 }; // Default to success if no visit is created
+      
+      if (formData.chiefComplaint) {
+        console.log('Creating new visit record with details:', {
+          patientId: props.patientId,
+          chiefComplaint: formData.chiefComplaint,
+          associatedComplaint: formData.associatedComplaint,
+          diagnosis: formData.diagnosis,
+          treatmentPlan: formData.treatmentPlan,
+          visitDate: new Date()
+        });
+        
+        visitResponse = await axios.post(
+          'http://localhost:5000/api/visits',
+          {
+            patientId: props.patientId,
+            chiefComplaint: formData.chiefComplaint,
+            associatedComplaint: formData.associatedComplaint,
+            diagnosis: formData.diagnosis,
+            treatmentPlan: formData.treatmentPlan,
+            visitDate: new Date()
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        
+        // Clear visit-specific fields after creating the visit
+        setFormData(prev => ({
+          ...prev,
+          chiefComplaint: '',
+          associatedComplaint: '',
+          diagnosis: '',
+          treatmentPlan: ''
+        }));
+      }
 
       if (profileResponse.status === 200 && 
-          (medicalHistoryResponse.status === 200 || medicalHistoryResponse.status === 201)) {
-        alert("Patient information updated successfully!");
+          (medicalHistoryResponse.status === 200 || medicalHistoryResponse.status === 201) &&
+          visitResponse.status === 200 || visitResponse.status === 201) {
+        alert("Patient information updated successfully!" + 
+              (formData.chiefComplaint ? " A new visit record has been created." : ""));
         setIsEditing(false);
         // Notify parent component to refresh data
         if (props.onUpdate) {
@@ -266,7 +305,7 @@ const PatientInformation = (props) => {
         }
       }
     } catch (error) {
-      console.error("Error updating profile or medical history:", error);
+      console.error("Error updating patient information:", error);
       alert(
         error.response?.data?.message ||
         "Failed to update information. Please check your connection and try again."

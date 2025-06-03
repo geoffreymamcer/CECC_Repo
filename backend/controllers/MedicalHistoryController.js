@@ -6,17 +6,44 @@ export const getMedicalHistoryByPatientId = async (req, res) => {
   try {
     const { patientId } = req.params;
     
-    // Find the medical history using the patient ID directly
-    // Since we're now using the custom ID format as the _id in Profile and patientId in MedicalHistory
-    const medicalHistory = await MedicalHistory.findOne({ patientId });
+    console.log(`Fetching medical history for patient ID: ${patientId}`);
+    
+    // Try to find the medical history using the patient ID directly
+    let medicalHistory = await MedicalHistory.findOne({ patientId });
+    
+    // If not found, try to find by using the patientId as _id
+    if (!medicalHistory) {
+      console.log(`No medical history found with patientId field, trying alternative lookups`);
+      
+      // Try to find a profile with this ID to confirm it's a valid patient
+      const profile = await Profile.findOne({
+        $or: [
+          { _id: patientId },
+          { patientId: patientId }
+        ]
+      });
+      
+      if (profile) {
+        console.log(`Found profile with ID: ${profile._id}, looking for medical history with this ID`);
+        // Try to find medical history with the profile's ID
+        medicalHistory = await MedicalHistory.findOne({
+          $or: [
+            { patientId: profile._id },
+            { patientId: profile.patientId }
+          ]
+        });
+      }
+    }
 
     if (!medicalHistory) {
+      console.log(`No medical history found for patient ID: ${patientId}`);
       return res.status(404).json({
         status: "error",
         message: "Medical history not found",
       });
     }
-
+    
+    console.log(`Found medical history for patient ID: ${patientId}`);
     res.status(200).json(medicalHistory);
   } catch (error) {
     console.error("Error fetching medical history:", error);
