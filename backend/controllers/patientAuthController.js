@@ -1,6 +1,6 @@
-const PatientAuth = require("../models/patientAuth");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
+import PatientAuth from "../models/patientAuth.js";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
 const registerPatient = async (req, res) => {
   try {
@@ -98,4 +98,4 @@ const getAllPatients = async (req, res) => {
   }
 };
 
-module.exports = { registerPatient, loginPatient, getAllPatients };
+export { registerPatient, loginPatient, getAllPatients };

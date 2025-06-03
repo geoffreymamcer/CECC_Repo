@@ -23,7 +23,9 @@ function Card(props) {
       setLoadingDetails(true);
       setErrorDetails(null);
       try {
-        const response = await axios.get(`http://localhost:5000/api/profiles/id/${props.patientId}`)
+        const response = await axios.get(
+          `http://localhost:5000/api/profiles/id/${props.patientId}`
+        );
         setPatientDetails({
           ...response.data,
           patientId: props.patientId,
@@ -43,7 +45,7 @@ function Card(props) {
   return (
     <div className="patientRecordCard">
       <img
-        src={profilePicture}
+        src={props.patient?.profilePicture || profilePicture}
         alt="Patient Profile"
         className="patientProfilePicture"
       />

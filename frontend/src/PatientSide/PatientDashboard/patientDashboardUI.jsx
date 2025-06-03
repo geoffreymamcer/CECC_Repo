@@ -13,8 +13,17 @@ function DashboardUI() {
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      const userData = JSON.parse(storedUser);
-      setFirstName(userData.firstName);
+      try {
+        const userData = JSON.parse(storedUser);
+        setFirstName(userData.firstName);
+        
+        // Log user data for debugging
+        console.log('User data in dashboard:', userData);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    } else {
+      console.log('No user data found in localStorage');
     }
   }, []);
 

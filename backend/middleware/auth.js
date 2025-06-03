@@ -6,6 +6,7 @@ export const auth = (req, res, next) => {
     const token = req.header("Authorization")?.replace("Bearer ", "");
 
     if (!token) {
+      console.log('Auth middleware: No token provided');
       return res
         .status(401)
         .json({ message: "No token, authorization denied" });
@@ -13,11 +14,19 @@ export const auth = (req, res, next) => {
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
+    
+    // Ensure decoded has both id and _id for backward compatibility
+    if (!decoded.id && decoded._id) {
+      decoded.id = decoded._id;
+    } else if (!decoded._id && decoded.id) {
+      decoded._id = decoded.id;
+    }
+    
     // Add user from payload
     req.user = decoded;
     next();
   } catch (error) {
+    console.error('Auth middleware error:', error.message);
     res.status(401).json({ message: "Token is not valid" });
   }
 };

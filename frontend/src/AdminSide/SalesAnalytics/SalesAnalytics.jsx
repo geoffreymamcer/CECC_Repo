@@ -15,45 +15,6 @@ import {
   Bar,
 } from "recharts";
 
-import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-
-// Sample data - this would come from backend in real implementation
-const eyeConditionData = [
-  { name: "Myopia", value: 35 },
-  { name: "Hyperopia", value: 20 },
-  { name: "Astigmatism", value: 25 },
-  { name: "Presbyopia", value: 15 },
-  { name: "Cataracts", value: 5 },
-];
-
-const visitGrowthData = [
-  { month: "Jan", visits: 120 },
-  { month: "Feb", visits: 150 },
-  { month: "Mar", visits: 180 },
-  { month: "Apr", visits: 210 },
-  { month: "May", visits: 240 },
-  { month: "Jun", visits: 270 },
-];
-
-const ageGroupData = [
-  { ageGroup: "0-18", patients: 50 },
-  { ageGroup: "19-35", patients: 120 },
-  { ageGroup: "36-50", patients: 180 },
-  { ageGroup: "51-65", patients: 150 },
-  { ageGroup: "65+", patients: 100 },
-];
-
-const geoData = [
-  { id: "US-CA", name: "California", patients: 320 },
-  { id: "US-TX", name: "Texas", patients: 180 },
-  { id: "US-NY", name: "New York", patients: 210 },
-  { id: "US-FL", name: "Florida", patients: 150 },
-  { id: "US-IL", name: "Illinois", patients: 90 },
-];
-
-const geoUrl = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
-
 // Color palette
 const colors = {
   maroon: "#800000",
@@ -63,7 +24,40 @@ const colors = {
   text: "#333333",
 };
 
-// Custom Dropdown Component
+// Sample sales data - replace with backend API calls
+const productSalesData = [
+  { name: "Eyeglasses", value: 45 },
+  { name: "Contact Lenses", value: 30 },
+  { name: "Sunglasses", value: 15 },
+  { name: "Eye Drops", value: 7 },
+  { name: "Accessories", value: 3 },
+];
+
+const salesTrendData = [
+  { month: "Jan", revenue: 12500 },
+  { month: "Feb", revenue: 14300 },
+  { month: "Mar", revenue: 16200 },
+  { month: "Apr", revenue: 18500 },
+  { month: "May", revenue: 21000 },
+  { month: "Jun", revenue: 23800 },
+];
+
+const salesByCategoryData = [
+  { category: "Prescription", sales: 32000 },
+  { category: "Non-Prescription", sales: 18000 },
+  { category: "Insurance", sales: 42000 },
+  { category: "Self-Pay", sales: 9000 },
+];
+
+const topProductsData = [
+  { product: "Progressive Lenses", sales: 12500 },
+  { product: "Daily Contacts", sales: 9800 },
+  { product: "Anti-Glare Coating", sales: 8700 },
+  { product: "Blue Light Glasses", sales: 7600 },
+  { product: "Multifocal Contacts", sales: 6500 },
+];
+
+// Reuse the same GraphDropdown component from patient analytics
 const GraphDropdown = ({ options, selected, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -93,37 +87,37 @@ const GraphDropdown = ({ options, selected, onChange }) => {
   );
 };
 
-// Main Dashboard Component
-const PatientAnalytics = () => {
+// Main Sales Dashboard Component
+const SalesAnalyticsDashboard = () => {
   const [selectedGraph, setSelectedGraph] = useState(
-    "Eye Condition Distribution"
+    "Product Sales Distribution"
   );
 
   const graphOptions = [
-    "Eye Condition Distribution",
-    "Patient Visit Growth",
-    "Patient Age Groups",
-    "Patient Geographic Distribution",
+    "Product Sales Distribution",
+    "Sales Trend Over Time",
+    "Sales by Payment Category",
+    "Top Performing Products",
   ];
 
   const renderSelectedGraph = () => {
     switch (selectedGraph) {
-      case "Eye Condition Distribution":
-        return <EyeConditionChart />;
-      case "Patient Visit Growth":
-        return <VisitGrowthChart />;
-      case "Patient Age Groups":
-        return <AgeGroupChart />;
-      case "Patient Geographic Distribution":
-        return <GeoMapChart />;
+      case "Product Sales Distribution":
+        return <ProductSalesChart />;
+      case "Sales Trend Over Time":
+        return <SalesTrendChart />;
+      case "Sales by Payment Category":
+        return <SalesCategoryChart />;
+      case "Top Performing Products":
+        return <TopProductsChart />;
       default:
-        return <EyeConditionChart />;
+        return <ProductSalesChart />;
     }
   };
 
   return (
     <div style={styles.dashboardContainer}>
-      <h1 style={styles.dashboardTitle}>Patient Analytics</h1>
+      <h1 style={styles.dashboardTitle}>Sales Analytics</h1>
 
       <div style={styles.dropdownWrapper}>
         <GraphDropdown
@@ -137,23 +131,23 @@ const PatientAnalytics = () => {
 
       <div style={styles.graphGrid}>
         <div style={styles.graphCard}>
-          <h3 style={styles.graphTitle}>Eye Condition Distribution</h3>
-          <EyeConditionChart />
+          <h3 style={styles.graphTitle}>Product Sales Distribution</h3>
+          <ProductSalesChart />
         </div>
 
         <div style={styles.graphCard}>
-          <h3 style={styles.graphTitle}>Patient Visit Growth</h3>
-          <VisitGrowthChart />
+          <h3 style={styles.graphTitle}>Sales Trend Over Time</h3>
+          <SalesTrendChart />
         </div>
 
         <div style={styles.graphCard}>
-          <h3 style={styles.graphTitle}>Patient Age Groups</h3>
-          <AgeGroupChart />
+          <h3 style={styles.graphTitle}>Sales by Payment Category</h3>
+          <SalesCategoryChart />
         </div>
 
         <div style={styles.graphCard}>
-          <h3 style={styles.graphTitle}>Patient Geographic Distribution</h3>
-          <GeoMapChart />
+          <h3 style={styles.graphTitle}>Top Performing Products</h3>
+          <TopProductsChart />
         </div>
       </div>
     </div>
@@ -161,12 +155,12 @@ const PatientAnalytics = () => {
 };
 
 // Individual Chart Components
-const EyeConditionChart = () => {
+const ProductSalesChart = () => {
   return (
     <ResponsiveContainer width="100%" height={400}>
       <PieChart>
         <Pie
-          data={eyeConditionData}
+          data={productSalesData}
           cx="50%"
           cy="50%"
           labelLine={false}
@@ -177,60 +171,72 @@ const EyeConditionChart = () => {
             `${name}: ${(percent * 100).toFixed(0)}%`
           }
         >
-          {eyeConditionData.map((entry, index) => (
+          {productSalesData.map((entry, index) => (
             <Cell
               key={`cell-${index}`}
-              fill={getShade(index, eyeConditionData.length)}
+              fill={getShade(index, productSalesData.length)}
             />
           ))}
         </Pie>
-        <Tooltip />
+        <Tooltip
+          formatter={(value) => [`$${value.toLocaleString()}`, "Sales"]}
+        />
       </PieChart>
     </ResponsiveContainer>
   );
 };
 
-const VisitGrowthChart = () => {
+const SalesTrendChart = () => {
   return (
     <ResponsiveContainer width="100%" height={400}>
       <LineChart
-        data={visitGrowthData}
+        data={salesTrendData}
         margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
       >
         <CartesianGrid strokeDasharray="3 3" stroke={colors.lightMaroon} />
         <XAxis dataKey="month" stroke={colors.maroon} />
-        <YAxis stroke={colors.maroon} />
-        <Tooltip />
+        <YAxis
+          stroke={colors.maroon}
+          tickFormatter={(value) => `$${value.toLocaleString()}`}
+        />
+        <Tooltip
+          formatter={(value) => [`$${value.toLocaleString()}`, "Revenue"]}
+        />
         <Legend />
         <Line
           type="monotone"
-          dataKey="visits"
+          dataKey="revenue"
           stroke={colors.maroon}
           strokeWidth={3}
           activeDot={{ r: 8 }}
-          name="Patient Visits"
+          name="Monthly Revenue"
         />
       </LineChart>
     </ResponsiveContainer>
   );
 };
 
-const AgeGroupChart = () => {
+const SalesCategoryChart = () => {
   return (
     <ResponsiveContainer width="100%" height={400}>
       <BarChart
-        data={ageGroupData}
+        data={salesByCategoryData}
         margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
       >
         <CartesianGrid strokeDasharray="3 3" stroke={colors.lightMaroon} />
-        <XAxis dataKey="ageGroup" stroke={colors.maroon} />
-        <YAxis stroke={colors.maroon} />
-        <Tooltip />
+        <XAxis dataKey="category" stroke={colors.maroon} />
+        <YAxis
+          stroke={colors.maroon}
+          tickFormatter={(value) => `$${value.toLocaleString()}`}
+        />
+        <Tooltip
+          formatter={(value) => [`$${value.toLocaleString()}`, "Sales"]}
+        />
         <Legend />
         <Bar
-          dataKey="patients"
+          dataKey="sales"
           fill={colors.maroon}
-          name="Number of Patients"
+          name="Total Sales"
           radius={[4, 4, 0, 0]}
         />
       </BarChart>
@@ -238,77 +244,48 @@ const AgeGroupChart = () => {
   );
 };
 
-const GeoMapChart = () => {
-  // Sample GeoJSON data for US states
-  const geoJsonData = {
-    type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        properties: { name: "California", patients: 320 },
-        geometry: {
-          type: "Polygon",
-          coordinates: [
-            [
-              /* coordinates for California */
-            ],
-          ],
-        },
-      },
-      // Add other states as needed
-    ],
-  };
-
-  const getColor = (patients) => {
-    if (patients >= 300) return "#5a0000";
-    if (patients >= 200) return "#800000";
-    if (patients >= 100) return "#a04040";
-    return "#c08080";
-  };
-
-  const styleFeature = (feature) => {
-    return {
-      fillColor: getColor(feature.properties.patients),
-      weight: 1,
-      opacity: 1,
-      color: "white",
-      fillOpacity: 0.7,
-    };
-  };
-
+const TopProductsChart = () => {
   return (
-    <div style={{ height: "400px", width: "100%" }}>
-      <MapContainer
-        center={[37.8, -96]}
-        zoom={4}
-        style={{ height: "100%", width: "100%" }}
+    <ResponsiveContainer width="100%" height={400}>
+      <BarChart
+        data={topProductsData}
+        layout="vertical"
+        margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
       >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        <CartesianGrid strokeDasharray="3 3" stroke={colors.lightMaroon} />
+        <XAxis
+          type="number"
+          stroke={colors.maroon}
+          tickFormatter={(value) => `$${value.toLocaleString()}`}
         />
-        <GeoJSON
-          data={geoJsonData}
-          style={styleFeature}
-          onEachFeature={(feature, layer) => {
-            layer.bindPopup(
-              `<b>${feature.properties.name}</b><br>Patients: ${feature.properties.patients}`
-            );
-          }}
+        <YAxis
+          dataKey="product"
+          type="category"
+          stroke={colors.maroon}
+          width={90}
         />
-      </MapContainer>
-    </div>
+        <Tooltip
+          formatter={(value) => [`$${value.toLocaleString()}`, "Sales"]}
+        />
+        <Legend />
+        <Bar
+          dataKey="sales"
+          fill={colors.maroon}
+          name="Product Sales"
+          radius={[0, 4, 4, 0]}
+        />
+      </BarChart>
+    </ResponsiveContainer>
   );
 };
 
-// Helper functions
+// Reuse helper functions from patient analytics
 const getShade = (index, total) => {
   const baseColor = colors.maroon;
   const baseR = parseInt(baseColor.slice(1, 3), 16);
   const baseG = parseInt(baseColor.slice(3, 5), 16);
   const baseB = parseInt(baseColor.slice(5, 7), 16);
 
-  // Calculate lighter shades
   const factor = 0.8 - (index / total) * 0.6;
   const r = Math.min(255, Math.floor(baseR + (255 - baseR) * factor));
   const g = Math.min(255, Math.floor(baseG + (255 - baseG) * factor));
@@ -317,14 +294,7 @@ const getShade = (index, total) => {
   return `rgb(${r}, ${g}, ${b})`;
 };
 
-const getColorForPatients = (count) => {
-  if (count >= 300) return "#5a0000";
-  if (count >= 200) return "#800000";
-  if (count >= 100) return "#a04040";
-  return "#c08080";
-};
-
-// Styles
+// Reuse styles from patient analytics
 const styles = {
   dashboardContainer: {
     fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
@@ -382,9 +352,6 @@ const styles = {
     borderBottom: `1px solid ${colors.lightGray}`,
     transition: "background-color 0.2s",
   },
-  dropdownItemHover: {
-    backgroundColor: colors.lightGray,
-  },
   graphContainer: {
     backgroundColor: colors.white,
     borderRadius: "8px",
@@ -418,34 +385,6 @@ const styles = {
     fontSize: "18px",
     fontWeight: "600",
   },
-  mapContainer: {
-    width: "100%",
-    height: "100%",
-    display: "flex",
-    flexDirection: "column",
-  },
-  map: {
-    width: "100%",
-    height: "350px",
-  },
-  mapLegend: {
-    display: "flex",
-    justifyContent: "center",
-    marginTop: "20px",
-    flexWrap: "wrap",
-    gap: "15px",
-  },
-  legendItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    fontSize: "14px",
-  },
-  legendColor: {
-    width: "20px",
-    height: "20px",
-    borderRadius: "4px",
-  },
 };
 
-export default PatientAnalytics;
+export default SalesAnalyticsDashboard;

@@ -39,8 +39,14 @@ export const createAppointment = async (req, res) => {
 
     // Create appointment with user info
     const fullName = `${user.firstName} ${user.middleName ? user.middleName + ' ' : ''}${user.lastName}`.trim();
+    
+    // Use patientId if available, otherwise use _id (which should be the custom ID for patients)
+    const patientIdToUse = user.patientId || user._id;
+    
+    console.log(`Creating appointment for patient ID: ${patientIdToUse}`);
+    
     const appointment = await Appointment.create({
-      patientId: user.patientId,
+      patientId: patientIdToUse,
       fullName,
       phoneNumber: user.phone_number,
       appointmentDate,
@@ -67,11 +73,29 @@ export const createAppointment = async (req, res) => {
 export const getPatientAppointments = async (req, res) => {
   try {
     const { patientId } = req.params;
-    const appointments = await Appointment.find({ patientId }).sort({
+    
+    console.log(`Fetching appointments for patient ID: ${patientId}`);
+    
+    // First, try to find a user with this ID to determine if it's a custom ID or patientId
+    const user = await User.findOne({
+      $or: [
+        { _id: patientId },
+        { patientId: patientId }
+      ]
+    });
+    
+    // If we found a user, use their patientId (which should match _id for new users)
+    const queryPatientId = user?.patientId || patientId;
+    
+    console.log(`Using query patientId: ${queryPatientId}`);
+    
+    const appointments = await Appointment.find({ patientId: queryPatientId }).sort({
       appointmentDate: 1,
       appointmentTime: 1,
     });
-
+    
+    console.log(`Found ${appointments.length} appointments`);
+    
     res.status(200).json(appointments);
   } catch (error) {
     console.error("Error fetching appointments:", error);

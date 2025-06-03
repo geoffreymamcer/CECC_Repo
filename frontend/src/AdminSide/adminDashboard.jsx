@@ -12,7 +12,7 @@ import Sidebar from "./sideBarMenu";
 import PatientList from "./patient";
 import PatientAnalytics from "./PatientAnalytics/PatientAnalytics";
 
-import SalesAnalytics from "./salesAnalytics";
+import SalesAnalytics from "./SalesAnalytics/SalesAnalytics";
 import Appointments from "./Appointment/Appointments";
 import Inventory from "./Inventory";
 import Feedbacks from "./Feedback";

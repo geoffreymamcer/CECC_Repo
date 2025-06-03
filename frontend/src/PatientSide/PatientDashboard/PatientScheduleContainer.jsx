@@ -20,13 +20,24 @@ function PatientSchedule() {
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       const token = localStorage.getItem("token");
-      if (!user || !user.patientId || !token) {
+      
+      // Log user data for debugging
+      console.log('User data in PatientScheduleContainer:', user);
+      
+      // Check for any valid ID (id, _id, or patientId)
+      const patientId = user?.id || user?._id || user?.patientId;
+      
+      if (!user || !patientId || !token) {
+        console.error('Missing user data:', { user, patientId, hasToken: !!token });
         setError("Missing user session. Please log in again.");
         setLoading(false);
         return;
       }
+      
+      console.log(`Fetching appointments for patient ID: ${patientId}`);
+      
       const res = await axios.get(
-        `http://localhost:5000/api/appointments/${user.patientId}`,
+        `http://localhost:5000/api/appointments/${patientId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

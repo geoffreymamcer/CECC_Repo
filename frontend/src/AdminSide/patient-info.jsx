@@ -13,6 +13,7 @@ const PatientInformation = (props) => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
+    // Profile data
     fullName: props.fullName || "",
     dob: formatDate(props.dob) || "",
     age: props.age || "",
@@ -23,26 +24,80 @@ const PatientInformation = (props) => {
     referralBy: props.referralBy || "",
     gender: props.gender || "",
     ageCategory: props.ageCategory || "",
-    ocularHistory: props.ocularHistory || "",
-    healthHistory: props.healthHistory || "",
-    familyMedicalHistory: props.familyMedicalHistory || "",
-    medications: props.medications || "",
-    allergies: props.allergies || "",
-    occupationalHistory: props.occupationalHistory || "",
-    digitalHistory: props.digitalHistory || "",
+    // Visit details
     chiefComplaint: props.chiefComplaint || "",
     associatedComplaint: props.associatedComplaint || "",
     diagnosis: props.diagnosis || "",
     treatmentPlan: props.treatmentPlan || "",
   });
+  
+  // Separate state for medical history data
+  const [medicalHistoryData, setMedicalHistoryData] = useState({
+    ocularHistory: "",
+    healthHistory: "",
+    familyMedicalHistory: "",
+    medications: "",
+    allergies: "",
+    occupationalHistory: "",
+    digitalHistory: "",
+  });
+  
+  // State to track if medical history exists for this patient
+  const [medicalHistoryId, setMedicalHistoryId] = useState(null);
 
-  // Update formData when props change
+  // Fetch medical history data when patient ID changes
   useEffect(() => {
+    const fetchMedicalHistory = async () => {
+      if (props.patientId) {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await axios.get(`http://localhost:5000/api/medicalhistory/${props.patientId}`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+          
+          if (response.data) {
+            setMedicalHistoryData({
+              ocularHistory: response.data.ocularHistory || "",
+              healthHistory: response.data.healthHistory || "",
+              familyMedicalHistory: response.data.familyMedicalHistory || "",
+              medications: response.data.medications || "",
+              allergies: response.data.allergies || "",
+              occupationalHistory: response.data.occupationalHistory || "",
+              digitalHistory: response.data.digitalHistory || "",
+            });
+            setMedicalHistoryId(response.data._id);
+          }
+        } catch (error) {
+          // If 404, it means no medical history exists yet for this patient
+          if (error.response && error.response.status === 404) {
+            console.log("No medical history found for this patient");
+            setMedicalHistoryData({
+              ocularHistory: "",
+              healthHistory: "",
+              familyMedicalHistory: "",
+              medications: "",
+              allergies: "",
+              occupationalHistory: "",
+              digitalHistory: "",
+            });
+            setMedicalHistoryId(null);
+          } else {
+            console.error("Error fetching medical history:", error);
+          }
+        }
+      }
+    };
+
+    fetchMedicalHistory();
+    
+    // Update formData when props change
     setFormData((prev) => ({
       ...prev,
       dob: formatDate(props.dob) || prev.dob,
     }));
-  }, [props.dob]);
+  }, [props.patientId, props.dob]);
 
   const getAgeCategory = (calculatedAge) => {
     if (calculatedAge >= 0 && calculatedAge <= 12) return "Child: 0-12";
@@ -90,10 +145,19 @@ const PatientInformation = (props) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    
+    // Check if the field is part of medical history
+    if (['ocularHistory', 'healthHistory', 'familyMedicalHistory', 'medications', 'allergies', 'occupationalHistory', 'digitalHistory'].includes(name)) {
+      setMedicalHistoryData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleEdit = () => {
@@ -109,21 +173,17 @@ const PatientInformation = (props) => {
       referralBy: props.referralBy || "",
       gender: props.gender || "",
       ageCategory: props.ageCategory || "",
-      ocularHistory: props.ocularHistory || "",
-      healthHistory: props.healthHistory || "",
-      familyMedicalHistory: props.familyMedicalHistory || "",
-      medications: props.medications || "",
-      allergies: props.allergies || "",
-      occupationalHistory: props.occupationalHistory || "",
-      digitalHistory: props.digitalHistory || "",
       chiefComplaint: props.chiefComplaint || "",
       associatedComplaint: props.associatedComplaint || "",
       diagnosis: props.diagnosis || "",
       treatmentPlan: props.treatmentPlan || "",
     });
+    
+    // No need to reset medical history data as it's already in state
   };
 
   const handleSave = async () => {
+    const token = localStorage.getItem('token');
     // Show confirmation dialog
     const isConfirmed = window.confirm(
       "Are you sure you want to save these changes?"
@@ -134,8 +194,9 @@ const PatientInformation = (props) => {
     }
 
     try {
-      const response = await axios.put(
-        `http://localhost:5000/api/profiles/id/${props.patientId}`,
+      // Update the profile - now using _id directly
+      const profileResponse = await axios.put(
+        `http://localhost:5000/api/profiles/${props.patientId}`,
         {
           firstName: formData.fullName.split(" ")[0],
           middleName: formData.fullName.split(" ").slice(1, -1).join(" ") || "",
@@ -149,33 +210,66 @@ const PatientInformation = (props) => {
           civilStatus: formData.civilStatus,
           referralBy: formData.referralBy,
           ageCategory: formData.ageCategory,
-          ocularHistory: formData.ocularHistory,
-          healthHistory: formData.healthHistory,
-          familyMedicalHistory: formData.familyMedicalHistory,
-          medications: formData.medications,
-          allergies: formData.allergies,
-          occupationalHistory: formData.occupationalHistory,
-          digitalHistory: formData.digitalHistory,
           chiefComplaint: formData.chiefComplaint,
           associatedComplaint: formData.associatedComplaint,
           diagnosis: formData.diagnosis,
-          treatmentPlan: formData.treatmentPlan,
+          treatmentPlan: formData.treatmentPlan
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
-      if (response.status === 200) {
-        alert("Patient record updated successfully!");
+      // Update or create medical history
+      let medicalHistoryResponse;
+      if (medicalHistoryId) {
+        // Update existing medical history
+        medicalHistoryResponse = await axios.put(
+          `http://localhost:5000/api/medicalhistory/${medicalHistoryId}`,
+          medicalHistoryData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      } else {
+        // Create new medical history
+        medicalHistoryResponse = await axios.put(
+          `http://localhost:5000/api/medicalhistory/patient/${props.patientId}`,
+          {
+            patientId: props.patientId, // This is now the custom ID
+            ...medicalHistoryData
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        
+        // Save the new medical history ID
+        if (medicalHistoryResponse.data && medicalHistoryResponse.data._id) {
+          setMedicalHistoryId(medicalHistoryResponse.data._id);
+        }
+      }
+
+      if (profileResponse.status === 200 && 
+          (medicalHistoryResponse.status === 200 || medicalHistoryResponse.status === 201)) {
+        alert("Patient information updated successfully!");
         setIsEditing(false);
-        // Notify parent component to refresh the data
+        // Notify parent component to refresh data
         if (props.onUpdate) {
           props.onUpdate();
         }
       }
     } catch (error) {
-      console.error("Error updating patient:", error);
+      console.error("Error updating profile or medical history:", error);
       alert(
         error.response?.data?.message ||
-          "Failed to update patient record. Please try again."
+        "Failed to update information. Please check your connection and try again."
       );
     }
   };
@@ -200,11 +294,31 @@ const PatientInformation = (props) => {
     }
 
     try {
-      const response = await axios.delete(
-        `http://localhost:5000/api/profiles/id/${props.patientId}`
+      const token = localStorage.getItem('token');
+      
+      // Delete the profile
+      const profileResponse = await axios.delete(
+        `http://localhost:5000/api/profiles/id/${props.patientId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
-      if (response.status === 200) {
+      // If medical history exists, delete it too
+      if (medicalHistoryId) {
+        await axios.delete(
+          `http://localhost:5000/api/medicalhistory/${medicalHistoryId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      }
+
+      if (profileResponse.status === 200) {
         alert("Patient record deleted successfully!");
         // Close the patient info popup
         if (props.onClick) {
@@ -247,18 +361,35 @@ const PatientInformation = (props) => {
       referralBy: props.referralBy || "",
       gender: props.gender || "",
       ageCategory: props.ageCategory || "",
-      ocularHistory: props.ocularHistory || "",
-      healthHistory: props.healthHistory || "",
-      familyMedicalHistory: props.familyMedicalHistory || "",
-      medications: props.medications || "",
-      allergies: props.allergies || "",
-      occupationalHistory: props.occupationalHistory || "",
-      digitalHistory: props.digitalHistory || "",
       chiefComplaint: props.chiefComplaint || "",
       associatedComplaint: props.associatedComplaint || "",
       diagnosis: props.diagnosis || "",
       treatmentPlan: props.treatmentPlan || "",
     });
+    
+    // Refetch medical history data to reset any changes
+    if (props.patientId) {
+      const token = localStorage.getItem('token');
+      axios.get(`http://localhost:5000/api/medicalhistory/${props.patientId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }).then(response => {
+        if (response.data) {
+          setMedicalHistoryData({
+            ocularHistory: response.data.ocularHistory || "",
+            healthHistory: response.data.healthHistory || "",
+            familyMedicalHistory: response.data.familyMedicalHistory || "",
+            medications: response.data.medications || "",
+            allergies: response.data.allergies || "",
+            occupationalHistory: response.data.occupationalHistory || "",
+            digitalHistory: response.data.digitalHistory || "",
+          });
+        }
+      }).catch(error => {
+        console.error("Error fetching medical history:", error);
+      });
+    }
   };
 
   const personalInfo = [
@@ -356,43 +487,43 @@ const PatientInformation = (props) => {
     {
       label: "Ocular History",
       name: "ocularHistory",
-      value: formData.ocularHistory,
-      type: "textarea", // Use textarea for longer inputs
+      value: medicalHistoryData.ocularHistory,
+      type: "textarea",
     },
     {
       label: "Health History",
       name: "healthHistory",
-      value: formData.healthHistory,
+      value: medicalHistoryData.healthHistory,
       type: "textarea",
     },
     {
       label: "Family Medical History",
       name: "familyMedicalHistory",
-      value: formData.familyMedicalHistory,
+      value: medicalHistoryData.familyMedicalHistory,
       type: "textarea",
     },
     {
       label: "Medications",
       name: "medications",
-      value: formData.medications,
+      value: medicalHistoryData.medications,
       type: "textarea",
     },
     {
       label: "Allergies",
       name: "allergies",
-      value: formData.allergies,
+      value: medicalHistoryData.allergies,
       type: "textarea",
     },
     {
       label: "Occupational History",
       name: "occupationalHistory",
-      value: formData.occupationalHistory,
+      value: medicalHistoryData.occupationalHistory,
       type: "textarea",
     },
     {
       label: "Digital History (Screen Time)",
       name: "digitalHistory",
-      value: formData.digitalHistory,
+      value: medicalHistoryData.digitalHistory,
       type: "text",
     },
   ];

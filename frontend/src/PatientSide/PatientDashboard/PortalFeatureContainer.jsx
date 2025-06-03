@@ -12,6 +12,7 @@ function PortalFeatures({}) {
         icon="📋"
         feature="Medical Records"
         description="Access your complete health history, test results, and treatment plans"
+        onClick={() => navigate("/records")}
       />
 
       <FeaturesCard
@@ -24,7 +25,7 @@ function PortalFeatures({}) {
         icon="👁️"
         feature="Color Vision Test"
         description="Perform a preliminary color vision test by yourself"
-        onClick={() => navigate("color-vision-test")}
+        onClick={() => navigate("/color-vision-test")}
       />
 
       <main>

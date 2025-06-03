@@ -1,0 +1,141 @@
+.color-vision-history {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 1.5rem;
+}
+
+.color-vision-history h3 {
+  color: #8c0a14;
+  margin-bottom: 1.5rem;
+  font-size: 1.2rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.75rem;
+}
+
+.test-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.test-history-item {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.test-history-item:hover {
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.test-date {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dashed #eee;
+}
+
+.date-label {
+  font-weight: 600;
+  color: #555;
+}
+
+.date-value {
+  color: #666;
+}
+
+.test-details {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.test-score, .test-result {
+  flex: 1;
+  min-width: 150px;
+}
+
+.score-label, .result-label {
+  font-weight: 600;
+  color: #555;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.score-value {
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.result-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.result-value.normal {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+}
+
+.result-value.deficiency {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+}
+
+.loading-spinner {
+  text-align: center;
+  padding: 2rem;
+  color: #8c0a14;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 1rem;
+  border-radius: 6px;
+  margin: 1rem 0;
+}
+
+.no-tests-message {
+  text-align: center;
+  padding: 2rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.take-test-button {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #8c0a14;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.take-test-button:hover {
+  background-color: #6d0810;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .test-details {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .test-score, .test-result {
+    width: 100%;
+  }
+}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./ProfileTab.css";
+import ColorVisionTestHistory from "./ColorVisionTestHistory";
 
 function ProfileTab() {
   const [profile, setProfile] = useState(null);
@@ -12,15 +13,45 @@ function ProfileTab() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        // Log user data from localStorage for debugging
+        const userString = localStorage.getItem("user");
+        if (userString) {
+          try {
+            const userData = JSON.parse(userString);
+            console.log('User data in profile tab:', userData);
+          } catch (e) {
+            console.error('Error parsing user data:', e);
+          }
+        } else {
+          console.log('No user data found in localStorage');
+        }
+        
         const token = localStorage.getItem("token");
+        if (!token) {
+          console.error('No token found in localStorage');
+          setError('Missing authentication token. Please log in again.');
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Fetching profile with token:', token.substring(0, 10) + '...');
+        
         const res = await fetch("http://localhost:5000/api/profiles/me", {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
         });
-        if (!res.ok) throw new Error("Failed to fetch profile");
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          console.error('Profile fetch response not OK:', res.status, errorData);
+          throw new Error(errorData.message || `Failed to fetch profile: ${res.status}`);
+        }
+        
         const data = await res.json();
+        console.log('Profile data received:', data);
+        
         setProfile(data);
         setFormData({
           firstName: data.firstName || "",
@@ -450,6 +481,11 @@ function ProfileTab() {
       </div>
 
       {error && <div className="error-message">{error}</div>}
+
+      {/* Color Vision Test History Section */}
+      {!editMode && !loading && !error && (
+        <ColorVisionTestHistory />
+      )}
 
       <div className="profile-actions">
         {!editMode && (

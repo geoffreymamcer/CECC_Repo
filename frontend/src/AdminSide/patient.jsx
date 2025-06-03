@@ -54,6 +54,7 @@ function PatientList() {
               patientId={patient._id}
               patientName={fullName}
               patient={patient}
+              onUpdate={fetchPatients}
             />
           );
         })

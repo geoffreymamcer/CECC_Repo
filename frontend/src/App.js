@@ -8,6 +8,8 @@ import DashboardUI from "./PatientSide/PatientDashboard/patientDashboardUI";
 import PatientProtectedRoute from "./PatientSide/PatientDashboard/PatientProtectedRoute";
 import PatientSignUp from "./PatientSide/LoginAndSignUp/patientSignUp";
 import PatientAnalytics from "./AdminSide/PatientAnalytics/PatientAnalytics";
+import ColorVisionTestUI from "./PatientSide/ColorVisionTest/ColorVisionTestUI/ColorVisionTestUI";
+import EyeCareRecordsViewer from "./PatientSide/PatientManagement/EyeCareRecordsViewer";
 
 function App() {
   return (
@@ -16,6 +18,8 @@ function App() {
         <Route path="/cecc-admin-login" element={<AdminLogIn />} />
         <Route path="/" element={<PatientLogInUI />} />
         <Route path="/patient-signup" element={<PatientSignUp />} />
+        <Route path="/color-vision-test" element={<ColorVisionTestUI />} />
+        <Route path="/records" element={<EyeCareRecordsViewer />} />
         <Route
           path="/user-dashboard"
           element={

@@ -7,7 +7,7 @@ import {
   updateProfile,
   getMyProfile,
   deleteProfile,
-} from "../controllers/profileController.js";
+} from "../controllers/ProfileController.js";
 
 const router = express.Router();
 import { auth } from "../middleware/auth.js";
@@ -21,16 +21,16 @@ router.get("/", getAllProfiles);
 // Get profile by MongoDB _id
 router.get("/id/:id", getProfileById);
 
-// Get profile by patient ID
+// Get profile by patient ID (now using custom _id)
 router.get("/:patientId", getProfileByPatientId);
 
 // Create new profile
 router.post("/", createProfile);
 
-// Update profile by MongoDB _id
-router.put("/id/:id", updateProfile);
+// Update profile by ID (works with both MongoDB ObjectId and custom ID)
+router.put("/:id", updateProfile);
 
-// Delete profile by MongoDB _id
-router.delete("/id/:id", deleteProfile);
+// Delete profile by ID (works with both MongoDB ObjectId and custom ID)
+router.delete("/:id", deleteProfile);
 
 export default router;

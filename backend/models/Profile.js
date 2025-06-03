@@ -2,11 +2,14 @@ import mongoose from "mongoose";
 
 const profileSchema = new mongoose.Schema(
   {
-    patientId: {
+    _id: {
       type: String,
       required: true,
-      unique: true,
-      ref: "User",
+      ref: "User"
+    },
+    patientId: { 
+      type: String,
+      default: function() { return this._id; } // Default to _id for backward compatibility
     },
     firstName: { type: String, required: true },
     middleName: { type: String },
@@ -23,19 +26,16 @@ const profileSchema = new mongoose.Schema(
     civilStatus: { type: String },
     referralBy: { type: String },
     ageCategory: { type: String },
-    // Medical History
-    ocularHistory: { type: String },
-    healthHistory: { type: String },
-    familyMedicalHistory: { type: String },
-    medications: { type: String },
-    allergies: { type: String },
-    occupationalHistory: { type: String },
-    digitalHistory: { type: String },
-    // Visit Details
-    chiefComplaint: { type: String },
-    associatedComplaint: { type: String },
-    diagnosis: { type: String },
-    treatmentPlan: { type: String },
+    // Medical History reference
+    medicalHistoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MedicalHistory"
+    },
+    // Visit History reference - this will be an array of visit IDs
+    visits: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Visit"
+    }],
   },
   { timestamps: true }
 );

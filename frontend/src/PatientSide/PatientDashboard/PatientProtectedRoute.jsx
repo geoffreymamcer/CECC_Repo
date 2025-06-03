@@ -1,5 +1,4 @@
 import { Navigate } from "react-router-dom";
-import { useEffect } from "react";
 
 const PatientProtectedRoute = ({ children }) => {
   const token = localStorage.getItem("token");
@@ -13,8 +12,8 @@ const PatientProtectedRoute = ({ children }) => {
   }
 
   // If no token or user data, redirect to login
-  if (!token || !user.id) {  // Changed from user._id to user.id
-
+  if (!token || (!user.id && !user._id)) {  // Check for either id or _id
+    console.log('Missing user session. Please log in again.');
     return <Navigate to="/" replace />;
   }
 

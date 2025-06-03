@@ -1,0 +1,456 @@
+/* Base Styles for the Component */
+.eyecare-records-viewer {
+  --primary-color: #8b0000;
+  --primary-light: #a52a2a;
+  --secondary-color: #d32f2f;
+  --background-light: #fff9f9;
+  --text-color: #333;
+  --text-light: #666;
+  --border-color: #e0e0e0;
+  --white: #ffffff;
+  max-width: 100%;
+  margin: 0 auto;
+  background-color: var(--white);
+  min-height: 100vh;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Header */
+.eyecare-records-viewer__header {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 1rem;
+  text-align: center;
+}
+
+.eyecare-records-viewer__header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Patient Card */
+.eyecare-records-viewer .patient-card {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--white);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.eyecare-records-viewer .patient-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: var(--primary-light);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  font-size: 1.5rem;
+}
+
+.eyecare-records-viewer .patient-info-portal h2 {
+  font-size: 1.2rem;
+  margin-bottom: 0.25rem;
+}
+
+.eyecare-records-viewer .patient-meta-portal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.eyecare-records-viewer .patient-meta-portal span {
+  display: flex;
+  align-items: center;
+}
+
+/* Tabs Navigation */
+.eyecare-records-viewer .records-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--white);
+}
+
+.eyecare-records-viewer .records-tabs button {
+  flex: 1;
+  padding: 1rem 0.5rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.2s;
+}
+
+.eyecare-records-viewer .records-tabs button svg {
+  font-size: 1.2rem;
+}
+
+.eyecare-records-viewer .records-tabs button.active {
+  color: var(--primary-color);
+  font-weight: 600;
+  border-bottom: 2px solid var(--primary-color);
+}
+
+.eyecare-records-viewer .records-tabs button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Content Area */
+.eyecare-records-viewer .records-content {
+  padding: 1rem;
+  background-color: var(--white);
+  min-height: 60vh;
+}
+
+.eyecare-records-viewer .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.eyecare-records-viewer .section-header h3 {
+  color: var(--primary-color);
+  font-size: 1.2rem;
+}
+
+.eyecare-records-viewer .download-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.eyecare-records-viewer .download-btn:hover {
+  background-color: var(--primary-light);
+}
+
+/* Visit History */
+.eyecare-records-viewer .visit-list {
+  margin-top: 1rem;
+}
+
+.eyecare-records-viewer .visit-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.eyecare-records-viewer .visit-item:hover {
+  border-color: var(--primary-light);
+}
+
+.eyecare-records-viewer .visit-item.selected {
+  border-color: var(--primary-color);
+  background-color: var(--background-light);
+}
+
+.eyecare-records-viewer .visit-date {
+  font-weight: 600;
+  margin-right: 1rem;
+  min-width: 80px;
+}
+
+.eyecare-records-viewer .visit-summary {
+  flex: 1;
+}
+
+.eyecare-records-viewer .visit-doctor {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.eyecare-records-viewer .visit-reason {
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+
+.eyecare-records-viewer .visit-arrow {
+  margin-left: 0.5rem;
+  color: var(--primary-light);
+}
+
+/* Medical Record */
+.eyecare-records-viewer .detail-row {
+  display: flex;
+  margin-bottom: 0.75rem;
+}
+
+.eyecare-records-viewer .detail-label {
+  font-weight: 600;
+  min-width: 120px;
+  color: var(--text-light);
+}
+
+.eyecare-records-viewer .section-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 1.5rem 0;
+}
+
+.eyecare-records-viewer .detail-section {
+  margin-bottom: 1.5rem;
+}
+
+.eyecare-records-viewer .detail-section h4 {
+  color: var(--primary-color);
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+}
+
+.eyecare-records-viewer .detail-section h5 {
+  color: var(--primary-light);
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.loading, .error {
+  padding: 1rem;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.error {
+  color: var(--secondary-color);
+  background-color: #ffebee;
+  border-radius: 4px;
+  border: 1px solid #ffcdd2;
+}
+
+.record-section {
+  margin-bottom: 2rem;
+}
+
+.visit-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.visit-history-item {
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.75rem;
+  background-color: var(--background-light);
+}
+
+.medical-record {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.eyecare-records-viewer .detail-section h4 {
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+/* Prescription */
+.eyecare-records-viewer .prescription-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.eyecare-records-viewer .grid-header {
+  font-weight: 600;
+  padding: 0.5rem;
+  background-color: var(--background-light);
+  text-align: center;
+}
+
+.eyecare-records-viewer .prescription-grid > div {
+  padding: 0.5rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.eyecare-records-viewer .prescription-notes {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: var(--background-light);
+  border-radius: 4px;
+}
+
+/* Receipt */
+.eyecare-records-viewer .receipt-items {
+  margin: 1rem 0;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.eyecare-records-viewer .receipt-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background-color: var(--background-light);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.eyecare-records-viewer .receipt-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.eyecare-records-viewer .receipt-total {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background-color: var(--background-light);
+  font-weight: 600;
+}
+
+/* Color Vision Test */
+.eyecare-records-viewer .color-vision-record {
+  padding: 1rem;
+}
+
+.eyecare-records-viewer .result-badge {
+  background-color: var(--background-light);
+  color: var(--primary-color);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 600;
+  border: 1px solid var(--primary-light);
+}
+
+.eyecare-records-viewer .test-metrics {
+  display: flex;
+  justify-content: space-between;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background-color: var(--background-light);
+  border-radius: 8px;
+}
+
+.eyecare-records-viewer .metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.eyecare-records-viewer .metric-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.eyecare-records-viewer .metric-label {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-top: 0.25rem;
+}
+
+.eyecare-records-viewer .test-notes {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background-color: var(--background-light);
+  border-radius: 8px;
+}
+
+.eyecare-records-viewer .follow-up-tests {
+  margin-top: 2rem;
+}
+
+.eyecare-records-viewer .test-list {
+  list-style: none;
+  margin-top: 1rem;
+}
+
+.eyecare-records-viewer .test-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  background-color: var(--background-light);
+  border-radius: 6px;
+}
+
+.eyecare-records-viewer .test-item .test-icon {
+  color: var(--primary-color);
+  margin-right: 0.75rem;
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+  .eyecare-records-viewer {
+    max-width: 800px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    min-height: auto;
+    margin: 2rem auto;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .eyecare-records-viewer .records-tabs button {
+    flex-direction: row;
+    font-size: 1rem;
+    padding: 1rem;
+  }
+
+  .eyecare-records-viewer .patient-card-portal {
+    padding: 1.5rem;
+  }
+
+  .eyecare-records-viewer .patient-info h2 {
+    font-size: 1.5rem;
+  }
+
+  .eyecare-records-viewer .records-content {
+    padding: 2rem;
+  }
+
+  .eyecare-records-viewer .section-header h3 {
+    font-size: 1.5rem;
+  }
+
+  .eyecare-records-viewer .download-btn {
+    padding: 0.75rem 1.5rem;
+  }
+
+  .eyecare-records-viewer .test-metrics {
+    justify-content: space-around;
+    padding: 1.5rem;
+  }
+
+  .eyecare-records-viewer .metric-value {
+    font-size: 1.75rem;
+  }
+
+  .eyecare-records-viewer .metric-label {
+    font-size: 0.9rem;
+  }
+}
