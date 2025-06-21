@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.input-group:focus-within {
+  transform: translateY(-2px);
+}
+.input-group {
+  transition: all 0.3s ease;
+}
+.btn-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+.btn-hover {
+  transition: all 0.3s ease;
+}

@@ -10,13 +10,15 @@ import PatientSignUp from "./PatientSide/LoginAndSignUp/patientSignUp";
 import PatientAnalytics from "./AdminSide/PatientAnalytics/PatientAnalytics";
 import ColorVisionTestUI from "./PatientSide/ColorVisionTest/ColorVisionTestUI/ColorVisionTestUI";
 import EyeCareRecordsViewer from "./PatientSide/PatientManagement/EyeCareRecordsViewer";
+import AdminLoginLayout from "./AdminSide/AdminLoginUI/LoginLayout";
+import PatientLoginLayout from "./PatientSide/PatientLoginAndSignUp/PatientLoginLayout";
 
 function App() {
   return (
     <div className="App">
       <Routes>
-        <Route path="/cecc-admin-login" element={<AdminLogIn />} />
-        <Route path="/" element={<PatientLogInUI />} />
+        <Route path="/cecc-admin-login" element={<AdminLoginLayout />} />
+        <Route path="/" element={<PatientLoginLayout />} />
         <Route path="/patient-signup" element={<PatientSignUp />} />
         <Route path="/color-vision-test" element={<ColorVisionTestUI />} />
         <Route path="/records" element={<EyeCareRecordsViewer />} />

@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap");
+@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css");
+
+.input-field:focus {
+  outline: none;
+  border-color: #b30000;
+  box-shadow: 0 0 0 3px rgba(179, 0, 0, 0.15);
+}
+
+.login-btn {
+  transition: all 0.3s ease;
+}
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(179, 0, 0, 0.4);
+}
+
+.login-btn:active {
+  transform: translateY(0);
+}
+
+.avatar {
+  transition: all 0.3s ease;
+}
+
+.avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 4px rgba(179, 0, 0, 0.2);
+}
+
+.admin-title {
+  font-family: "Poppins", sans-serif;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Tailwind-like utility classes */
+.shadow-input {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-button {
+  box-shadow: 0 4px 12px rgba(179, 0, 0, 0.3);
+}
+
+/* Color definitions */
+.bg-primary-100 {
+  background-color: #ffe5e5;
+}
+.bg-primary-200 {
+  background-color: #ffb3b3;
+}
+.bg-primary-500 {
+  background-color: #b30000;
+}
+.bg-primary-600 {
+  background-color: #990000;
+}
+.bg-primary-700 {
+  background-color: #800000;
+}
+
+.text-primary-500 {
+  color: #b30000;
+}
+.text-primary-600 {
+  color: #990000;
+}
+.text-primary-700 {
+  color: #800000;
+}
+
+.border-primary-200 {
+  border-color: #ffb3b3;
+}
+.border-primary-500 {
+  border-color: #b30000;
+}
+.border-primary-600 {
+  border-color: #990000;
+}
+
+.focus\:ring-primary-200:focus {
+  --tw-ring-color: #ffb3b3;
+}
+.focus\:ring-primary-500:focus {
+  --tw-ring-color: #b30000;
+}
+
+.image-section {
+  background: linear-gradient(rgba(128, 0, 0, 0.8), rgba(128, 0, 0, 0.9)),
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23800000"/><path d="M0 0L100 100M100 0L0 100" stroke="%23b30000" stroke-width="2"/></svg>');
+  background-size: cover;
+  background-position: center;
+}
