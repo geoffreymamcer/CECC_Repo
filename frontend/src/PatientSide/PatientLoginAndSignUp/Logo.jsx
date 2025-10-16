@@ -1,6 +1,6 @@
 import React from "react";
 import "./PatientLogin.css";
-import logo from "../LoginAndSignUp/LoginAndSignUpAssets/cecc.png";
+import logo from "./LoginAndSignUpAssets/cecc.png";
 
 export default function Logo({ size = "large" }) {
   // Increase the size here

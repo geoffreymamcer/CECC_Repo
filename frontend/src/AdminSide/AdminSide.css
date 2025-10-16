@@ -2,16 +2,8 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  background: transparent;
   outline: none;
   font-family: "Roboto", sans-serif;
-}
-
-input,
-button,
-textarea {
-  border: none;
-  background: none;
 }
 
 html,
@@ -68,94 +60,6 @@ body {
   .viewDetailsButton:hover {
     background-color: #8f2a32;
     cursor: pointer;
-  }
-
-  .adminLogInDiv {
-    background-color: #8c0a14;
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .logInContainer {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    background-color: white;
-    width: 1212px;
-    height: 606px;
-    border-radius: 16.5px;
-    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.4);
-  }
-
-  .logoImage {
-    width: 100%;
-    height: 100%;
-    border-radius: 15px 0px 0px 15px;
-  }
-
-  .logo {
-    height: 100%;
-    width: 100%;
-  }
-
-  .child {
-    flex: 1;
-  }
-
-  .adminLoginUserLogo {
-    height: 150px;
-  }
-
-  .form {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-evenly;
-    row-gap: 10px;
-  }
-
-  .adminInput {
-    width: 350px;
-    height: 50px;
-    border-radius: 15px;
-    border: solid 2px #8c0a14;
-    font-size: 18px;
-    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.4);
-    outline: none;
-  }
-
-  .adminInput:focus {
-    border: solid 2px #8c0a14;
-  }
-
-  .loginButton {
-    background-color: #8c0a14;
-    color: white;
-    font-weight: bold;
-    font-size: 22px;
-  }
-
-  .loginButton:hover {
-    background-color: #8f2a32;
-    cursor: pointer;
-  }
-
-  .username,
-  .password {
-    padding: 10px;
-  }
-
-  .loginText {
-    font-size: 25px;
-    color: #8c0a14;
   }
 
   .adminDashboardContainer {

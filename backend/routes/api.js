@@ -2,16 +2,22 @@ import express from "express";
 import adminRoutes from "./adminRoutes.js";
 import profileRoutes from "./profileRoutes.js";
 import userRoutes from "./userRoutes.js";
+import patientRoutes from "./patientRoutes.js";
+import inventoryRoutes from "./InventoryRoutes.js";
 import appointmentRoutes from "./appointmentRoutes.js";
 import colorVisionTestRoutes from "./colorVisionTestRoutes.js";
 import medicalHistoryRoutes from "./medicalHistoryRoutes.js";
 import visitRoutes from "./visitRoutes.js";
 import testResultRoutes from "./testResultRoutes.js";
+import invoiceRoutes from "./invoiceRoutes.js";
 
 const router = express.Router();
 
 // Admin routes
 router.use("/admin", adminRoutes);
+
+// Inventory routes
+router.use("/inventory", inventoryRoutes);
 
 // Profile routes
 router.use("/profiles", profileRoutes);
@@ -33,6 +39,9 @@ router.use("/visits", visitRoutes);
 
 // Test Result routes
 router.use("/testresults", testResultRoutes);
+
+// Invoice routes
+router.use("/invoices", invoiceRoutes);
 
 // Test route
 router.get("/data", (req, res) => {

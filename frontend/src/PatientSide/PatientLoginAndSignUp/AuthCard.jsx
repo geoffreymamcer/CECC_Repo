@@ -4,14 +4,14 @@ import Title from "./Title";
 import LoginForm from "./LoginForm";
 import SignupForm from "./SignUpForm";
 import "./PatientLogin.css";
-import banner from "../LoginAndSignUp/LoginAndSignUpAssets/login banner image.webp";
+import banner from "./LoginAndSignUpAssets/CECC_Cover.png";
 
 export default function AuthCard() {
   const [isSignup, setIsSignup] = useState(false);
   const toggleForm = () => setIsSignup(!isSignup);
 
   return (
-    <div className="bg-white rounded-xl shadow-lg w-full max-w-4xl overflow-hidden transition-all duration-300 hover:shadow-xl">
+    <div className="bg-white rounded-xl shadow-lg w-full max-w-7xl overflow-hidden transition-all duration-300 hover:shadow-xl">
       {/* Desktop */}
       <div className="hidden md:flex">
         <div className="w-[50%] bg-gray-100 relative overflow-hidden">

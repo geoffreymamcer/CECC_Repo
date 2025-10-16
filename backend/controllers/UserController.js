@@ -226,6 +226,32 @@ export const login = async (req, res) => {
   }
 };
 
+export const changePassword = async (req, res) => {
+  try {
+    const userId = req.user.id || req.user._id;
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ status: "error", message: "Current and new passwords are required." });
+    }
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ status: "error", message: "User not found." });
+    }
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ status: "error", message: "Current password is incorrect." });
+    }
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+    return res.status(200).json({ status: "success", message: "Password changed successfully." });
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({ status: "error", message: error.message || "An error occurred while changing password." });
+  }
+};
+
 export const deleteUser = async (req, res) => {
   try {
     // Only allow users to delete their own account

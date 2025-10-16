@@ -1,0 +1,52 @@
+/* Custom animations */
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* For the notification dot */
+.animate-ping {
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ping {
+  75%,
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Ensures consistent border and style for date input fields */
+.custom-date-input::-webkit-input-placeholder {
+  color: #9ca3af;
+}
+.custom-date-input {
+  border: 1px solid #d1d5db !important; /* Tailwind's border-gray-300 */
+  border-radius: 0.5rem !important; /* Tailwind's rounded-lg */
+  padding: 0.75rem !important; /* Tailwind's p-3 */
+  background-color: #fff !important;
+  appearance: none !important;
+}
+.custom-date-input:focus {
+  border-color: #911c1c !important; /* Tailwind's dark-red */
+  box-shadow: 0 0 0 2px #911c1c33;
+  outline: none;
+}
+
+/* Hide default calendar icon in Chrome, Safari, Edge, Opera */
+.custom-date-input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  display: none;
+}
+
+/* Hide default calendar icon in Firefox */
+.custom-date-input[type="date"]::-moz-calendar-picker-indicator {
+  opacity: 0;
+  display: none;
+}
+
+/* Hide default calendar icon in Edge (legacy) */
+.custom-date-input::-ms-input-placeholder {
+  opacity: 0;
+  display: none;
+}

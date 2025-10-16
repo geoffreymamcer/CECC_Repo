@@ -7,6 +7,7 @@ import {
   updateProfile,
   getMyProfile,
   deleteProfile,
+  getProfileCount,
 } from "../controllers/ProfileController.js";
 
 const router = express.Router();
@@ -14,6 +15,9 @@ import { auth } from "../middleware/auth.js";
 
 // Get profile for the logged-in user
 router.get("/me", auth, getMyProfile);
+
+// Get total number of profiles
+router.get("/count", auth, getProfileCount);
 
 // Get all profiles
 router.get("/", getAllProfiles);

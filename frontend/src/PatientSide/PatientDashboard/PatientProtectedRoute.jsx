@@ -4,7 +4,7 @@ const PatientProtectedRoute = ({ children }) => {
   const token = localStorage.getItem("token");
   const userString = localStorage.getItem("user");
   let user = {};
-  
+
   try {
     user = userString ? JSON.parse(userString) : {};
   } catch (e) {
@@ -12,8 +12,9 @@ const PatientProtectedRoute = ({ children }) => {
   }
 
   // If no token or user data, redirect to login
-  if (!token || (!user.id && !user._id)) {  // Check for either id or _id
-    console.log('Missing user session. Please log in again.');
+  if (!token || (!user.id && !user._id)) {
+    // Check for either id or _id
+    console.log("Missing user session. Please log in again.");
     return <Navigate to="/" replace />;
   }
 

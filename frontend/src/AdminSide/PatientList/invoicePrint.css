@@ -1,0 +1,60 @@
+.pdf-scale {
+  font-size: 0.8rem !important; /* Small but still readable */
+  line-height: 1.15rem !important; /* Breathing space */
+}
+
+.pdf-scale table th,
+.pdf-scale table td {
+  padding: 0.35rem 0.4rem !important; /* Balanced table spacing */
+}
+
+.pdf-scale .section-spacing {
+  margin-bottom: 0.8rem !important; /* Less gap between sections */
+}
+
+.watermark-container {
+  position: relative;
+  overflow: visible;
+  page-break-inside: avoid;
+  margin-bottom: 1rem;
+  transform-origin: top;
+  transform: scale(0.9);
+}
+
+.watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.15;
+  pointer-events: none;
+  width: 200px;
+  height: auto;
+  z-index: 0;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  font-size: 0.85rem;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 5mm;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  .space-y-8 > * + * {
+    margin-top: 1rem !important;
+  }
+
+  .watermark-container {
+    padding: 0.75rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+}

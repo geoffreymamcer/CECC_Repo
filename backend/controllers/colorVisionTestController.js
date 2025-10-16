@@ -6,20 +6,26 @@ import asyncHandler from "express-async-handler";
 // @route   POST /api/colorvisiontest
 // @access  Private (Patient)
 const createColorVisionTest = asyncHandler(async (req, res) => {
-  const { correctPlates, totalPlates, accuracy, testResult, clientTestId } = req.body;
+  const { correctPlates, totalPlates, accuracy, testResult, clientTestId } =
+    req.body;
 
-  if (!correctPlates || !totalPlates || !accuracy || !testResult) {
+  if (
+    correctPlates === undefined ||
+    totalPlates === undefined ||
+    accuracy === undefined ||
+    !testResult
+  ) {
     res.status(400);
     throw new Error("Please provide all required fields");
   }
 
   // Get patientID from the authenticated user (using any available ID format)
   const patientID = req.user.patientId || req.user.id || req.user._id;
-  
+
   console.log(`Creating color vision test for patient ID: ${patientID}`);
-  
+
   if (!patientID) {
-    console.error('Missing patient ID in user object:', req.user);
+    console.error("Missing patient ID in user object:", req.user);
     res.status(400);
     throw new Error("Patient ID not found. Please log in again.");
   }
@@ -31,19 +37,23 @@ const createColorVisionTest = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
 
-  const patientName = `${user.firstName} ${user.middleName ? user.middleName + ' ' : ''}${user.lastName}`;
-  
+  const patientName = `${user.firstName} ${
+    user.middleName ? user.middleName + " " : ""
+  }${user.lastName}`;
+
   // If a clientTestId is provided, check if we've already processed this test
   if (clientTestId) {
     // Use a custom field in the model to store the clientTestId
     // We'll check if this test has already been saved with this ID
     const existingTest = await ColorVisionTest.findOne({
       patientID,
-      clientTestId
+      clientTestId,
     });
-    
+
     if (existingTest) {
-      console.log(`Test with clientTestId ${clientTestId} already exists, preventing duplicate`);
+      console.log(
+        `Test with clientTestId ${clientTestId} already exists, preventing duplicate`
+      );
       return res.status(201).json(existingTest);
     }
   }
@@ -57,7 +67,7 @@ const createColorVisionTest = asyncHandler(async (req, res) => {
     accuracy,
     testResult,
     testDate: new Date(),
-    clientTestId: clientTestId || null // Store the clientTestId if provided
+    clientTestId: clientTestId || null, // Store the clientTestId if provided
   });
 
   if (colorVisionTest) {
@@ -72,24 +82,27 @@ const createColorVisionTest = asyncHandler(async (req, res) => {
 // @route   GET /api/colorvisiontest/admin/all
 // @access  Private (Admin only)
 const getAllColorVisionTests = asyncHandler(async (req, res) => {
-  console.log('getAllColorVisionTests: Received request from user:', {
+  console.log("getAllColorVisionTests: Received request from user:", {
     id: req.user._id,
     role: req.user.role,
-    email: req.user.email
+    email: req.user.email,
   });
 
   // Check if user is admin
   if (!req.user.isAdmin && req.user.role !== "admin") {
-    console.log('getAllColorVisionTests: Access denied - not an admin');
+    console.log("getAllColorVisionTests: Access denied - not an admin");
     res.status(401);
     throw new Error("Not authorized as an admin");
   }
 
-  console.log('getAllColorVisionTests: Fetching all test results');
-  const colorVisionTests = await ColorVisionTest.find({})
-    .sort({ testDate: -1 });
+  console.log("getAllColorVisionTests: Fetching all test results");
+  const colorVisionTests = await ColorVisionTest.find({}).sort({
+    testDate: -1,
+  });
 
-  console.log(`getAllColorVisionTests: Found ${colorVisionTests.length} test results`);
+  console.log(
+    `getAllColorVisionTests: Found ${colorVisionTests.length} test results`
+  );
   res.status(200).json(colorVisionTests);
 });
 
@@ -99,20 +112,21 @@ const getAllColorVisionTests = asyncHandler(async (req, res) => {
 const getPatientColorVisionTests = asyncHandler(async (req, res) => {
   // Get patientID from the authenticated user (using any available ID format)
   const patientID = req.user.patientId || req.user.id || req.user._id;
-  
+
   console.log(`Fetching color vision tests for patient ID: ${patientID}`);
-  
+
   if (!patientID) {
-    console.error('Missing patient ID in user object:', req.user);
+    console.error("Missing patient ID in user object:", req.user);
     res.status(400);
     throw new Error("Patient ID not found. Please log in again.");
   }
-  
-  const colorVisionTests = await ColorVisionTest.find({ patientID })
-    .sort({ testDate: -1 });
-  
+
+  const colorVisionTests = await ColorVisionTest.find({ patientID }).sort({
+    testDate: -1,
+  });
+
   console.log(`Found ${colorVisionTests.length} color vision tests`);
-  
+
   res.status(200).json(colorVisionTests);
 });
 
@@ -121,28 +135,30 @@ const getPatientColorVisionTests = asyncHandler(async (req, res) => {
 // @access  Private (Patient)
 const getColorVisionTest = asyncHandler(async (req, res) => {
   const colorVisionTest = await ColorVisionTest.findById(req.params.id);
-  
+
   if (!colorVisionTest) {
     res.status(404);
     throw new Error("Color vision test not found");
   }
-  
+
   // Get patientID from the authenticated user (using any available ID format)
   const patientID = req.user.patientId || req.user.id || req.user._id;
-  
+
   if (!patientID) {
-    console.error('Missing patient ID in user object:', req.user);
+    console.error("Missing patient ID in user object:", req.user);
     res.status(400);
     throw new Error("Patient ID not found. Please log in again.");
   }
-  
+
   // Check if the test belongs to the authenticated patient or if user is admin
   if (colorVisionTest.patientID !== patientID && !req.user.isAdmin) {
-    console.log(`Unauthorized access: Test belongs to ${colorVisionTest.patientID}, but user is ${patientID}`);
+    console.log(
+      `Unauthorized access: Test belongs to ${colorVisionTest.patientID}, but user is ${patientID}`
+    );
     res.status(401);
     throw new Error("Not authorized to access this test");
   }
-  
+
   res.status(200).json(colorVisionTest);
 });
 
@@ -153,11 +169,16 @@ const updateFollowUpTests = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { followUpTests } = req.body;
 
-  console.log('updateFollowUpTests: Updating test', id, 'with follow-up tests:', followUpTests);
+  console.log(
+    "updateFollowUpTests: Updating test",
+    id,
+    "with follow-up tests:",
+    followUpTests
+  );
 
   // Check if user is admin
   if (!req.user.isAdmin && req.user.role !== "admin") {
-    console.log('updateFollowUpTests: Access denied - not an admin');
+    console.log("updateFollowUpTests: Access denied - not an admin");
     res.status(401);
     throw new Error("Not authorized as an admin");
   }
@@ -165,7 +186,7 @@ const updateFollowUpTests = asyncHandler(async (req, res) => {
   const colorVisionTest = await ColorVisionTest.findById(id);
 
   if (!colorVisionTest) {
-    console.log('updateFollowUpTests: Test not found:', id);
+    console.log("updateFollowUpTests: Test not found:", id);
     res.status(404);
     throw new Error("Color vision test not found");
   }
@@ -173,7 +194,7 @@ const updateFollowUpTests = asyncHandler(async (req, res) => {
   colorVisionTest.followUpTests = followUpTests;
   await colorVisionTest.save();
 
-  console.log('updateFollowUpTests: Successfully updated follow-up tests');
+  console.log("updateFollowUpTests: Successfully updated follow-up tests");
   res.status(200).json(colorVisionTest);
 });
 
@@ -182,5 +203,5 @@ export {
   getAllColorVisionTests,
   getPatientColorVisionTests,
   getColorVisionTest,
-  updateFollowUpTests
+  updateFollowUpTests,
 };

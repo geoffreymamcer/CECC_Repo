@@ -1,5 +1,14 @@
 import Profile from "../models/Profile.js";
 
+export const getProfileCount = async (req, res) => {
+  try {
+    const count = await Profile.countDocuments();
+    res.status(200).json({ count });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Get all profiles
 export const getAllProfiles = async (req, res) => {
   try {
@@ -51,7 +60,7 @@ export const getProfileByPatientId = async (req, res) => {
 export const createProfile = async (req, res) => {
   try {
     const { _id } = req.body;
-    
+
     // Check for duplicate profile by _id
     const existingProfile = await Profile.findById(_id);
     if (existingProfile) {
@@ -60,12 +69,24 @@ export const createProfile = async (req, res) => {
         message: "Profile already exists for this ID",
       });
     }
-    
+
     // Set patientId to _id for backward compatibility if not provided
     if (!req.body.patientId && _id) {
       req.body.patientId = _id;
     }
-    
+
+    // If separate address fields are provided, derive the combined display strings
+    const { region, province, city, barangay, street_subdivision } = req.body;
+    if (region || province || city || barangay) {
+      const combined = [barangay, city, province, region]
+        .filter(Boolean)
+        .join(", ");
+      req.body.addressCombined = combined;
+      req.body.address = street_subdivision
+        ? `${street_subdivision}, ${combined}`
+        : combined;
+    }
+
     const profile = await Profile.create(req.body);
     res.status(201).json(profile);
   } catch (error) {
@@ -82,6 +103,18 @@ export const updateProfile = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = { ...req.body };
+
+    // If separate address parts are present in the update, derive combined strings
+    const { region, province, city, barangay, street_subdivision } = updateData;
+    if (region || province || city || barangay) {
+      const combined = [barangay, city, province, region]
+        .filter(Boolean)
+        .join(", ");
+      updateData.addressCombined = combined;
+      updateData.address = street_subdivision
+        ? `${street_subdivision}, ${combined}`
+        : combined;
+    }
 
     // Handle profile picture update
     if (updateData.profilePicture) {

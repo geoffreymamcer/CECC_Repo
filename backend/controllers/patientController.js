@@ -1,6 +1,6 @@
-const Patient = require("../models/Patient");
+import Patient from "../models/Patient.js";
 
-const createPatient = async (req, res) => {
+export const createPatient = async (req, res) => {
   try {
     // Validate required fields
     const requiredFields = [
@@ -43,7 +43,7 @@ const createPatient = async (req, res) => {
   }
 };
 
-const getAllPatients = async (req, res) => {
+export const getAllPatients = async (req, res) => {
   try {
     const patients = await Patient.find().sort({ createdAt: -1 });
     res.status(200).json(patients);
@@ -52,4 +52,4 @@ const getAllPatients = async (req, res) => {
   }
 };
 
-module.exports = { createPatient, getAllPatients };
+export default { createPatient, getAllPatients };

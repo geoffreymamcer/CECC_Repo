@@ -31,10 +31,18 @@ const visitSchema = new mongoose.Schema(
       type: String,
       default: "Dr. Philip Richard Budiongan",
     },
+    notes: {
+      type: String,
+      default: "no notes yet",
+    },
+    prescriptions: {
+      type: String,
+      default: "no prescriptions yet",
+    },
     appointmentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Appointment",
-    }
+    },
   },
   { timestamps: true }
 );

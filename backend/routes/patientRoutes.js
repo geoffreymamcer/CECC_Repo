@@ -3,8 +3,8 @@ const router = Router();
 import {
   createPatient,
   getAllPatients,
-} from "../controllers/patientController";
-import { auth, requireRole } from "../middleware/auth";
+} from "../controllers/patientController.js";
+import { auth, requireRole } from "../middleware/auth.js";
 
 // Explicitly require admin role
 router.post("/create", auth, requireRole("admin"), createPatient);

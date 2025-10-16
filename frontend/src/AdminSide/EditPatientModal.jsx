@@ -19,7 +19,10 @@ const EditPatientModal = ({ patient, isOpen, onClose, onUpdate }) => {
         fullName: patient.fullName || "",
         email: patient.email || "",
         phoneNumber: patient.phoneNumber || "",
-        address: patient.address || "",
+        address:
+          patient.address && typeof patient.address === "object"
+            ? patient.address.display || ""
+            : patient.address || "",
         dateOfBirth: patient.dateOfBirth || "", // Ensure date format matches input type="date" requirements if needed
         medicalHistory: patient.medicalHistory || "",
       });

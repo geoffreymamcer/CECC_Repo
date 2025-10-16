@@ -3,7 +3,7 @@ import "./AdminLogin.css";
 
 const ImageSection = () => {
   return (
-    <div className="image-section w-full md:w-1/2 h-64 md:h-auto flex flex-col justify-center items-center p-8 text-white bg-gradient-to-r from-primary-700 to-primary-600">
+    <div className="image-section w-full md:w-1/2 h-64 md:h-auto flex flex-col justify-center items-center p-8 text-white">
       <div className="text-center">
         <h2 className="text-3xl font-bold mb-4">
           Candelaria Eye Care Clinic Admin

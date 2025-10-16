@@ -27,13 +27,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate1,
     question: "What do you see?",
-    choices: [
-      { text: "12", value: "12" },
-      { text: "21", value: "21" },
-      { text: "15", value: "15" },
-      { text: "18", value: "18" },
-      { text: "Nothing", value: "nothing" },
-    ],
+
     normalVisionAnswer: "12",
     protanopiaAnswer: "12",
     deuteranopiaAnswer: "12",
@@ -43,13 +37,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate2,
     question: "What do you see?",
-    choices: [
-      { text: "8", value: "8" },
-      { text: "3", value: "3" },
-      { text: "5", value: "5" },
-      { text: "6", value: "6" },
-      { text: "Nothing", value: "nothing" },
-    ],
+
     normalVisionAnswer: "8",
     protanopiaAnswer: "6",
     deuteranopiaAnswer: "3",
@@ -59,13 +47,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate3,
     question: "What do you see?",
-    choices: [
-      { text: "29", value: "29" },
-      { text: "70", value: "70" },
-      { text: "26", value: "26" },
-      { text: "24", value: "24" },
-      { text: "Nothing", value: "nothing" },
-    ],
+
     normalVisionAnswer: "29",
     protanopiaAnswer: "70",
     deuteranopiaAnswer: "70",
@@ -75,13 +57,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate4,
     question: "What do you see?",
-    choices: [
-      { text: "5", value: "5" },
-      { text: "2", value: "2" },
-      { text: "6", value: "6" },
-      { text: "8", value: "8" },
-      { text: "Nothing", value: "nothing" },
-    ],
+
     normalVisionAnswer: "5",
     protanopiaAnswer: "2",
     deuteranopiaAnswer: "2",
@@ -91,13 +67,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate5,
     question: "What do you see?",
-    choices: [
-      { text: "3", value: "3" },
-      { text: "5", value: "5" },
-      { text: "6", value: "6" },
-      { text: "8", value: "8" },
-      { text: "Nothing", value: "nothing" },
-    ],
+
     normalVisionAnswer: "3",
     protanopiaAnswer: "5",
     deuteranopiaAnswer: "5",
@@ -107,13 +77,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate6,
     question: "What do you see?",
-    choices: [
-      { text: "15", value: "15" },
-      { text: "17", value: "17" },
-      { text: "18", value: "18" },
-      { text: "19", value: "19" },
-      { text: "Nothing", value: "nothing" },
-    ],
+
     normalVisionAnswer: "15",
     protanopiaAnswer: "17",
     deuteranopiaAnswer: "17",
@@ -123,13 +87,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate7,
     question: "What do you see?",
-    choices: [
-      { text: "74", value: "74" },
-      { text: "21", value: "21" },
-      { text: "15", value: "15" },
-      { text: "18", value: "18" },
-      { text: "Nothing", value: "nothing" },
-    ],
+
     normalVisionAnswer: "74",
     protanopiaAnswer: "21",
     deuteranopiaAnswer: "21",
@@ -139,13 +97,6 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate8,
     question: "What do you see?",
-    choices: [
-      { text: "6", value: "6" },
-      { text: "3", value: "3" },
-      { text: "5", value: "5" },
-      { text: "8", value: "8" },
-      { text: "Nothing", value: "nothing" },
-    ],
     normalVisionAnswer: "6",
     protanopiaAnswer: "nothing",
     deuteranopiaAnswer: "nothing",
@@ -155,13 +106,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate9,
     question: "What do you see?",
-    choices: [
-      { text: "45", value: "45" },
-      { text: "21", value: "21" },
-      { text: "15", value: "15" },
-      { text: "18", value: "18" },
-      { text: "Nothing", value: "nothing" },
-    ],
+
     normalVisionAnswer: "45",
     protanopiaAnswer: "nothing",
     deuteranopiaAnswer: "nothing",
@@ -171,13 +116,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate10,
     question: "What do you see?",
-    choices: [
-      { text: "5", value: "5" },
-      { text: "2", value: "2" },
-      { text: "6", value: "6" },
-      { text: "8", value: "8" },
-      { text: "Nothing", value: "nothing" },
-    ],
+
     normalVisionAnswer: "5",
     protanopiaAnswer: "nothing",
     deuteranopiaAnswer: "nothing",
@@ -187,14 +126,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate11,
     question: "What do you see?",
-    choices: [
-      { text: "7", value: "7" },
-      { text: "74", value: "74" },
-      { text: "21", value: "21" },
-      { text: "15", value: "15" },
-      { text: "18", value: "18" },
-      { text: "Nothing", value: "nothing" },
-    ],
+
     normalVisionAnswer: "7",
     protanopiaAnswer: "nothing",
     deuteranopiaAnswer: "nothing",
@@ -204,13 +136,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate12,
     question: "What do you see?",
-    choices: [
-      { text: "16", value: "16" },
-      { text: "21", value: "21" },
-      { text: "15", value: "15" },
-      { text: "18", value: "18" },
-      { text: "Nothing", value: "nothing" },
-    ],
+
     normalVisionAnswer: "16",
     protanopiaAnswer: "nothing",
     deuteranopiaAnswer: "nothing",
@@ -220,13 +146,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate13,
     question: "What do you see?",
-    choices: [
-      { text: "73", value: "73" },
-      { text: "21", value: "21" },
-      { text: "15", value: "15" },
-      { text: "18", value: "18" },
-      { text: "Nothing", value: "nothing" },
-    ],
+
     normalVisionAnswer: "73",
     protanopiaAnswer: "nothing",
     deuteranopiaAnswer: "nothing",
@@ -236,13 +156,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate14,
     question: "What do you see?",
-    choices: [
-      { text: "Nothing", value: "nothing" },
-      { text: "5", value: "5" },
-      { text: "2", value: "2" },
-      { text: "6", value: "6" },
-      { text: "8", value: "8" },
-    ],
+
     normalVisionAnswer: "nothing",
     protanopiaAnswer: "5",
     deuteranopiaAnswer: "5",
@@ -252,13 +166,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate15,
     question: "What do you see?",
-    choices: [
-      { text: "Nothing", value: "nothing" },
-      { text: "45", value: "45" },
-      { text: "21", value: "21" },
-      { text: "15", value: "15" },
-      { text: "18", value: "18" },
-    ],
+
     normalVisionAnswer: "nothing",
     protanopiaAnswer: "45",
     deuteranopiaAnswer: "45",
@@ -268,14 +176,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate16,
     question: "What number do you see?",
-    choices: [
-      { text: "26", value: "26" },
-      { text: "6", value: "6" },
-      { text: "2", value: "2" },
-      { text: "I see both 2 and 6, but 6 is clearer", value: "both_6_clearer" },
-      { text: "I see both 2 and 6, but 2 is clearer", value: "both_2_clearer" },
-      { text: "I see something else or nothing", value: "other" },
-    ],
+
     normalVisionAnswer: "26",
     protanopiaAnswer: "6",
     deuteranopiaAnswer: "2",
@@ -287,14 +188,7 @@ export const ishiharaTestPlatesConsistent = [
   {
     imageSrc: plate17,
     question: "What number do you see?",
-    choices: [
-      { text: "42", value: "42" },
-      { text: "2", value: "2" },
-      { text: "4", value: "4" },
-      { text: "I see both 4 and 2, but 2 is clearer", value: "both_2_clearer" },
-      { text: "I see both 4 and 2, but 4 is clearer", value: "both_4_clearer" },
-      { text: "I see something else or nothing", value: "other" },
-    ],
+
     normalVisionAnswer: "42",
     protanopiaAnswer: "2",
     deuteranopiaAnswer: "4",
@@ -307,14 +201,7 @@ export const ishiharaTestPlatesConsistent = [
     imageSrc: plate18,
     question:
       "Trace the winding lines between the two x's Which line(s) did you follow?",
-    choices: [
-      { text: "Purple line only", value: "purple_only" },
-      { text: "Red line only", value: "red_only" },
-      { text: "Both lines, purple easier", value: "both_purple_easier" },
-      { text: "Both lines, red easier", value: "both_red_easier" },
-      { text: "Both lines equally easily", value: "both_equal" },
-      { text: "Could not follow either line", value: "neither" },
-    ],
+
     normalVisionAnswer: "both_equal",
     protanopiaAnswer: "purple_only",
     deuteranopiaAnswer: "red_only",
@@ -327,10 +214,7 @@ export const ishiharaTestPlatesConsistent = [
     imageSrc: plate19,
     question:
       "Trace the winding line between the two 's Were you able to follow it?",
-    choices: [
-      { text: "Yes, I could follow the line", value: "line_followed" },
-      { text: "No, I could not follow the line", value: "line_not_followed" },
-    ],
+
     normalVisionAnswer: "line_not_followed",
     protanopiaAnswer: "line_followed",
     deuteranopiaAnswer: "line_followed",
@@ -341,26 +225,7 @@ export const ishiharaTestPlatesConsistent = [
     imageSrc: plate20,
     question:
       "Trace the winding line between the two X's Which line did you follow?",
-    choices: [
-      {
-        text: "The bluish-green line",
-        value: "bluish_green",
-      },
-      {
-        text: "I could not follow any clear line",
-        value: "no_clear_line",
-      },
-      {
-        text: "I followed a different line (please specify)",
-        value: "different_line_specify",
-        require_input: true,
-      },
-      {
-        text: "I followed a [describe the color you saw] line",
-        value: "different_line_described",
-        require_input: true,
-      },
-    ],
+
     normalVisionAnswer: "bluish_green",
     colorVisionDeficiencyAnswer: [
       "no_clear_line",
@@ -374,20 +239,7 @@ export const ishiharaTestPlatesConsistent = [
     imageSrc: plate21,
     question:
       "Trace the winding line between the two x's Which line did you follow?",
-    choices: [
-      { text: "The orange line", value: "orange" },
-      { text: "I could not follow any clear line", value: "no_clear_line" },
-      {
-        text: "I followed a different line (please specify)",
-        value: "different_line_specify",
-        require_input: true,
-      },
-      {
-        text: "I followed a [describe the color you saw] line",
-        value: "different_line_described",
-        require_input: true,
-      },
-    ],
+
     normalVisionAnswer: "orange",
     colorVisionDeficiencyAnswer: [
       "no_clear_line",
@@ -401,17 +253,7 @@ export const ishiharaTestPlatesConsistent = [
     imageSrc: plate22,
     question:
       "Trace the winding line between the two X's Which line did you follow?",
-    choices: [
-      {
-        text: "The line connecting bluish-green and yellowish-green",
-        value: "bluish_green_yellowish_green",
-      },
-      {
-        text: "The line connecting bluish-green and purple",
-        value: "bluish_green_purple",
-      },
-      { text: "I could not trace any line", value: "no_line" },
-    ],
+
     normalVisionAnswer: "bluish_green_yellowish_green",
     redGreenDeficiencyAnswer: "bluish_green_purple",
     totalColorBlindnessAnswer: "no_line",
@@ -421,15 +263,9 @@ export const ishiharaTestPlatesConsistent = [
     imageSrc: plate23,
     question:
       "Trace the winding line between the two X's Which line did you follow?",
-    choices: [
-      { text: "The line connecting purple and orange", value: "purple_orange" },
-      {
-        text: "The line connecting purple and bluish-green",
-        value: "purple_bluish_green",
-      },
-      { text: "I could not trace any line", value: "no_line" },
-    ],
-    normalVisionAnswer: "purple_orange",
+
+    normalVisionAnswer:
+      "a person with normal color vision would see a winding line made of reddish and pinkish dotse",
     redGreenDeficiencyAnswer: "purple_bluish_green",
     totalColorBlindnessAnswer: "no_line",
     plateNumber: 23,
@@ -438,11 +274,8 @@ export const ishiharaTestPlatesConsistent = [
     imageSrc: plate24,
     question:
       "Trace the winding line between the two X's Were you able to follow it?",
-    choices: [
-      { text: "Yes, I could follow the line", value: "line_followed" },
-      { text: "No, I could not follow the line", value: "line_not_followed" },
-    ],
-    normalVisionAnswer: "line_followed",
+    normalVisionAnswer:
+      'winding reddish-orange line that snakes its way from the "X" on the left side to the "X" on the right side',
     colorVisionDeficiencyAnswer: "line_followed",
     totalColorBlindnessAnswer: "line_followed",
     plateNumber: 24,
