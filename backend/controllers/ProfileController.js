@@ -1,4 +1,5 @@
 import Profile from "../models/Profile.js";
+import Visit from "../models/Visit.js";
 
 export const getProfileCount = async (req, res) => {
   try {
@@ -12,10 +13,46 @@ export const getProfileCount = async (req, res) => {
 // Get all profiles
 export const getAllProfiles = async (req, res) => {
   try {
-    const profiles = await Profile.find().sort({ createdAt: -1 });
-    res.status(200).json(profiles);
+    // 1. Fetch all patient profiles. Using .lean() for better performance.
+    const profiles = await Profile.find().sort({ createdAt: -1 }).lean();
+
+    // 2. For each profile, find its most recent visit in parallel for efficiency.
+    const profilesWithVisitData = await Promise.all(
+      profiles.map(async (profile) => {
+        // Find the single most recent visit for the patientId, sorted by visitDate.
+        const latestVisit = await Visit.findOne({
+          // Use profile._id which is the ref to User and used as patientId in Visit
+          patientId: profile._id,
+        })
+          .sort({ visitDate: -1 }) // Sorts to get the most recent visit first
+          .lean();
+
+        // 3. Attach the latest visit data to the profile object.
+        if (latestVisit) {
+          return {
+            ...profile,
+            // Format the date nicely and provide the diagnosis.
+            lastVisit: new Date(latestVisit.visitDate).toLocaleDateString(),
+            latestDiagnosis: latestVisit.diagnosis || "No diagnosis recorded",
+          };
+        } else {
+          // If the patient has no visit history, return default values.
+          return {
+            ...profile,
+            lastVisit: "N/A",
+            latestDiagnosis: "No visit history",
+          };
+        }
+      })
+    );
+
+    res.status(200).json(profilesWithVisitData);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error fetching profiles with visit data:", error);
+    res.status(500).json({
+      status: "error",
+      message: error.message || "Error fetching patient profiles",
+    });
   }
 };
 

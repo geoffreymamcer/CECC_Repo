@@ -55,6 +55,9 @@ const Dashboard = () => {
           todaysAppointments: appointmentsRes.data.length || 0,
           revenueToday: revenueRes.data.totalRevenue || 0,
         }));
+
+        // **This is the line you need to add**
+        setAppointments(appointmentsRes.data);
       } catch (err) {
         console.error("Error fetching KPI data:", err);
       } finally {
