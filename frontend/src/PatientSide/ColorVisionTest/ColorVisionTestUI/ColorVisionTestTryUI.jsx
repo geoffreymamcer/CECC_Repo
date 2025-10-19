@@ -54,47 +54,73 @@ const IshiharaTest = () => {
   const [plates, setPlates] = useState([]);
   const [currentPlateIndex, setCurrentPlateIndex] = useState(0);
   const [currentUserInput, setCurrentUserInput] = useState("");
-  const [testResults, setTestResults] = useState([]);
+  const [testAnswers, setTestAnswers] = useState([]); // Stores raw answers locally
+  const [testResults, setTestResults] = useState([]); // Stores final, evaluated results
   const [isCompleted, setIsCompleted] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
   // State for API and submission process
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Used for the final evaluation
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [visionStatus, setVisionStatus] = useState("");
 
-  // --- GEMINI API SETUP ---
+  // Initialize Gemini AI
   const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
 
-  const evaluateWithGemini = async (userAnswer, plate) => {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  // Verify API key is available
+  useEffect(() => {
+    if (!process.env.REACT_APP_GEMINI_API_KEY) {
+      console.error("Warning: REACT_APP_GEMINI_API_KEY is not set");
+    }
+  }, []);
 
-    // Broader, more powerful prompt for detailed evaluation
+  // --- COMPONENT LIFECYCLE & INITIALIZATION ---
+  useEffect(() => {
+    const shuffled = shuffleArray(ishiharaTestPlatesConsistent);
+    setPlates(shuffled);
+  }, []);
+
+  // New function to evaluate all answers in a single API call
+  const evaluateAllAnswersWithGemini = async (answers) => {
+    setIsLoading(true);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+
+    // Create a detailed prompt with all user answers
+    const answersPrompt = answers
+      .map(
+        (answer) => `
+      {
+        "plateNumber": ${answer.plate.plateNumber},
+        "question": "${answer.plate.question}",
+        "userAnswer": "${answer.userAnswer}",
+        "normalVisionAnswer": "${answer.plate.normalVisionAnswer}",
+        "protanopiaAnswer": "${answer.plate.protanopiaAnswer}",
+        "deuteranopiaAnswer": "${answer.plate.deuteranopiaAnswer}"
+      }
+    `
+      )
+      .join(",\n");
+
     const prompt = `
-      You are an expert assistant for a color vision test, evaluating a user's answer for an Ishihara plate.
+      You are an expert assistant for a color vision test. You will receive a JSON array of a user's answers for a series of Ishihara plates.
 
-      The user was shown Ishihara Plate #${plate.plateNumber}.
-      The question asked was: "${plate.question}"
-      The user's answer is: "${userAnswer}".
+      Analyze each answer in the array. Users might type numbers as words (e.g., "twelve" for "12"), describe the image ("I see nothing"), or describe following a line. These should be considered valid interpretations.
 
-      Here are the expected answers for different vision types:
-      - Normal Vision: "${plate.normalVisionAnswer}"
-      - Protanopia (red-blindness): "${plate.protanopiaAnswer}"
-      - Deuteranopia (green-blindness): "${plate.deuteranopiaAnswer}"
-
-      Analyze the user's answer. The user might type numbers as words (e.g., "twelve" for "12"), describe the image ("I see nothing", "blank"), or describe following a line ("I followed the orange one"). These should be considered valid interpretations.
-
-      Your task is to determine which vision category the user's answer most closely matches.
+      For each object in the array, determine which vision category the user's answer most closely matches.
       - If it matches or is a semantic equivalent of the "Normal Vision" answer, classify it as "Normal".
       - If it matches or is a semantic equivalent of the "Protanopia" answer, classify it as "Protanopia".
       - If it matches or is a semantic equivalent of the "Deuteranopia" answer, classify it as "Deuteranopia".
-      - If the answer does not clearly match any of the above, classify it as "Incorrect".
+      - Otherwise, classify it as "Incorrect".
 
-      Respond ONLY with a JSON object with two keys:
-      1. "evaluation": A string which can be one of four values: "Normal", "Protanopia", "Deuteranopia", or "Incorrect".
-      2. "reasoning": A brief, one-sentence explanation for your classification.
+      Your task is to return a valid JSON array where each object corresponds to an answer from the input and contains three keys:
+      1. "plateNumber": The integer plate number you evaluated.
+      2. "evaluation": A string which can be one of four values: "Normal", "Protanopia", "Deuteranopia", or "Incorrect".
+      3. "reasoning": A brief, one-sentence explanation for your classification.
+
+      Here is the user's test data:
+      [${answersPrompt}]
     `;
 
     try {
@@ -105,71 +131,88 @@ const IshiharaTest = () => {
         .replace(/```json/g, "")
         .replace(/```/g, "")
         .trim();
-      return JSON.parse(jsonText);
+      const evaluatedResults = JSON.parse(jsonText);
+
+      // Merge original answers with AI evaluation
+      const finalResults = answers.map((answer) => {
+        const aiResult = evaluatedResults.find(
+          (r) => r.plateNumber === answer.plate.plateNumber
+        ) || { evaluation: "Incorrect", reasoning: "AI evaluation failed." };
+
+        return {
+          plateNumber: answer.plate.plateNumber,
+          userAnswer: answer.userAnswer,
+          evaluation: aiResult.evaluation,
+          isCorrect: aiResult.evaluation === "Normal",
+          reasoning: aiResult.reasoning,
+          normalVisionAnswer: answer.plate.normalVisionAnswer,
+        };
+      });
+
+      setTestResults(finalResults);
+      const finalVisionStatus = determineVisionStatus(
+        finalResults,
+        plates.length
+      );
+      setVisionStatus(finalVisionStatus);
     } catch (error) {
       console.error("Error evaluating with Gemini:", error);
-      return {
-        evaluation: "Incorrect",
-        reasoning: "Error during AI evaluation.",
-      };
+      setSubmitError(
+        "There was an error analyzing your results with the AI. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // --- COMPONENT LIFECYCLE & INITIALIZATION ---
-  useEffect(() => {
-    const shuffled = shuffleArray(ishiharaTestPlatesConsistent);
-    setPlates(shuffled);
-  }, []);
-
   // --- EVENT HANDLERS ---
-  const handleNext = async () => {
+  const handleNext = () => {
     if (!currentUserInput.trim()) {
       alert("Please enter what you see in the image.");
       return;
     }
-    setIsLoading(true);
 
     const currentPlate = plates[currentPlateIndex];
-    const geminiResult = await evaluateWithGemini(
-      currentUserInput,
-      currentPlate
-    );
-
-    const newResult = {
-      plateNumber: currentPlate.plateNumber,
+    const newAnswer = {
+      plate: currentPlate,
       userAnswer: currentUserInput,
-      evaluation: geminiResult.evaluation, // "Normal", "Protanopia", etc.
-      isCorrect: geminiResult.evaluation === "Normal", // Keep for simple accuracy counting
-      reasoning: geminiResult.reasoning,
-      normalVisionAnswer: currentPlate.normalVisionAnswer,
     };
 
-    const updatedResults = [...testResults, newResult];
-    setTestResults(updatedResults);
+    // Store the answer locally without calling the API
+    const updatedAnswers = [...testAnswers, newAnswer];
+    setTestAnswers(updatedAnswers);
     setCurrentUserInput("");
-    setIsLoading(false);
 
     if (currentPlateIndex < plates.length - 1) {
       setCurrentPlateIndex(currentPlateIndex + 1);
     } else {
-      const finalVisionStatus = determineVisionStatus(
-        updatedResults,
-        plates.length
-      );
-      setVisionStatus(finalVisionStatus);
-      setIsCompleted(true);
+      setIsCompleted(true); // Mark the test as complete
     }
   };
 
   const handlePrev = () => {
     if (currentPlateIndex > 0) {
       setCurrentPlateIndex(currentPlateIndex - 1);
+      // Optional: allow user to edit previous answer
+      const previousAnswer = testAnswers.pop();
+      if (previousAnswer) {
+        setCurrentUserInput(previousAnswer.userAnswer);
+        setTestAnswers([...testAnswers]);
+      }
     }
   };
 
   // --- DATA SUBMISSION TO BACKEND ---
   useEffect(() => {
-    if (isCompleted && !submitSuccess && !isSubmitting) {
+    // Step 1: When the test is completed, call the AI for evaluation.
+    if (isCompleted && testAnswers.length === plates.length) {
+      evaluateAllAnswersWithGemini(testAnswers);
+    }
+  }, [isCompleted, testAnswers, plates.length]);
+
+  useEffect(() => {
+    // Step 2: Once AI results are processed and visionStatus is set, submit to the backend.
+    if (visionStatus && !submitSuccess && !isSubmitting) {
       const submitTestResults = async () => {
         setIsSubmitting(true);
         setSubmitError(null);
@@ -217,14 +260,7 @@ const IshiharaTest = () => {
       };
       submitTestResults();
     }
-  }, [
-    isCompleted,
-    testResults,
-    visionStatus,
-    isSubmitting,
-    submitSuccess,
-    plates.length,
-  ]);
+  }, [visionStatus, testResults, isSubmitting, submitSuccess, plates.length]);
 
   // --- RENDER LOGIC ---
   if (!plates.length) {
@@ -306,18 +342,15 @@ const IshiharaTest = () => {
                   onChange={(e) => setCurrentUserInput(e.target.value)}
                   className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dark-red focus:border-dark-red text-center text-xl font-medium"
                   placeholder="Enter your answer"
-                  disabled={isLoading}
                   autoFocus
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && !isLoading && handleNext()
-                  }
+                  onKeyDown={(e) => e.key === "Enter" && handleNext()}
                 />
               </div>
 
               <div className="flex justify-between">
                 <button
                   onClick={handlePrev}
-                  disabled={currentPlateIndex === 0 || isLoading}
+                  disabled={currentPlateIndex === 0}
                   className={`px-6 py-3 rounded-lg flex items-center ${
                     currentPlateIndex === 0
                       ? "text-gray-400 cursor-not-allowed"
@@ -329,15 +362,12 @@ const IshiharaTest = () => {
                 </button>
                 <button
                   onClick={handleNext}
-                  disabled={isLoading}
                   className="px-6 py-3 bg-dark-red text-white rounded-lg hover:bg-deep-red transition-colors flex items-center"
                 >
-                  {isLoading
-                    ? "Evaluating..."
-                    : currentPlateIndex === plates.length - 1
+                  {currentPlateIndex === plates.length - 1
                     ? "Finish Test"
                     : "Next"}
-                  {!isLoading && <FiArrowRight className="ml-2" />}
+                  <FiArrowRight className="ml-2" />
                 </button>
               </div>
             </div>
@@ -346,6 +376,7 @@ const IshiharaTest = () => {
           /* Results Screen */
           <div className="bg-white rounded-xl shadow-lg overflow-hidden animate-fadeIn">
             <div className="p-6 md:p-8 text-center">
+              {isLoading && <p>Evaluating all answers with AI...</p>}
               {isSubmitting && <p>Submitting results...</p>}
               {submitError && (
                 <p className="text-red-600">Error: {submitError}</p>
