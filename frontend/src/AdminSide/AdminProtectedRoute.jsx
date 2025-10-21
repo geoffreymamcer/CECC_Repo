@@ -1,10 +1,14 @@
 import { Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const { user, isLoading, isAuthLoading } = useAuth();
 
-  if (!token || user.role !== "admin") {
+  if (isLoading || isAuthLoading) {
+    return <div>Loading session...</div>; // Or a spinner
+  }
+
+  if (!user || (user.role !== "admin" && user.role !== "owner")) {
     return <Navigate to="/cecc-admin-login" replace />;
   }
 

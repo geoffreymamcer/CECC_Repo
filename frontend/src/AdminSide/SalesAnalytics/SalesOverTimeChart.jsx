@@ -1,5 +1,5 @@
 // src/components/sales/SalesOverTimeChart.jsx
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { FaCalendarAlt } from "react-icons/fa";
 import {
   Chart as ChartJS,
@@ -25,6 +25,20 @@ ChartJS.register(
 );
 
 const SalesOverTimeChart = ({ timeFrame, setTimeFrame }) => {
+  // Provide an internal fallback when parent doesn't supply a timeFrame
+  const [internalTimeFrame, setInternalTimeFrame] = useState(
+    timeFrame || "day"
+  );
+
+  // Use the prop when provided, otherwise use internal state
+  const currentTimeFrame = timeFrame || internalTimeFrame;
+
+  useEffect(() => {
+    // Keep internal state in sync if parent changes the prop
+    if (timeFrame && timeFrame !== internalTimeFrame) {
+      setInternalTimeFrame(timeFrame);
+    }
+  }, [timeFrame]);
   // Mock sales data
   const salesData = {
     day: [1200, 1800, 1500, 2200, 1900, 2500, 2800],
@@ -54,12 +68,17 @@ const SalesOverTimeChart = ({ timeFrame, setTimeFrame }) => {
     ],
   };
 
+  // Safe access helpers: fall back to 'day' data if requested timeframe is missing
+  const safeTimeFrame = labels[currentTimeFrame] ? currentTimeFrame : "day";
+  const safeLabels = labels[safeTimeFrame] || labels["day"];
+  const safeData = salesData[safeTimeFrame] || salesData["day"];
+
   const chartData = {
-    labels: labels[timeFrame],
+    labels: safeLabels,
     datasets: [
       {
         label: "Sales",
-        data: salesData[timeFrame],
+        data: safeData,
         borderColor: "#7F0000", // deep-red
         backgroundColor: "rgba(127, 0, 0, 0.1)",
         tension: 0.4,
@@ -97,8 +116,12 @@ const SalesOverTimeChart = ({ timeFrame, setTimeFrame }) => {
         <h2 className="text-xl font-bold text-gray-800">Sales Over Time</h2>
         <div className="relative">
           <select
-            value={timeFrame}
-            onChange={(e) => setTimeFrame(e.target.value)}
+            value={currentTimeFrame}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (setTimeFrame) setTimeFrame(val);
+              else setInternalTimeFrame(val);
+            }}
             className="appearance-none bg-white border border-gray-300 pl-4 pr-8 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-deep-red focus:border-transparent"
           >
             <option value="day">Per Day</option>
@@ -120,18 +143,20 @@ const SalesOverTimeChart = ({ timeFrame, setTimeFrame }) => {
           <div className="text-gray-500 text-sm">Current Period</div>
           <div className="text-xl font-bold">
             $
-            {salesData[timeFrame][
-              salesData[timeFrame].length - 1
-            ].toLocaleString()}
+            {safeData.length > 0
+              ? safeData[safeData.length - 1].toLocaleString()
+              : "0"}
           </div>
         </div>
         <div className="text-right">
           <div className="text-gray-500 text-sm">Previous Period</div>
           <div className="text-xl font-bold">
             $
-            {salesData[timeFrame][
-              salesData[timeFrame].length - 2
-            ].toLocaleString()}
+            {safeData.length > 1
+              ? safeData[safeData.length - 2].toLocaleString()
+              : safeData.length === 1
+              ? safeData[0].toLocaleString()
+              : "0"}
           </div>
         </div>
       </div>

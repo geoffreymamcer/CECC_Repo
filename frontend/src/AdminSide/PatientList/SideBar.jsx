@@ -14,7 +14,7 @@ const SideBar = ({ activeTab, setActiveTab, sidebarOpen, setSidebarOpen }) => {
     { name: "Dashboard", icon: <MdDashboard className="text-xl" /> },
     { name: "Patient List", icon: <MdPeople className="text-xl" /> },
     { name: "Patient Analytics", icon: <FaChartLine className="text-xl" /> },
-    { name: "Sales Analytics", icon: <FaChartLine className="text-xl" /> },
+    { name: "Financial Reports", icon: <FaChartLine className="text-xl" /> },
 
     { name: "Appointments", icon: <FaCalendarAlt className="text-xl" /> },
     { name: "Inventory", icon: <FaBox className="text-xl" /> },

@@ -1,13 +1,10 @@
+// LoginForm.jsx
+
 import React, { useState } from "react";
-import axios from "axios";
 import InputField from "./InputField";
 import "./AdminLogin.css";
 import { useNavigate } from "react-router-dom";
-
-const api = axios.create({
-  baseURL: "http://localhost:5000",
-  withCredentials: true,
-});
+import { useAuth } from "../../context/AuthContext";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -15,35 +12,25 @@ const LoginForm = () => {
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login, isAuthLoading } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
+    setError(""); // Clear previous errors
 
-    try {
-      const response = await api.post("/api/admin/login", {
-        email,
-        password,
-      });
+    const result = await login(email, password);
 
-      // Store the token and user data in localStorage
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-
-      // Navigate to admin dashboard on successful login
+    if (result.success) {
       navigate("/cecc-admin-dashboard");
-    } catch (err) {
-      console.error("Login error:", err);
-      setError(
-        err.response?.data?.message ||
-          "Invalid email or password. Please try again."
-      );
+    } else {
+      setError(result.message);
     }
   };
 
   return (
     <div className="w-full md:w-1/2 flex justify-center items-center p-8 md:p-12">
       <div className="w-full max-w-md">
+        {/* ... your existing JSX for the form header ... */}
         <div className="text-center mb-8">
           <div className="avatar mx-auto w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-lg">
             <i className="fas fa-user-shield text-primary-500 text-4xl"></i>
@@ -57,6 +44,8 @@ const LoginForm = () => {
         </div>
 
         <form className="space-y-6" onSubmit={handleSubmit}>
+          {/* ... Your InputField components and the rest of the form ... */}
+          {/* This part does not need to change. */}
           <InputField
             type="email"
             name="email"
@@ -101,12 +90,13 @@ const LoginForm = () => {
 
           <button
             type="submit"
+            disabled={isAuthLoading}
             className="login-btn w-full py-3 px-4 bg-primary-700 text-white font-semibold rounded-lg shadow-button hover:bg-primary-600 transition-all duration-300"
             style={{
               background: "linear-gradient(to right, #800000, #b30000)",
             }}
           >
-            Log In
+            {isAuthLoading ? "Logging In..." : "Log In"}
           </button>
 
           {error && (
@@ -114,6 +104,7 @@ const LoginForm = () => {
           )}
         </form>
 
+        {/* ... your existing JSX for the form footer ... */}
         <div className="mt-8 text-center">
           <p className="text-gray-600 text-sm">
             Need help?{" "}

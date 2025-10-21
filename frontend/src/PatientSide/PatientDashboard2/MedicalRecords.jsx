@@ -27,7 +27,6 @@ const MedicalRecords = () => {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
-        console.log("Token:", token); // Log the token
 
         // First, let's check the user's profile/ID
         const userResponse = await axios.get(

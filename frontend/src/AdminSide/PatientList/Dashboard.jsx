@@ -10,8 +10,12 @@ import {
   Search,
   MoreVertical,
 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 const Dashboard = () => {
+  const { user } = useAuth(); // <-- 2. GET THE LOGGED-IN USER
+  const isOwner = user?.role === "owner"; // <-- 3. HELPER TO CHECK IF USER IS OWNER
+
   const [kpiData, setKpiData] = useState({
     totalPatients: 0,
     todaysAppointments: 0,
@@ -31,32 +35,38 @@ const Dashboard = () => {
     const fetchKpiData = async () => {
       setKpiLoading(true);
       try {
-        const token = localStorage.getItem("token");
-        const config = {
-          headers: { Authorization: `Bearer ${token}` },
-        };
-
-        // Format today's date as YYYY-MM-DD
+        const token = localStorage.getItem("token"); // Token is still needed for headers
+        const config = { headers: { Authorization: `Bearer ${token}` } };
         const today = new Date().toISOString().split("T")[0];
 
-        // Fetch all KPI data in parallel
-        const [patientsRes, appointmentsRes, revenueRes] = await Promise.all([
+        const apiCalls = [
           axios.get("http://localhost:5000/api/profiles/count", config),
           axios.get(
             `http://localhost:5000/api/appointments?date=${today}`,
             config
           ),
-          axios.get("http://localhost:5000/api/invoices/revenue/today", config),
-        ]);
+        ];
+
+        // Conditionally add the revenue API call ONLY for the owner
+        if (isOwner) {
+          apiCalls.push(
+            axios.get(
+              "http://localhost:5000/api/invoices/revenue/today",
+              config
+            )
+          );
+        }
+
+        const responses = await Promise.all(apiCalls);
+        const [patientsRes, appointmentsRes, revenueRes] = responses;
 
         setKpiData((prevData) => ({
           ...prevData,
           totalPatients: patientsRes.data.count || 0,
           todaysAppointments: appointmentsRes.data.length || 0,
-          revenueToday: revenueRes.data.totalRevenue || 0,
+          revenueToday: revenueRes ? revenueRes.data.totalRevenue || 0 : 0,
         }));
 
-        // **This is the line you need to add**
         setAppointments(appointmentsRes.data);
       } catch (err) {
         console.error("Error fetching KPI data:", err);
@@ -64,36 +74,36 @@ const Dashboard = () => {
         setKpiLoading(false);
       }
     };
-
     fetchKpiData();
-  }, []);
+  }, [isOwner]);
 
   useEffect(() => {
+    // Don't fetch payments if the user is not an owner
+    if (!isOwner) {
+      setPayments([]);
+      setPaymentsLoading(false);
+      return;
+    }
+
     const fetchPayments = async () => {
       setPaymentsLoading(true);
-      setPaymentsError(null);
       try {
         const token = localStorage.getItem("token");
-
-        // This is the updated, single API call to your new endpoint
         const res = await axios.get(
           "http://localhost:5000/api/invoices/recent",
           {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           }
         );
-
-        const recentPayments = res.data || [];
-        setPayments(recentPayments);
+        setPayments(res.data || []);
       } catch (err) {
         console.error("Error fetching payments:", err);
-        setPaymentsError("Failed to load payments");
       } finally {
         setPaymentsLoading(false);
       }
     };
     fetchPayments();
-  }, []);
+  }, [isOwner]);
 
   const [messages] = useState([
     {
@@ -201,24 +211,26 @@ const Dashboard = () => {
         </div>
 
         {/* Revenue Today Card */}
-        <div className="bg-white rounded-2xl shadow-md transition-all hover:shadow-lg overflow-hidden">
-          <div className="h-2 bg-[#7F0000]"></div>
-          <div className="p-5 flex items-center">
-            <div className="rounded-full bg-red-50 p-3">
-              <DollarSign className="h-6 w-6 text-[#7F0000]" />
-            </div>
-            <div className="ml-4">
-              <h2 className="text-sm font-semibold text-gray-600">
-                Revenue Today
-              </h2>
-              <p className="text-2xl font-bold text-gray-800">
-                {kpiLoading
-                  ? "..."
-                  : `₱${kpiData.revenueToday.toLocaleString()}`}
-              </p>
+        {isOwner && (
+          <div className="bg-white rounded-2xl shadow-md transition-all hover:shadow-lg overflow-hidden">
+            <div className="h-2 bg-[#7F0000]"></div>
+            <div className="p-5 flex items-center">
+              <div className="rounded-full bg-red-50 p-3">
+                <DollarSign className="h-6 w-6 text-[#7F0000]" />
+              </div>
+              <div className="ml-4">
+                <h2 className="text-sm font-semibold text-gray-600">
+                  Revenue Today
+                </h2>
+                <p className="text-2xl font-bold text-gray-800">
+                  {kpiLoading
+                    ? "..."
+                    : `₱${kpiData.revenueToday.toLocaleString()}`}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Charts Section */}
@@ -325,72 +337,74 @@ const Dashboard = () => {
         </div>
 
         {/* Payments Table */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-[#7F0000]">
-              Recent Payments
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                    Patient
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                    Amount
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                    Date
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                    Method
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {paymentsLoading ? (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="py-6 text-center text-sm text-gray-500"
-                    >
-                      Loading payments...
-                    </td>
+        {isOwner && (
+          <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-[#7F0000]">
+                Recent Payments
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
+                      Patient
+                    </th>
+                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
+                      Amount
+                    </th>
+                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
+                      Date
+                    </th>
+                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
+                      Method
+                    </th>
                   </tr>
-                ) : payments.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="py-6 text-center text-sm text-gray-500"
-                    >
-                      No recent payments
-                    </td>
-                  </tr>
-                ) : (
-                  payments.map((p) => {
-                    const id = p._id || p.id;
-                    const name = p.patientName || p.patient || "Unknown";
-                    const amount = p.totalAmount ?? p.amount ?? 0;
-                    const date = p.createdAt
-                      ? new Date(p.createdAt).toLocaleDateString()
-                      : "";
-                    const method = "Cash"; // static as requested
-                    return (
-                      <tr key={id} className="hover:bg-gray-50">
-                        <td className="py-3 px-4">{name}</td>
-                        <td className="py-3 px-4">₱{amount}</td>
-                        <td className="py-3 px-4">{date}</td>
-                        <td className="py-3 px-4">{method}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {paymentsLoading ? (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="py-6 text-center text-sm text-gray-500"
+                      >
+                        Loading payments...
+                      </td>
+                    </tr>
+                  ) : payments.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="py-6 text-center text-sm text-gray-500"
+                      >
+                        No recent payments
+                      </td>
+                    </tr>
+                  ) : (
+                    payments.map((p) => {
+                      const id = p._id || p.id;
+                      const name = p.patientName || p.patient || "Unknown";
+                      const amount = p.totalAmount ?? p.amount ?? 0;
+                      const date = p.createdAt
+                        ? new Date(p.createdAt).toLocaleDateString()
+                        : "";
+                      const method = "Cash"; // static as requested
+                      return (
+                        <tr key={id} className="hover:bg-gray-50">
+                          <td className="py-3 px-4">{name}</td>
+                          <td className="py-3 px-4">₱{amount}</td>
+                          <td className="py-3 px-4">{date}</td>
+                          <td className="py-3 px-4">{method}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Messages Section */}

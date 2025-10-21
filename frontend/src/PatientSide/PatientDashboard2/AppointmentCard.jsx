@@ -1,63 +1,76 @@
+// src/components/AppointmentCard.jsx (Corrected)
+
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import RescheduleModal from "./RescheduleModal";
-import CancelModal from "./CancelAppointmentModal"
-
+import CancelModal from "./CancelAppointmentModal";
+// 1. Import the useAuth hook to get the secure user state
+import { useAuth } from "../../context/AuthContext";
 const AppointmentCard = () => {
+  // 2. Get the user object from the AuthContext
+  const { user } = useAuth(); // <-- This user object is trustworthy
+
   const [upcoming, setUpcoming] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showReschedule, setShowReschedule] = useState(false);
-  const [rescheduleDate, setRescheduleDate] = useState("");
-  const [rescheduleTime, setRescheduleTime] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
 
+  // 3. Update the useEffect to run when the 'user' object is available
   useEffect(() => {
-    fetchUpcomingAppointment();
-    // eslint-disable-next-line
-  }, []);
-
-  const fetchUpcomingAppointment = async () => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user"));
-      const token = localStorage.getItem("token");
-      const patientId = user?.id || user?._id || user?.patientId;
-
-      if (!user || !patientId || !token) {
-        setError("Missing user session. Please log in again.");
-        setLoading(false);
-        return;
-      }
-
-      const res = await axios.get(
-        `http://localhost:5000/api/appointments/${patientId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
+    const fetchUpcomingAppointment = async () => {
+      try {
+        // 4. Check if the user object from the context exists
+        if (!user) {
+          setError("Missing user session. Please log in again.");
+          setLoading(false);
+          return;
         }
-      );
-      const now = new Date();
-      const upcomingList = res.data.filter(
-        (appt) =>
-          new Date(appt.appointmentDate) >= now &&
-          (!appt.status || appt.status.toLowerCase() !== "cancelled")
-      );
-      if (upcomingList.length === 0) {
-        setUpcoming(null);
-      } else {
-        upcomingList.sort(
-          (a, b) => new Date(a.appointmentDate) - new Date(b.appointmentDate)
-        );
-        setUpcoming(upcomingList[0]);
-      }
-    } catch (err) {
-      setError("Failed to load appointments.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  // Optionally, add reschedule/cancel logic here as in PatientScheduleContainer
+        // 5. Get the patientId directly from the secure user object
+        const patientId = user.id || user._id;
+        const token = localStorage.getItem("token"); // Token is still needed for the header
+
+        if (!patientId || !token) {
+          setError("Invalid user session.");
+          setLoading(false);
+          return;
+        }
+
+        const res = await axios.get(
+          `http://localhost:5000/api/appointments/${patientId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const now = new Date();
+        const upcomingList = res.data.filter(
+          (appt) =>
+            new Date(appt.appointmentDate) >= now &&
+            (!appt.status || appt.status.toLowerCase() !== "cancelled")
+        );
+
+        if (upcomingList.length === 0) {
+          setUpcoming(null);
+        } else {
+          upcomingList.sort(
+            (a, b) => new Date(a.appointmentDate) - new Date(b.appointmentDate)
+          );
+          setUpcoming(upcomingList[0]);
+        }
+      } catch (err) {
+        setError("Failed to load appointments.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUpcomingAppointment();
+  }, [user]); // <-- Dependency array now includes 'user'
+
+  // The rest of your component remains the same...
 
   if (loading) {
     return (
@@ -155,8 +168,9 @@ const AppointmentCard = () => {
                   { appointmentDate: date, appointmentTime: time },
                   { headers: { Authorization: `Bearer ${token}` } }
                 );
-                await fetchUpcomingAppointment();
-                setShowReschedule(false);
+                // Re-fetch appointments after rescheduling
+                // This logic is now inside useEffect, but you might need a manual refresh function
+                window.location.reload();
               } catch (err) {
                 alert("Failed to reschedule appointment.");
               } finally {
@@ -179,8 +193,8 @@ const AppointmentCard = () => {
                   { status: "cancelled", cancellationReason },
                   { headers: { Authorization: `Bearer ${token}` } }
                 );
-                await fetchUpcomingAppointment();
-                setShowCancel(false);
+                // Re-fetch appointments after cancellation
+                window.location.reload();
               } catch (err) {
                 alert("Failed to cancel appointment.");
               } finally {
@@ -190,7 +204,6 @@ const AppointmentCard = () => {
           />
         )}
       </div>
-      {/* Optionally, add reschedule modal here */}
     </div>
   );
 };

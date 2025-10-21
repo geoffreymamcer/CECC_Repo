@@ -14,32 +14,28 @@ export default function LoginForm({ toggleForm }) {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
-    console.log("Login form submitted");
-
-    if (isLoggingIn) {
-      console.log("Login already in progress");
-      return;
-    }
     setIsLoggingIn(true);
-    console.log("Making login request...");
 
     try {
       const response = await axios.post(
         "http://localhost:5000/api/users/login",
-        {
-          email,
-          password,
-        }
+        { email, password }
       );
-      console.log("Login response:", response.data);
 
       if (response.data.status === "success") {
-        console.log("Login successful, storing token and user data");
-        // Store the token and user data
+        // --- CHANGE HERE ---
+        // DO NOT store the user object in localStorage.
+        // localStorage.setItem("user", JSON.stringify(response.data.user)); // <-- REMOVE THIS LINE
+
+        // ONLY store the token.
         localStorage.setItem("token", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-        console.log("Navigating to /user-dashboard");
-        navigate("/user-dashboard");
+
+        // Instead of navigating directly, you'll likely call a function
+        // from a new AuthContext to set the user state and then navigate.
+        // For simplicity here, we'll just navigate, but the next step is key.
+
+        // A full reload ensures the app fetches the user with the new token.
+        window.location.href = "/user-dashboard";
       }
     } catch (error) {
       console.error("Error logging in:", error);

@@ -16,32 +16,30 @@ function shuffleArray(array) {
   return arr;
 }
 
-// A more sophisticated function to determine the final vision status
-function determineVisionStatus(results, totalQuestions) {
-  const correctCount = results.filter((r) => r.evaluation === "Normal").length;
-  const protanopiaCount = results.filter(
-    (r) => r.evaluation === "Protanopia"
-  ).length;
-  const deuteranopiaCount = results.filter(
-    (r) => r.evaluation === "Deuteranopia"
-  ).length;
-
-  const normalVisionPercentage = (correctCount / totalQuestions) * 100;
+// This function is now adapted from analyzeTestResult.js
+function determineVisionStatus(results) {
+  const normalVisionPercentage =
+    (results.normalVisionCount / results.totalQuestions) * 100;
 
   if (normalVisionPercentage >= 90) {
     return "Normal Color Vision";
   } else if (normalVisionPercentage >= 70) {
-    if (protanopiaCount > deuteranopiaCount) {
-      return "Mild Protanopia (Red-Green Deficiency)";
-    } else if (deuteranopiaCount > protanopiaCount) {
-      return "Mild Deuteranopia (Red-Green Deficiency)";
+    if (results.protanopiaCount > results.deuteranopiaCount) {
+      return "Mild Protanopia (Red-Blind)";
+    } else if (results.deuteranopiaCount > results.protanopiaCount) {
+      return "Mild Deuteranopia (Green-Blind)";
     }
     return "Mild Color Vision Deficiency";
   } else {
-    if (protanopiaCount > deuteranopiaCount) {
-      return "Severe Protanopia (Red-Green Deficiency)";
-    } else if (deuteranopiaCount > protanopiaCount) {
-      return "Severe Deuteranopia (Red-Green Deficiency)";
+    // Note: The AI evaluation does not explicitly check for total color blindness.
+    // This condition is included from your file but may not be triggered
+    // unless the AI prompt is modified to classify "Total Color Blindness".
+    if (results.totalColorBlindnessCount >= results.totalQuestions * 0.8) {
+      return "Total Color Blindness";
+    } else if (results.protanopiaCount > results.deuteranopiaCount) {
+      return "Severe Protanopia (Red-Blind)";
+    } else if (results.deuteranopiaCount > results.protanopiaCount) {
+      return "Severe Deuteranopia (Green-Blind)";
     }
     return "Severe Color Vision Deficiency";
   }
@@ -150,10 +148,23 @@ const IshiharaTest = () => {
       });
 
       setTestResults(finalResults);
-      const finalVisionStatus = determineVisionStatus(
-        finalResults,
-        plates.length
-      );
+
+      // Calculate counts from the AI-evaluated results
+      const resultCounts = {
+        normalVisionCount: finalResults.filter((r) => r.evaluation === "Normal")
+          .length,
+        protanopiaCount: finalResults.filter(
+          (r) => r.evaluation === "Protanopia"
+        ).length,
+        deuteranopiaCount: finalResults.filter(
+          (r) => r.evaluation === "Deuteranopia"
+        ).length,
+        totalColorBlindnessCount: 0, // The current AI prompt does not classify this
+        totalQuestions: plates.length,
+      };
+
+      // Use the new function to determine the final status
+      const finalVisionStatus = determineVisionStatus(resultCounts);
       setVisionStatus(finalVisionStatus);
     } catch (error) {
       console.error("Error evaluating with Gemini:", error);

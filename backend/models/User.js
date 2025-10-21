@@ -10,14 +10,16 @@ const userSchema = new mongoose.Schema(
     phone_number: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ["admin", "patient"], default: "patient" },
+    role: {
+      type: String,
+      enum: ["admin", "patient", "owner"],
+      default: "patient",
+    },
     profilePicture: { type: String, default: null },
     patientId: { type: String, default: null }, // Keep for backward compatibility, but not required or unique
   },
   { timestamps: true, _id: false }
 );
-
-
 
 // Method to compare password
 userSchema.methods.comparePassword = async function (candidatePassword) {

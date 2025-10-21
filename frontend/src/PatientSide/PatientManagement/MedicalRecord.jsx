@@ -9,68 +9,67 @@ const MedicalRecord = ({ handleDownloadPDF }) => {
   const [medicalHistory, setMedicalHistory] = useState(null);
   const [visitHistory, setVisitHistory] = useState([]);
   const [latestVisit, setLatestVisit] = useState(null);
-  
+
   useEffect(() => {
     const fetchMedicalData = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('token');
-        
+        const token = localStorage.getItem("token");
+
         if (!token) {
           setError("You must be logged in to view medical records");
           setLoading(false);
           return;
         }
-        
+
         // Decode token to get patientId
-        const tokenData = JSON.parse(atob(token.split('.')[1]));
-        
+        const tokenData = JSON.parse(atob(token.split(".")[1]));
+
         // Use any available ID format (id, _id, or patientId)
         const patientId = tokenData.id || tokenData._id || tokenData.patientId;
-        
-        console.log('User data from token:', tokenData);
-        console.log('Using patient ID:', patientId);
-        
+
         if (!patientId) {
-          setError("Could not determine patient ID. Please log out and log in again.");
+          setError(
+            "Could not determine patient ID. Please log out and log in again."
+          );
           setLoading(false);
           return;
         }
-        
+
         // Fetch medical history
         const medicalHistoryResponse = await axios.get(
           `http://localhost:5000/api/medicalhistory/${patientId}`,
           {
             headers: {
-              Authorization: `Bearer ${token}`
-            }
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
-        
+
         // Fetch visit history
         const visitHistoryResponse = await axios.get(
           `http://localhost:5000/api/visits/patient/${patientId}`,
           {
             headers: {
-              Authorization: `Bearer ${token}`
-            }
+              Authorization: `Bearer ${token}`,
+            },
           }
         );
-        
+
         setMedicalHistory(medicalHistoryResponse.data);
-        
+
         const visits = visitHistoryResponse.data;
         setVisitHistory(visits);
-        
+
         // Get the most recent visit
         if (visits && visits.length > 0) {
           // Sort visits by date (newest first)
-          const sortedVisits = [...visits].sort((a, b) => 
-            new Date(b.visitDate) - new Date(a.visitDate)
+          const sortedVisits = [...visits].sort(
+            (a, b) => new Date(b.visitDate) - new Date(a.visitDate)
           );
           setLatestVisit(sortedVisits[0]);
         }
-        
+
         setLoading(false);
       } catch (error) {
         console.error("Error fetching medical data:", error);
@@ -78,7 +77,7 @@ const MedicalRecord = ({ handleDownloadPDF }) => {
         setLoading(false);
       }
     };
-    
+
     fetchMedicalData();
   }, []);
   if (loading) {
@@ -117,7 +116,9 @@ const MedicalRecord = ({ handleDownloadPDF }) => {
 
             <div className="detail-section">
               <h5>Family Medical History</h5>
-              <p>{medicalHistory.familyMedicalHistory || "No data available"}</p>
+              <p>
+                {medicalHistory.familyMedicalHistory || "No data available"}
+              </p>
             </div>
 
             <div className="detail-section">
@@ -154,7 +155,9 @@ const MedicalRecord = ({ handleDownloadPDF }) => {
           <div className="record-details">
             <div className="detail-row">
               <span className="detail-label">Visit Date:</span>
-              <span>{new Date(latestVisit.visitDate).toLocaleDateString()}</span>
+              <span>
+                {new Date(latestVisit.visitDate).toLocaleDateString()}
+              </span>
             </div>
             <div className="detail-row">
               <span className="detail-label">Provider:</span>
@@ -197,7 +200,9 @@ const MedicalRecord = ({ handleDownloadPDF }) => {
                 <div key={visit._id || index} className="visit-history-item">
                   <div className="detail-row">
                     <span className="detail-label">Date:</span>
-                    <span>{new Date(visit.visitDate).toLocaleDateString()}</span>
+                    <span>
+                      {new Date(visit.visitDate).toLocaleDateString()}
+                    </span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Diagnosis:</span>

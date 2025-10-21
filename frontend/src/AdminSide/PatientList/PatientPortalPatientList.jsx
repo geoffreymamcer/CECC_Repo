@@ -209,7 +209,7 @@ const PatientPortalPatientList = () => {
         {activeTab === "Appointments" && <Appointments />}
         {activeTab === "Inventory" && <Inventory />}
         {activeTab === "Color Vision Test" && <ColorVisionTest />}
-        {activeTab === "Sales Analytics" && <SalesAnalytics />}
+        {activeTab === "Financial Reports" && <SalesAnalytics />}
       </div>
 
       {selectedPatient && (

@@ -65,7 +65,7 @@ export const signup = async (req, res) => {
       email,
       password: hashedPassword,
       role: "patient", // Default role for signup
-      patientId: customId // Set patientId to the same value for backward compatibility
+      patientId: customId, // Set patientId to the same value for backward compatibility
     });
 
     // Create a profile with the same _id as the user
@@ -105,7 +105,7 @@ export const signup = async (req, res) => {
       lastName: newUser.lastName,
       phone_number: newUser.phone_number,
       email: newUser.email,
-      role: newUser.role
+      role: newUser.role,
     };
 
     res.status(201).json({
@@ -122,28 +122,41 @@ export const signup = async (req, res) => {
   }
 };
 
+// In controllers/UserController.js
+
 export const getMe = async (req, res) => {
   try {
     // The user ID is set by the auth middleware
-    const user = await User.findById(req.user.id).select("-password");
+    const userId = req.user.id;
 
-    if (!user) {
+    // 1. Fetch the core user data (for role, email) from the User collection
+    const authUser = await User.findById(userId).select("-password");
+
+    if (!authUser) {
       return res.status(404).json({
         status: "error",
-        message: "User not found",
+        message: "Authentication record not found for this user.",
       });
     }
 
-    // Create a user response object with consistent id properties
-    const userResponse = {
-      ...user.toObject(),
-      id: user._id,  // Ensure id is set to _id for consistency
+    // 2. Fetch the detailed profile data (for name, profilePicture) from the Profile collection
+    const userProfile = await Profile.findById(userId);
+
+    // 3. Merge the two objects to create a complete user representation
+    // We start with the profile data and spread the auth data on top.
+    // This ensures core fields like 'role' and 'email' from the User model are authoritative.
+    const fullUser = {
+      ...(userProfile ? userProfile.toObject() : {}), // Safely spread profile data
+      ...(authUser ? authUser.toObject() : {}), // Spread auth data
+      id: authUser._id, // Ensure the primary ID is consistent
+      _id: authUser._id,
     };
 
+    // 4. Send the complete, merged user object to the frontend
     res.status(200).json({
       status: "success",
       data: {
-        user: userResponse,
+        user: fullUser,
       },
     });
   } catch (error) {
@@ -209,7 +222,7 @@ export const login = async (req, res) => {
       lastName: user.lastName,
       phone_number: user.phone_number,
       email: user.email,
-      role: user.role
+      role: user.role,
     };
 
     res.status(200).json({
@@ -226,29 +239,102 @@ export const login = async (req, res) => {
   }
 };
 
+// Add this new function in UserController.js
+
+export const adminLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({
+        status: "error",
+        message: "Invalid email or password",
+      });
+    }
+
+    // Check if password is correct
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        status: "error",
+        message: "Invalid email or password",
+      });
+    }
+
+    // SECURE CHECK: Ensure only admin or owner can log in here
+    if (user.role !== "admin" && user.role !== "owner") {
+      return res.status(403).json({
+        status: "error",
+        message: "You do not have permission to access this resource.",
+      });
+    }
+
+    // Create JWT token
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
+    // Prepare user data for response (without password)
+    const userResponse = {
+      id: user._id,
+      email: user.email,
+      firstName: user.firstName,
+      role: user.role,
+    };
+
+    res.status(200).json({
+      status: "success",
+      token,
+      user: userResponse,
+    });
+  } catch (error) {
+    console.error("Admin Login error:", error);
+    res.status(500).json({
+      status: "error",
+      message: "An error occurred during login.",
+    });
+  }
+};
+
 export const changePassword = async (req, res) => {
   try {
     const userId = req.user.id || req.user._id;
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({ status: "error", message: "Current and new passwords are required." });
+      return res.status(400).json({
+        status: "error",
+        message: "Current and new passwords are required.",
+      });
     }
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ status: "error", message: "User not found." });
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found." });
     }
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
-      return res.status(401).json({ status: "error", message: "Current password is incorrect." });
+      return res
+        .status(401)
+        .json({ status: "error", message: "Current password is incorrect." });
     }
     // Hash new password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
     await user.save();
-    return res.status(200).json({ status: "success", message: "Password changed successfully." });
+    return res
+      .status(200)
+      .json({ status: "success", message: "Password changed successfully." });
   } catch (error) {
     console.error("Change password error:", error);
-    res.status(500).json({ status: "error", message: error.message || "An error occurred while changing password." });
+    res.status(500).json({
+      status: "error",
+      message: error.message || "An error occurred while changing password.",
+    });
   }
 };
 
