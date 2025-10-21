@@ -142,41 +142,14 @@ const AddPatientModal = ({ handleCloseModal, handleAddPatient }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("token");
-    try {
-      const currentPatientId = patientId || (await generateNextPatientId());
-      // prepare structured address object (fallback to plain address string if not selected)
-      // Build display string and combined address string
-      const displayAddress = selectedRegion
-        ? streetAddress
-          ? `${streetAddress}, ${
-              barangays.find((b) => b.brgy_code === selectedBarangay)
-                ?.brgy_name || ""
-            }, ${
-              cities.find((c) => c.city_code === selectedCity)?.city_name || ""
-            }, ${
-              provinces.find((p) => p.province_code === selectedProvince)
-                ?.province_name || ""
-            }, ${
-              regions.find((r) => r.region_code === selectedRegion)
-                ?.region_name || ""
-            }`
-          : `${
-              barangays.find((b) => b.brgy_code === selectedBarangay)
-                ?.brgy_name || ""
-            }, ${
-              cities.find((c) => c.city_code === selectedCity)?.city_name || ""
-            }, ${
-              provinces.find((p) => p.province_code === selectedProvince)
-                ?.province_name || ""
-            }, ${
-              regions.find((r) => r.region_code === selectedRegion)
-                ?.region_name || ""
-            }`
-        : address || "";
 
-      const addressCombined = selectedRegion
-        ? `${
+    // 1. Gather all the data into a single object.
+    const finalOccupation =
+      occupation === "Other" ? otherOccupation : occupation;
+
+    const displayAddress = selectedRegion
+      ? streetAddress
+        ? `${streetAddress}, ${
             barangays.find((b) => b.brgy_code === selectedBarangay)
               ?.brgy_name || ""
           }, ${
@@ -188,139 +161,88 @@ const AddPatientModal = ({ handleCloseModal, handleAddPatient }) => {
             regions.find((r) => r.region_code === selectedRegion)
               ?.region_name || ""
           }`
-        : address || "";
+        : `${
+            barangays.find((b) => b.brgy_code === selectedBarangay)
+              ?.brgy_name || ""
+          }, ${
+            cities.find((c) => c.city_code === selectedCity)?.city_name || ""
+          }, ${
+            provinces.find((p) => p.province_code === selectedProvince)
+              ?.province_name || ""
+          }, ${
+            regions.find((r) => r.region_code === selectedRegion)
+              ?.region_name || ""
+          }`
+      : address || "";
 
-      // 1. Create Profile
-      const regionName = regions.find(
-        (r) => r.region_code === selectedRegion
-      )?.region_name;
-      const provinceName = provinces.find(
-        (p) => p.province_code === selectedProvince
-      )?.province_name;
-      const cityName = cities.find(
-        (c) => c.city_code === selectedCity
-      )?.city_name;
-      const barangayName = barangays.find(
-        (b) => b.brgy_code === selectedBarangay
-      )?.brgy_name;
+    const addressCombined = selectedRegion
+      ? `${
+          barangays.find((b) => b.brgy_code === selectedBarangay)?.brgy_name ||
+          ""
+        }, ${
+          cities.find((c) => c.city_code === selectedCity)?.city_name || ""
+        }, ${
+          provinces.find((p) => p.province_code === selectedProvince)
+            ?.province_name || ""
+        }, ${
+          regions.find((r) => r.region_code === selectedRegion)?.region_name ||
+          ""
+        }`
+      : address || "";
 
-      // --- Start of modified code ---
-      // Determine the final occupation value to be submitted
-      const finalOccupation =
-        occupation === "Other" ? otherOccupation : occupation;
-      // --- End of modified code ---
+    const regionName = regions.find(
+      (r) => r.region_code === selectedRegion
+    )?.region_name;
+    const provinceName = provinces.find(
+      (p) => p.province_code === selectedProvince
+    )?.province_name;
+    const cityName = cities.find(
+      (c) => c.city_code === selectedCity
+    )?.city_name;
+    const barangayName = barangays.find(
+      (b) => b.brgy_code === selectedBarangay
+    )?.brgy_name;
 
-      const profileResponse = await axios.post(
-        "http://localhost:5000/api/profiles",
-        {
-          _id: currentPatientId,
-          patientId: currentPatientId,
-          firstName,
-          middleName,
-          lastName,
-          dob,
-          age: parseInt(age),
-          gender,
-          // store display string and separate fields
-          address: displayAddress,
-          addressCombined,
-          region: regionName || "",
-          province: provinceName || "",
-          city: cityName || "",
-          barangay: barangayName || "",
-          street_subdivision: streetAddress || "",
-          contact,
-          // --- Start of modified code ---
-          occupation: finalOccupation, // Use the final occupation value
-          // --- End of modified code ---
-          civilStatus,
-          referralBy,
-          ageCategory,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      // 2. Create Medical History
-      await axios.post(
-        "http://localhost:5000/api/medicalhistory",
-        {
-          patientId: currentPatientId,
-          ocularHistory,
-          healthHistory,
-          familyMedicalHistory,
-          medications,
-          allergies,
-          occupationalHistory: occupationalHistoryMH,
-          digitalHistory,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      // 3. Create Visit Record
-      await axios.post(
-        "http://localhost:5000/api/visits",
-        {
-          patientId: currentPatientId,
-          visitDate: new Date(),
-          chiefComplaint,
-          associatedComplaint,
-          diagnosis,
-          treatmentPlan,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      // Clear all form fields
-      setPatientId("");
-      setFirstName("");
-      setMiddleName("");
-      setLastName("");
-      setDob("");
-      setAge("");
-      setGender("");
-      setAddress("");
-      setSelectedRegion("");
-      setSelectedProvince("");
-      setSelectedCity("");
-      setSelectedBarangay("");
-      setStreetAddress("");
-      setContact("");
-      setOccupation("");
-      // --- Start of modified code ---
-      setOtherOccupation(""); // Clear the "Other" occupation field
-      // --- End of modified code ---
-      setCivilStatus("");
-      setReferralBy("");
-      setAgeCategory("");
-      setOcularHistory("");
-      setHealthHistory("");
-      setFamilyMedicalHistory("");
-      setMedications("");
-      setAllergies("");
-      setOccupationalHistoryMH("");
-      setDigitalHistory("");
-      setChiefComplaint("");
-      setAssociatedComplaint("");
-      setDiagnosis("");
-      setTreatmentPlan("");
-      handleCloseModal();
-      alert("Patient record created successfully!");
-    } catch (error) {
-      console.error("Error creating patient record:", error);
-      alert(
-        error.response?.data?.message ||
-          "Failed to create patient record. Please try again."
-      );
-    }
+    const newPatientData = {
+      // Profile Data
+      _id: patientId,
+      patientId: patientId,
+      firstName,
+      middleName,
+      lastName,
+      dob,
+      age: parseInt(age),
+      gender,
+      address: displayAddress,
+      addressCombined,
+      region: regionName || "",
+      province: provinceName || "",
+      city: cityName || "",
+      barangay: barangayName || "",
+      street_subdivision: streetAddress || "",
+      contact,
+      occupation: finalOccupation,
+      civilStatus,
+      referralBy,
+      ageCategory,
+      // Medical History Data
+      ocularHistory,
+      healthHistory,
+      familyMedicalHistory,
+      medications,
+      allergies,
+      occupationalHistoryMH,
+      digitalHistory,
+      // Initial Visit Data
+      chiefComplaint,
+      associatedComplaint,
+      diagnosis,
+      treatmentPlan,
+    };
+
+    // 2. Call the parent's function and pass the data up.
+    //    The parent will handle the API calls and refreshing the list.
+    handleAddPatient(newPatientData);
   };
 
   return (

@@ -1,48 +1,46 @@
 // src/components/PatientListLayout.jsx
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState } from "react"; // --- REMOVED useEffect and axios ---
+// We keep PatientCard and the icons
 import PatientCard from "./PatientCard";
-import { FaPlus } from "react-icons/fa";
+import { FaPlus, FaSearch } from "react-icons/fa";
 import { MdPeople } from "react-icons/md";
 
+// --- ADDED `patients`, `loading`, and `error` to the props it receives ---
 const PatientListLayout = ({
-  patients: propPatients,
+  patients,
+  loading,
+  error,
   handleViewDetails,
   setIsAddModalOpen,
 }) => {
-  const [patients, setPatients] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // --- REMOVED the internal useState for patients, loading, and error ---
+  // --- REMOVED the entire useEffect hook that was fetching data ---
 
-  const fetchPatients = async () => {
-    try {
-      const response = await axios.get("http://localhost:5000/api/profiles");
-      setPatients(response.data);
-      setError(null);
-    } catch (err) {
-      console.error("Error fetching patients:", err);
-      setError("Failed to load patient data.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchPatients();
-  }, []);
-
-  // If you want to fallback to propPatients if fetch fails, you can do:
-  // const displayPatients = patients.length > 0 ? patients : propPatients;
-  // For now, just use fetched patients.
-
+  // We keep the searchTerm state as it's specific to this layout
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredPatients = patients.filter(
-    (patient) =>
-      (patient.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (patient.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (patient.phone || "").toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // This filtering logic now works on the `patients` array passed down from the parent
+  const filteredPatients = patients.filter((patient) => {
+    if (!searchTerm) {
+      return true;
+    }
+    const term = searchTerm.toLowerCase();
+    const searchableFields = [
+      patient.name,
+      patient.firstName,
+      patient.lastName,
+      patient.patientId,
+      patient._id,
+      patient.id,
+      patient.email,
+      patient.phone,
+    ];
+    const patientSearchDocument = searchableFields
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return patientSearchDocument.includes(term);
+  });
 
   const activePatients = filteredPatients.filter(
     (p) => p.status === "Active"
@@ -51,8 +49,19 @@ const PatientListLayout = ({
     (p) => p.status === "Inactive"
   ).length;
 
+  // Now we use the `loading` prop from the parent
+  if (loading) {
+    return <div className="p-6 text-center">Loading patients...</div>;
+  }
+
+  // And the `error` prop from the parent
+  if (error) {
+    return <div className="p-6 text-center text-red-500">Error: {error}</div>;
+  }
+
   return (
     <main className="flex-1 overflow-y-auto p-4 md:p-6">
+      {/* The rest of your JSX remains exactly the same */}
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between">
           <div>
@@ -68,24 +77,12 @@ const PatientListLayout = ({
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search patients..."
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-deep-red focus:border-transparent"
+                placeholder="Search by name, ID, email..."
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-deep-red focus:border-transparent w-full md:w-64"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <svg
-                className="w-5 h-5 text-gray-400 absolute left-3 top-2.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+              <FaSearch className="text-gray-400 absolute left-4 top-3" />
             </div>
             <button className="bg-white border border-gray-300 px-4 py-2 rounded-full hover:bg-gray-50 transition-colors">
               Filter
@@ -93,7 +90,7 @@ const PatientListLayout = ({
           </div>
         </div>
 
-        <div className="mt-6 flex items-center space-x-4">
+        <div className="mt-6 flex flex-wrap gap-4">
           <div className="flex items-center text-sm bg-white px-4 py-2 rounded-full shadow">
             <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
             <span>Active: {activePatients}</span>
@@ -104,7 +101,7 @@ const PatientListLayout = ({
           </div>
           <div className="flex items-center text-sm bg-white px-4 py-2 rounded-full shadow">
             <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-            <span>Total: {patients.length}</span>
+            <span>Total: {filteredPatients.length}</span>
           </div>
         </div>
       </div>

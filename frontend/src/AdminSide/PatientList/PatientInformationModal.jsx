@@ -1600,7 +1600,7 @@ const PatientInformationModal = ({
               </>
             )}
             <button
-              onClick={() => handleDeletePatient(patient.id)}
+              onClick={() => handleDeletePatient(patient._id)}
               className="px-5 py-2.5 bg-gradient-to-r from-deep-red to-dark-red text-white rounded-xl hover:opacity-90 transition-all flex items-center"
             >
               <FaTrash className="mr-2" /> Delete

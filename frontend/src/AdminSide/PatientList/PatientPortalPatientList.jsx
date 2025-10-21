@@ -1,9 +1,10 @@
 // src/App.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import TopBar from "./TopBar";
 import SideBar from "./SideBar";
 import PatientListLayout from "./PatientListLayout";
 import PatientInformationModal from "./PatientInformationModal";
+import axios from "axios";
 import AddPatientModal from "./AddPatientModal";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Dashboard from "./Dashboard";
@@ -20,108 +21,33 @@ const PatientPortalPatientList = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [time, setTime] = useState("");
   const [date, setDate] = useState("");
-  const [patients, setPatients] = useState([
-    {
-      id: 1,
-      name: "John Smith",
-      dob: "1985-03-15",
-      phone: "(555) 123-4567",
-      email: "john.smith@example.com",
-      address: "123 Main St, Anytown, CA 90210",
-      lastVisit: "2023-05-10",
-      nextAppointment: "2023-08-15",
-      status: "Active",
-      history:
-        "Allergies: Penicillin, Seasonal allergies. Previous surgeries: Appendectomy (2010). Chronic conditions: None.",
-      medications: "Loratadine 10mg daily during allergy season",
-      bloodType: "O+",
-      height: "5'11\"",
-      weight: "178 lbs",
-    },
-    {
-      id: 2,
-      name: "Emily Johnson",
-      dob: "1990-07-22",
-      phone: "(555) 567-8901",
-      email: "emily.j@example.com",
-      address: "456 Oak Ave, Somewhere, NY 10001",
-      lastVisit: "2023-06-15",
-      nextAppointment: "2023-09-10",
-      status: "Active",
-      history:
-        "Asthma since childhood. Hospitalized for pneumonia in 2018. Family history of heart disease.",
-      medications: "Albuterol inhaler as needed, Fluticasone 100mcg daily",
-      bloodType: "A-",
-      height: "5'5\"",
-      weight: "132 lbs",
-    },
-    {
-      id: 3,
-      name: "Michael Brown",
-      dob: "1978-11-05",
-      phone: "(555) 234-5678",
-      email: "michael.b@example.com",
-      address: "789 Pine Rd, Nowhere, TX 75001",
-      lastVisit: "2023-04-20",
-      nextAppointment: null,
-      status: "Inactive",
-      history:
-        "Diagnosed with Type 2 Diabetes in 2015. Hypertension. Mild obesity.",
-      medications: "Metformin 1000mg daily, Lisinopril 10mg daily",
-      bloodType: "B+",
-      height: "6'2\"",
-      weight: "210 lbs",
-    },
-    {
-      id: 4,
-      name: "Sarah Davis",
-      dob: "1995-01-30",
-      phone: "(555) 890-1234",
-      email: "sarah.d@example.com",
-      address: "321 Elm Blvd, Anycity, FL 33101",
-      lastVisit: "2023-07-01",
-      nextAppointment: "2023-08-22",
-      status: "Active",
-      history:
-        "Generally healthy. Occasional migraines. No significant medical history.",
-      medications: "Ibuprofen as needed for headaches",
-      bloodType: "AB+",
-      height: "5'7\"",
-      weight: "145 lbs",
-    },
-    {
-      id: 5,
-      name: "Robert Wilson",
-      dob: "1982-09-18",
-      phone: "(555) 456-7890",
-      email: "robert.w@example.com",
-      address: "654 Cedar Ln, Yourtown, IL 60007",
-      lastVisit: "2023-03-12",
-      nextAppointment: null,
-      status: "Inactive",
-      history: "Hypertension managed with medication. High cholesterol.",
-      medications: "Atorvastatin 20mg daily, Hydrochlorothiazide 25mg daily",
-      bloodType: "O-",
-      height: "5'10\"",
-      weight: "195 lbs",
-    },
-    {
-      id: 6,
-      name: "Jennifer Lee",
-      dob: "1992-12-25",
-      phone: "(555) 123-7890",
-      email: "jennifer.l@example.com",
-      address: "987 Birch St, Mytown, WA 98101",
-      lastVisit: "2023-07-05",
-      nextAppointment: "2023-10-12",
-      status: "Active",
-      history: "History of migraines. Seasonal allergies. Mild anemia.",
-      medications: "Sumatriptan as needed, Ferrous sulfate 325mg daily",
-      bloodType: "A+",
-      height: "5'4\"",
-      weight: "128 lbs",
-    },
-  ]);
+  const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchPatients = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("http://localhost:5000/api/profiles", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPatients(response.data);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching patients:", err);
+      setError("Failed to load patient data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // We only fetch if the active tab is 'Patient List' to be efficient
+    if (activeTab === "Patient List") {
+      fetchPatients();
+    }
+  }, [activeTab, fetchPatients]);
 
   // Update time and date
   useEffect(() => {
@@ -166,16 +92,99 @@ const PatientPortalPatientList = () => {
   };
 
   // Handle add new patient
-  const handleAddPatient = (newPatient) => {
-    setPatients([...patients, { ...newPatient, id: patients.length + 1 }]);
-    setIsAddModalOpen(false);
+  // --- REPLACE the old handleAddPatient function with this new one ---
+  const handleAddPatient = async (newPatientData) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      // 1. Create Profile using the data passed up from the modal
+      await axios.post(
+        "http://localhost:5000/api/profiles",
+        {
+          _id: newPatientData.patientId,
+          patientId: newPatientData.patientId,
+          firstName: newPatientData.firstName,
+          middleName: newPatientData.middleName,
+          lastName: newPatientData.lastName,
+          dob: newPatientData.dob,
+          age: newPatientData.age,
+          gender: newPatientData.gender,
+          address: newPatientData.address,
+          addressCombined: newPatientData.addressCombined,
+          region: newPatientData.region,
+          province: newPatientData.province,
+          city: newPatientData.city,
+          barangay: newPatientData.barangay,
+          street_subdivision: newPatientData.street_subdivision,
+          contact: newPatientData.contact,
+          occupation: newPatientData.occupation,
+          civilStatus: newPatientData.civilStatus,
+          referralBy: newPatientData.referralBy,
+          ageCategory: newPatientData.ageCategory,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // 2. Create Medical History
+      await axios.post(
+        "http://localhost:5000/api/medicalhistory",
+        {
+          patientId: newPatientData.patientId,
+          ocularHistory: newPatientData.ocularHistory,
+          healthHistory: newPatientData.healthHistory,
+          familyMedicalHistory: newPatientData.familyMedicalHistory,
+          medications: newPatientData.medications,
+          allergies: newPatientData.allergies,
+          occupationalHistory: newPatientData.occupationalHistoryMH,
+          digitalHistory: newPatientData.digitalHistory,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // 3. Create Initial Visit Record
+      await axios.post(
+        "http://localhost:5000/api/visits",
+        {
+          patientId: newPatientData.patientId,
+          visitDate: new Date(),
+          chiefComplaint: newPatientData.chiefComplaint,
+          associatedComplaint: newPatientData.associatedComplaint,
+          diagnosis: newPatientData.diagnosis,
+          treatmentPlan: newPatientData.treatmentPlan,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // If all API calls are successful, close the modal
+      setIsAddModalOpen(false);
+      alert("Patient record created successfully!");
+
+      // THEN, re-fetch the entire patient list to get the latest data
+      // This is the key that makes the UI update in real-time!
+      fetchPatients();
+    } catch (err) {
+      console.error("Failed to add patient record:", err);
+      alert(err.response?.data?.message || "Error: Could not add patient.");
+    }
   };
 
   // Handle delete patient
-  const handleDeletePatient = (id) => {
+  const handleDeletePatient = async (id) => {
     if (window.confirm("Are you sure you want to delete this patient?")) {
-      setPatients(patients.filter((patient) => patient.id !== id));
-      setSelectedPatient(null);
+      try {
+        const token = localStorage.getItem("token");
+        await axios.delete(`http://localhost:5000/api/profiles/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // Close the details modal
+        setSelectedPatient(null);
+        // Re-fetch the list to reflect the deletion
+        fetchPatients();
+      } catch (err) {
+        console.error("Failed to delete patient:", err);
+        alert("Error: Could not delete patient.");
+      }
     }
   };
 
@@ -193,13 +202,11 @@ const PatientPortalPatientList = () => {
 
         {activeTab === "Patient List" && (
           <PatientListLayout
-            patients={patients.map((p) => ({
-              ...p,
-              address:
-                p.address && typeof p.address === "object"
-                  ? p.address.display || ""
-                  : p.address || "",
-            }))}
+            // Pass the state directly from the parent
+            patients={patients}
+            loading={loading}
+            error={error}
+            // Pass the handlers
             handleViewDetails={handleViewDetails}
             setIsAddModalOpen={setIsAddModalOpen}
           />

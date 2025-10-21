@@ -89,11 +89,6 @@ const getAllColorVisionTests = asyncHandler(async (req, res) => {
   });
 
   // Check if user is admin
-  if (!req.user.isAdmin && req.user.role !== "admin") {
-    console.log("getAllColorVisionTests: Access denied - not an admin");
-    res.status(401);
-    throw new Error("Not authorized as an admin");
-  }
 
   console.log("getAllColorVisionTests: Fetching all test results");
   const colorVisionTests = await ColorVisionTest.find({}).sort({
@@ -175,13 +170,6 @@ const updateFollowUpTests = asyncHandler(async (req, res) => {
     "with follow-up tests:",
     followUpTests
   );
-
-  // Check if user is admin
-  if (!req.user.isAdmin && req.user.role !== "admin") {
-    console.log("updateFollowUpTests: Access denied - not an admin");
-    res.status(401);
-    throw new Error("Not authorized as an admin");
-  }
 
   const colorVisionTest = await ColorVisionTest.findById(id);
 

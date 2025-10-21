@@ -67,6 +67,7 @@ export const requireRole = (role) => {
   };
 };
 
+// This is the NEW, corrected code.
 export const requireAdmin = async (req, res, next) => {
   try {
     if (!req.user) {
@@ -78,8 +79,14 @@ export const requireAdmin = async (req, res, next) => {
 
     console.log("requireAdmin: Checking role:", req.user.role);
 
-    if (req.user.role !== "admin") {
-      console.log("requireAdmin: User is not admin:", req.user.role);
+    // Define a list of all roles that have admin-level access
+    const authorizedRoles = ["admin", "owner"];
+
+    // Check if the user's role is in our authorized list
+    if (!authorizedRoles.includes(req.user.role)) {
+      console.log(
+        `requireAdmin: User role '${req.user.role}' is not authorized.`
+      );
       return res.status(403).json({
         message: "Access denied. Admin privileges required.",
       });
