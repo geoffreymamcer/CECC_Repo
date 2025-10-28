@@ -34,3 +34,30 @@ export const getCaseHistoryByPatientId = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const upsertCaseHistoryByPatientId = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const data = req.body;
+
+    const profile = await Profile.findById(patientId);
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    const caseHistory = await CaseHistory.findOneAndUpdate(
+      { patientId: patientId },
+      { ...data, patientId: patientId },
+      { new: true, upsert: true, runValidators: true }
+    );
+
+    if (!profile.caseHistory) {
+      profile.caseHistory = caseHistory._id;
+      await profile.save();
+    }
+
+    res.status(200).json(caseHistory);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

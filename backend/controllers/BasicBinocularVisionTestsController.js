@@ -36,3 +36,29 @@ export const getBasicBinocularVisionTestsByPatientId = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+export const upsertBasicBinocularVisionTestsByPatientId = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const data = req.body;
+
+    const profile = await Profile.findById(patientId);
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    const tests = await BasicBinocularVisionTests.findOneAndUpdate(
+      { patientId: patientId },
+      { ...data, patientId: patientId },
+      { new: true, upsert: true, runValidators: true }
+    );
+
+    if (!profile.basicBinocularVisionTests) {
+      profile.basicBinocularVisionTests = tests._id;
+      await profile.save();
+    }
+
+    res.status(200).json(tests);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

@@ -1,3 +1,4 @@
+// models/ClinicalExamination.js
 import mongoose from "mongoose";
 
 const eyeDataSchema = new mongoose.Schema(
@@ -58,7 +59,6 @@ const pupilExaminationSchema = new mongoose.Schema(
   { _id: false }
 );
 
-// --- START OF FIX ---
 const dominantEyeDetailSchema = new mongoose.Schema(
   {
     od: { type: String, default: "" },
@@ -66,7 +66,6 @@ const dominantEyeDetailSchema = new mongoose.Schema(
   },
   { _id: false }
 );
-// --- END OF FIX ---
 
 const clinicalExaminationSchema = new mongoose.Schema({
   patientId: {
@@ -87,12 +86,10 @@ const clinicalExaminationSchema = new mongoose.Schema({
       od: eyeDataSchema,
       os: eyeDataSchema,
     },
-    // --- START OF FIX ---
     dominantEye: {
       far: dominantEyeDetailSchema,
       near: dominantEyeDetailSchema,
     },
-    // --- END OF FIX ---
   },
   autorefractometer: {
     od: refractionSchema,
@@ -126,12 +123,10 @@ const clinicalExaminationSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
-  // --- START OF FIX ---
   medsUsed: {
     type: { type: String, default: "" },
     comboTCOthers: { type: String, default: "" },
   },
-  // --- END OF FIX ---
 });
 
 const ClinicalExamination = mongoose.model(

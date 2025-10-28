@@ -43,3 +43,30 @@ export const getSlitLampFunduscopyByPatientId = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+export const upsertSlitLampFunduscopyByPatientId = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const data = req.body;
+
+    // Check if a profile exists
+    const profile = await Profile.findById(patientId);
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    const examination = await SlitLampFunduscopy.findOneAndUpdate(
+      { patientId: patientId },
+      { ...data, patientId: patientId },
+      { new: true, upsert: true, runValidators: true }
+    );
+
+    if (!profile.slitLampFunduscopy) {
+      profile.slitLampFunduscopy = examination._id;
+      await profile.save();
+    }
+
+    res.status(200).json(examination);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
