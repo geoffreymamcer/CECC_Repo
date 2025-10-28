@@ -138,18 +138,29 @@ const MedicalRecords = () => {
         const userProfile = profileRes.data;
         const patientId = userProfile.patientId || userProfile._id;
 
-        const mhRes = await axios.get(`/api/medicalhistory/${patientId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const mhRes = await axios.get(
+          `http://localhost:5000/api/medicalhistory/${patientId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
 
         setMedicalHistory(mhRes.data);
       } catch (err) {
+        // START OF UPDATED CODE BLOCK
         console.error("Error fetching medical history:", err);
-        setMedicalHistoryError(
-          err?.response?.data?.message ||
-            err.message ||
-            "Failed to load medical history"
-        );
+        // Gracefully handle 404: it means no record exists, which is not an application error.
+        if (err.response && err.response.status === 404) {
+          setMedicalHistory(null); // Set data to null to show "No medical history found."
+        } else {
+          // For all other errors (e.g., 500), show an error message.
+          setMedicalHistoryError(
+            err?.response?.data?.message ||
+              err.message ||
+              "Failed to load medical history"
+          );
+        }
+        // END OF UPDATED CODE BLOCK
       } finally {
         setMedicalHistoryLoading(false);
       }

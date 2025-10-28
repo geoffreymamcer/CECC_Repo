@@ -1,0 +1,110 @@
+// models/CaseHistory.js
+import mongoose from "mongoose";
+
+const caseHistorySchema = new mongoose.Schema({
+  patientId: {
+    type: String,
+    ref: "Profile",
+    required: true,
+  },
+  chiefComplaint: {
+    blurring: Boolean,
+    headache: Boolean,
+    doubleVision: Boolean,
+    photophobia: Boolean,
+    itchyEyes: Boolean,
+    eyeRedness: Boolean,
+    eyePain: Boolean,
+    others: String,
+  },
+  associatedComplaint: {
+    blurring: Boolean,
+    headache: Boolean,
+    doubleVision: Boolean,
+    photophobia: Boolean,
+    itchyEyes: Boolean,
+    eyeRedness: Boolean,
+    eyePain: Boolean,
+    others: String,
+  },
+  medicalHistory: {
+    hypertension: Boolean,
+    cardiovascular: Boolean,
+    diabetes: Boolean,
+    asthma: Boolean,
+    allergies: Boolean,
+    congenital: Boolean,
+    majorSurgery: Boolean,
+    others: String,
+  },
+  historyOfChiefComplaint: {
+    frequency: String,
+    onset: String,
+    location: String,
+    duration: String,
+    relief: String,
+    quality: String,
+  },
+  historyOfAssociatedComplaint: {
+    frequency: String,
+    onset: String,
+    location: String,
+    duration: String,
+    relief: String,
+    quality: String,
+  },
+  familyHistory: {
+    hypertension: Boolean,
+    cardiovascular: Boolean,
+    diabetes: Boolean,
+    asthma: Boolean,
+    allergies: Boolean,
+    others: String,
+  },
+  ocularHistory: {
+    spectacleRx: String,
+    spectacleYear: String,
+    contactLens: String,
+    eyeSurgery: String,
+    systemicSurgery: String,
+  },
+  ocularCondition: {
+    glaucoma: Boolean,
+    cataract: Boolean,
+    retina: String,
+    macula: String,
+    eor: String,
+    others: String,
+  },
+  familyOcularCondition: {
+    glaucoma: Boolean,
+    cataract: Boolean,
+    retina: String,
+    macula: String,
+    eor: String,
+    others: String,
+  },
+  occupationalHistory: {
+    working: Boolean,
+    student: Boolean,
+    details: String,
+  },
+  digitalHistory: {
+    cellphone: String,
+    laptop: String,
+    desktop: String,
+    television: String,
+    work: String,
+    hobbies: String,
+  },
+  eyeglassHistory: {
+    ddW: String,
+    ddWout: String,
+    power: String,
+    lensType: String,
+    comment: String,
+  },
+});
+
+const CaseHistory = mongoose.model("CaseHistory", caseHistorySchema);
+export default CaseHistory;

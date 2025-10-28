@@ -5,36 +5,36 @@ const medicalHistorySchema = new mongoose.Schema(
     patientId: {
       type: String,
       required: true,
-      ref: "User"
+      ref: "User",
     },
-    ocularHistory: { 
+    ocularHistory: {
       type: String,
-      default: ""
+      default: "",
     },
-    healthHistory: { 
+    healthHistory: {
       type: String,
-      default: ""
+      default: "",
     },
-    familyMedicalHistory: { 
+    familyMedicalHistory: {
       type: String,
-      default: ""
+      default: "",
     },
-    medications: { 
+    medications: {
       type: String,
-      default: ""
+      default: "",
     },
-    allergies: { 
+    allergies: {
       type: String,
-      default: ""
+      default: "",
     },
-    occupationalHistory: { 
+    occupationalHistory: {
       type: String,
-      default: ""
+      default: "",
     },
-    digitalHistory: { 
+    digitalHistory: {
       type: String,
-      default: ""
-    }
+      default: "",
+    },
   },
   { timestamps: true }
 );

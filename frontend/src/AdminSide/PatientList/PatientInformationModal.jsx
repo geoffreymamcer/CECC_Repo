@@ -1,5 +1,5 @@
 // src/components/PatientInformationModal.jsx
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import {
   FaUserMd,
@@ -9,11 +9,9 @@ import {
   FaFileMedical,
   FaStethoscope,
   FaNotesMedical,
-  FaPrescription,
   FaFileInvoice,
   FaEye,
   FaDownload,
-  FaPrint,
 } from "react-icons/fa";
 import {
   IoMdPerson,
@@ -34,139 +32,48 @@ const PatientInformationModal = ({
   patient,
   handleCloseModal,
   handleDeletePatient,
+  onDataUpdate,
 }) => {
   const [activeTab, setActiveTab] = useState("personal");
 
-  // --- Fetching logic from patient-info.jsx ---
+  // Centralized states
   const [patientDetails, setPatientDetails] = useState(null);
-  const [medicalHistory, setMedicalHistory] = useState(null);
   const [visitHistory, setVisitHistory] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedVisitDate, setSelectedVisitDate] = useState("");
-  const [invoices, setInvoices] = useState([]);
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
+
+  const [selectedVisitDate, setSelectedVisitDate] = useState("");
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [showNewVisitModal, setShowNewVisitModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
   const currentUser = "Dr. Smith";
 
-  // Handle viewing PDF
-  const handleViewPDF = async (invoiceId) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:5000/api/invoices/${invoiceId}/pdf`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: "blob",
-        }
-      );
-
-      // Create blob URL and open in new window
-      const file = new Blob([response.data], { type: "application/pdf" });
-      const fileURL = URL.createObjectURL(file);
-      window.open(fileURL, "_blank");
-    } catch (error) {
-      console.error("Error viewing PDF:", error);
-      alert("Failed to view PDF. Please try again.");
-    }
-  };
-
-  // Handle downloading PDF
-  const handleDownloadPDF = async (invoiceId, invoiceNumber) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:5000/api/invoices/${invoiceId}/pdf`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: "blob",
-        }
-      );
-
-      // Create download link
-      const file = new Blob([response.data], { type: "application/pdf" });
-      const downloadUrl = URL.createObjectURL(file);
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = `invoice-${invoiceNumber}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(downloadUrl);
-    } catch (error) {
-      console.error("Error downloading PDF:", error);
-      alert("Failed to download PDF. Please try again.");
-    }
-  };
-
-  // Fetch invoices
-  useEffect(() => {
-    const fetchInvoices = async () => {
-      if (!patient._id && !patient.patientId && !patient.id) return;
-
-      setIsLoadingInvoices(true);
-      try {
-        const token = localStorage.getItem("token");
-        const patientId = patient._id || patient.patientId || patient.id;
-        const response = await axios.get(
-          `http://localhost:5000/api/invoices/patient/${patientId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setInvoices(response.data);
-      } catch (error) {
-        console.error("Error fetching invoices:", error);
-      } finally {
-        setIsLoadingInvoices(false);
-      }
-    };
-
-    fetchInvoices();
-  }, [patient]);
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
+  // Grouped form data
+  const [personalFormData, setPersonalFormData] = useState({
     fullName: "",
     dob: "",
     age: "",
     email: "",
-    address: "",
     contact: "",
     occupation: "",
     civilStatus: "",
     referralBy: "",
     gender: "",
     ageCategory: "",
-    // Visit details
-    chiefComplaint: "",
-    associatedComplaint: "",
-    diagnosis: "",
-    treatmentPlan: "",
-    visitDate: "",
-    doctor: "",
-    prescriptions: "",
-    notes: "",
   });
-  // structured address fields for editing/view
-  const [selectedRegion, setSelectedRegion] = useState("");
-  const [selectedProvince, setSelectedProvince] = useState("");
-  const [selectedCity, setSelectedCity] = useState("");
-  const [selectedBarangay, setSelectedBarangay] = useState("");
-  const [streetAddress, setStreetAddress] = useState("");
 
-  const filteredProvinces = useMemo(() => {
-    if (!selectedRegion) return [];
-    return provinces.filter((p) => p.region_code === selectedRegion);
-  }, [selectedRegion]);
+  const [addressFormData, setAddressFormData] = useState({
+    displayAddress: "",
+    selectedRegion: "",
+    selectedProvince: "",
+    selectedCity: "",
+    selectedBarangay: "",
+    streetAddress: "",
+  });
 
-  const filteredCities = useMemo(() => {
-    if (!selectedProvince) return [];
-    return cities.filter((c) => c.province_code === selectedProvince);
-  }, [selectedProvince]);
-
-  const filteredBarangays = useMemo(() => {
-    if (!selectedCity) return [];
-    return barangays.filter((b) => b.city_code === selectedCity);
-  }, [selectedCity]);
   const [medicalHistoryData, setMedicalHistoryData] = useState({
     ocularHistory: "",
     healthHistory: "",
@@ -176,10 +83,46 @@ const PatientInformationModal = ({
     occupationalHistory: "",
     digitalHistory: "",
   });
-  const [visitData, setVisitData] = useState([]);
-  const [medicalHistoryId, setMedicalHistoryId] = useState(null);
-  const [showNewVisitModal, setShowNewVisitModal] = useState(false);
 
+  const [currentVisitDetails, setCurrentVisitDetails] = useState({
+    chiefComplaint: "",
+    associatedComplaint: "",
+    diagnosis: "",
+    treatmentPlan: "",
+    visitDate: "",
+    doctor: "",
+    prescriptions: "",
+    notes: "",
+  });
+
+  // Memoized derived helpers
+  const filteredProvinces = useMemo(() => {
+    if (!addressFormData.selectedRegion) return [];
+    return provinces.filter(
+      (p) => p.region_code === addressFormData.selectedRegion
+    );
+  }, [addressFormData.selectedRegion]);
+
+  const filteredCities = useMemo(() => {
+    if (!addressFormData.selectedProvince) return [];
+    return cities.filter(
+      (c) => c.province_code === addressFormData.selectedProvince
+    );
+  }, [addressFormData.selectedProvince]);
+
+  const filteredBarangays = useMemo(() => {
+    if (!addressFormData.selectedCity) return [];
+    return barangays.filter(
+      (b) => b.city_code === addressFormData.selectedCity
+    );
+  }, [addressFormData.selectedCity]);
+
+  const patientId = useMemo(
+    () => patient && (patient._id || patient.patientId || patient.id),
+    [patient]
+  );
+
+  // Helper: age category
   const getAgeCategory = (calculatedAge) => {
     if (calculatedAge >= 0 && calculatedAge <= 12) return "Child: 0-12";
     if (calculatedAge >= 13 && calculatedAge <= 19) return "Teen: 13-19";
@@ -189,32 +132,181 @@ const PatientInformationModal = ({
     return "";
   };
 
-  const handleVisitDateChange = (e) => {
-    const date = e.target.value;
-    setSelectedVisitDate(date);
+  // Fetch all required data concurrently
+  const fetchAllData = useCallback(async () => {
+    if (!patientId) return;
+    setLoading(true);
+    setError(null);
 
-    const selectedVisit = visitData.find((visit) => visit.visitDate === date);
+    const token = localStorage.getItem("token");
+    const headers = { headers: { Authorization: `Bearer ${token}` } };
 
-    if (selectedVisit) {
-      setFormData((prev) => ({
-        ...prev,
-        chiefComplaint: selectedVisit.chiefComplaint || "",
-        associatedComplaint: selectedVisit.associatedComplaint || "",
-        diagnosis: selectedVisit.diagnosis || "",
-        treatmentPlan: selectedVisit.treatmentPlan || "",
-        visitDate: selectedVisit.visitDate || "",
-        doctor: selectedVisit.doctor || "",
-        prescriptions: selectedVisit.prescriptions || "",
-        notes: selectedVisit.notes || "",
-      }));
+    try {
+      const medicalHistoryPromise = axios
+        .get(`http://localhost:5000/api/medicalhistory/${patientId}`, headers)
+        .catch((error) => {
+          if (error.response && error.response.status === 404) {
+            // Patient has no medical history record, which is a valid scenario.
+            // We return an object that mimics a successful response with null data
+            // to prevent Promise.all from failing.
+            return { data: null };
+          }
+          // For any other error, re-throw it so it's caught by the main catch block.
+          console.error("Error fetching medical history:", error); // Log the error for other cases
+          throw error;
+        });
+
+      const [profileRes, medHistoryRes, visitRes, invoiceRes] =
+        await Promise.all([
+          axios.get(
+            `http://localhost:5000/api/profiles/id/${patientId}`,
+            headers
+          ),
+          medicalHistoryPromise, // Use the promise with the attached catch handler
+          axios.get(
+            `http://localhost:5000/api/visits/patient/${patientId}`,
+            headers
+          ),
+          axios.get(
+            `http://localhost:5000/api/invoices/patient/${patientId}`,
+            headers
+          ),
+        ]);
+      // END OF UPDATED CODE BLOCK
+
+      // Profile
+      const profileData = profileRes.data;
+      setPatientDetails(profileData);
+
+      setPersonalFormData({
+        fullName: [
+          profileData.firstName,
+          profileData.middleName,
+          profileData.lastName,
+        ]
+          .filter(Boolean)
+          .join(" "),
+        dob: profileData.dob ? profileData.dob.slice(0, 10) : "",
+        age: profileData.age || "",
+        email: profileData.email || "",
+        contact: profileData.contact || "",
+        occupation: profileData.occupation || "",
+        civilStatus: profileData.civilStatus || "",
+        referralBy: profileData.referralBy || "",
+        gender: profileData.gender || "",
+        ageCategory: profileData.ageCategory || "",
+      });
+
+      // Address mapping: convert names to codes
+      const regionObj = regions.find(
+        (r) => r.region_name === profileData.region
+      );
+      const provinceObj = provinces.find(
+        (p) =>
+          p.province_name === profileData.province &&
+          (!regionObj || p.region_code === regionObj.region_code)
+      );
+      const cityObj = cities.find(
+        (c) =>
+          c.city_name === profileData.city &&
+          (!provinceObj || c.province_code === provinceObj.province_code)
+      );
+      const barangayObj = barangays.find(
+        (b) =>
+          b.brgy_name === profileData.barangay &&
+          (!cityObj || b.city_code === cityObj.city_code)
+      );
+
+      setAddressFormData({
+        displayAddress:
+          profileData.address || profileData.addressCombined || "",
+        selectedRegion: regionObj?.region_code || "",
+        selectedProvince: provinceObj?.province_code || "",
+        selectedCity: cityObj?.city_code || "",
+        selectedBarangay: barangayObj?.brgy_code || "",
+        streetAddress: profileData.street_subdivision || "",
+      });
+
+      // Medical history
+      setMedicalHistoryData(
+        medHistoryRes && medHistoryRes.data
+          ? {
+              ocularHistory: medHistoryRes.data.ocularHistory || "",
+              healthHistory: medHistoryRes.data.healthHistory || "",
+              familyMedicalHistory:
+                medHistoryRes.data.familyMedicalHistory || "",
+              medications: medHistoryRes.data.medications || "",
+              allergies: medHistoryRes.data.allergies || "",
+              occupationalHistory: medHistoryRes.data.occupationalHistory || "",
+              digitalHistory: medHistoryRes.data.digitalHistory || "",
+            }
+          : {
+              ocularHistory: "",
+              healthHistory: "",
+              familyMedicalHistory: "",
+              medications: "",
+              allergies: "",
+              occupationalHistory: "",
+              digitalHistory: "",
+            }
+      );
+
+      // Visits
+      const sortedVisits = (visitRes.data || []).sort(
+        (a, b) => new Date(b.visitDate) - new Date(a.visitDate)
+      );
+      setVisitHistory(sortedVisits);
+      if (sortedVisits.length > 0) {
+        const latestVisit = sortedVisits[0];
+        setSelectedVisitDate(latestVisit.visitDate);
+        setCurrentVisitDetails({
+          chiefComplaint: latestVisit.chiefComplaint || "",
+          associatedComplaint: latestVisit.associatedComplaint || "",
+          diagnosis: latestVisit.diagnosis || "",
+          treatmentPlan: latestVisit.treatmentPlan || "",
+          visitDate: latestVisit.visitDate || "",
+          doctor: latestVisit.doctor || "",
+          prescriptions: latestVisit.prescriptions || "",
+          notes: latestVisit.notes || "",
+        });
+      } else {
+        setCurrentVisitDetails({
+          chiefComplaint: "",
+          associatedComplaint: "",
+          diagnosis: "",
+          treatmentPlan: "",
+          visitDate: "",
+          doctor: "",
+          prescriptions: "",
+          notes: "",
+        });
+        setSelectedVisitDate("");
+      }
+
+      // Invoices
+      setInvoices(invoiceRes.data || []);
+    } catch (err) {
+      // START OF UPDATED CODE BLOCK
+      console.error("Error fetching patient data:", err);
+      // The specific 404 check is no longer needed here, as it's handled above.
+      // This catch block will now only handle other fatal API errors.
+      setError("Failed to fetch patient data.");
+      // END OF UPDATED CODE BLOCK
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [patientId]);
 
-  const handleChange = (e) => {
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
+
+  // Handlers
+  const handlePersonalChange = (e) => {
     const { name, value } = e.target;
+    const newForm = { ...personalFormData, [name]: value };
 
     if (name === "dob") {
-      // Calculate age and age category
       let calculatedAge = "";
       let ageCategory = "";
       if (value) {
@@ -230,17 +322,91 @@ const PatientInformationModal = ({
         }
         ageCategory = getAgeCategory(calculatedAge);
       }
-      setFormData((prev) => ({
-        ...prev,
-        dob: value,
-        age: calculatedAge ? calculatedAge.toString() : "",
-        ageCategory,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      newForm.age = calculatedAge ? calculatedAge.toString() : "";
+      newForm.ageCategory = ageCategory;
+    }
+
+    setPersonalFormData(newForm);
+  };
+
+  const handleAddressChange = (e) => {
+    const { name, value } = e.target;
+    setAddressFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleMedicalHistoryChange = (e) => {
+    const { name, value } = e.target;
+    setMedicalHistoryData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleVisitDateChange = (e) => {
+    const date = e.target.value;
+    setSelectedVisitDate(date);
+    const selectedVisit = visitHistory.find((v) => v.visitDate === date);
+    if (selectedVisit) {
+      setCurrentVisitDetails({
+        chiefComplaint: selectedVisit.chiefComplaint || "",
+        associatedComplaint: selectedVisit.associatedComplaint || "",
+        diagnosis: selectedVisit.diagnosis || "",
+        treatmentPlan: selectedVisit.treatmentPlan || "",
+        visitDate: selectedVisit.visitDate || "",
+        doctor: selectedVisit.doctor || "",
+        prescriptions: selectedVisit.prescriptions || "",
+        notes: selectedVisit.notes || "",
+      });
+    }
+  };
+
+  const handleAddNewVisit = () => setShowNewVisitModal(true);
+  const handleCloseNewVisitModal = () => setShowNewVisitModal(false);
+  const handleNewVisitSave = () => {
+    setShowNewVisitModal(false);
+    fetchAllData();
+  };
+
+  const handleViewPDF = async (invoiceId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:5000/api/invoices/${invoiceId}/pdf`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: "blob",
+        }
+      );
+
+      const file = new Blob([response.data], { type: "application/pdf" });
+      const fileURL = URL.createObjectURL(file);
+      window.open(fileURL, "_blank");
+    } catch (error) {
+      console.error("Error viewing PDF:", error);
+      alert("Failed to view PDF. Please try again.");
+    }
+  };
+
+  const handleDownloadPDF = async (invoiceId, invoiceNumber) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:5000/api/invoices/${invoiceId}/pdf`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: "blob",
+        }
+      );
+
+      const file = new Blob([response.data], { type: "application/pdf" });
+      const downloadUrl = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `invoice-${invoiceNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      alert("Failed to download PDF. Please try again.");
     }
   };
 
@@ -253,7 +419,7 @@ const PatientInformationModal = ({
   const handleCancel = () => {
     setIsEditing(false);
     if (patientDetails) {
-      setFormData({
+      setPersonalFormData({
         fullName: [
           patientDetails.firstName,
           patientDetails.middleName,
@@ -261,312 +427,139 @@ const PatientInformationModal = ({
         ]
           .filter(Boolean)
           .join(" "),
-        dob: patientDetails.dob || "",
+        dob: patientDetails.dob ? patientDetails.dob.slice(0, 10) : "",
         age: patientDetails.age || "",
-        address: patientDetails.address || "",
+        email: patientDetails.email || "",
         contact: patientDetails.contact || "",
         occupation: patientDetails.occupation || "",
         civilStatus: patientDetails.civilStatus || "",
         referralBy: patientDetails.referralBy || "",
         gender: patientDetails.gender || "",
         ageCategory: patientDetails.ageCategory || "",
-        chiefComplaint: "",
-        associatedComplaint: "",
-        diagnosis: "",
-        treatmentPlan: "",
-        visitDate: "",
-        doctor: "",
-        prescriptions: "",
-        notes: "",
       });
+
+      setAddressFormData((prev) => ({
+        ...prev,
+        displayAddress:
+          patientDetails.address ||
+          patientDetails.addressCombined ||
+          prev.displayAddress,
+        streetAddress: patientDetails.street_subdivision || prev.streetAddress,
+      }));
     }
   };
 
-  const handleMedicalHistoryChange = (e) => {
-    const { name, value } = e.target;
-    setMedicalHistoryData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
   const handleSave = async () => {
+    if (!patientId) return;
     const token = localStorage.getItem("token");
-    try {
-      // build structured address if editing and region selected
-      let addressPayload;
-      // Build display and combined strings
-      let displayAddress = formData.address || "";
-      let addressCombined = "";
-      if (selectedRegion) {
-        displayAddress = selectedRegion
-          ? streetAddress
-            ? `${streetAddress}, ${
-                barangays.find((b) => b.brgy_code === selectedBarangay)
-                  ?.brgy_name || ""
-              }, ${
-                cities.find((c) => c.city_code === selectedCity)?.city_name ||
-                ""
-              }, ${
-                provinces.find((p) => p.province_code === selectedProvince)
-                  ?.province_name || ""
-              }, ${
-                regions.find((r) => r.region_code === selectedRegion)
-                  ?.region_name || ""
-              }`
-            : `${
-                barangays.find((b) => b.brgy_code === selectedBarangay)
-                  ?.brgy_name || ""
-              }, ${
-                cities.find((c) => c.city_code === selectedCity)?.city_name ||
-                ""
-              }, ${
-                provinces.find((p) => p.province_code === selectedProvince)
-                  ?.province_name || ""
-              }, ${
-                regions.find((r) => r.region_code === selectedRegion)
-                  ?.region_name || ""
-              }`
-          : formData.address || "";
+    const headers = { headers: { Authorization: `Bearer ${token}` } };
 
-        addressCombined = `${
-          barangays.find((b) => b.brgy_code === selectedBarangay)?.brgy_name ||
-          ""
-        }, ${
-          cities.find((c) => c.city_code === selectedCity)?.city_name || ""
-        }, ${
-          provinces.find((p) => p.province_code === selectedProvince)
-            ?.province_name || ""
-        }, ${
-          regions.find((r) => r.region_code === selectedRegion)?.region_name ||
-          ""
-        }`;
-      } else {
-        displayAddress = formData.address || "";
-        // try to use existing addressCombined if present on patientDetails
-        addressCombined = patientDetails?.addressCombined || "";
+    try {
+      // Build name parts
+      const nameParts = (personalFormData.fullName || "").trim().split(/\s+/);
+      const firstName = nameParts[0] || "";
+      const lastName =
+        nameParts.length > 1 ? nameParts[nameParts.length - 1] : "";
+      const middleName =
+        nameParts.length > 2 ? nameParts.slice(1, -1).join(" ") : "";
+
+      // Build display address
+      let displayAddress = addressFormData.displayAddress || "";
+      if (addressFormData.selectedRegion) {
+        const regionName =
+          regions.find((r) => r.region_code === addressFormData.selectedRegion)
+            ?.region_name || "";
+        const provinceName =
+          provinces.find(
+            (p) => p.province_code === addressFormData.selectedProvince
+          )?.province_name || "";
+        const cityName =
+          cities.find((c) => c.city_code === addressFormData.selectedCity)
+            ?.city_name || "";
+        const barangayName =
+          barangays.find(
+            (b) => b.brgy_code === addressFormData.selectedBarangay
+          )?.brgy_name || "";
+        const combined = [barangayName, cityName, provinceName, regionName]
+          .filter(Boolean)
+          .join(", ");
+        displayAddress = addressFormData.streetAddress
+          ? `${addressFormData.streetAddress}, ${combined}`
+          : combined || displayAddress;
       }
 
-      await axios.put(
-        `http://localhost:5000/api/profiles/${
-          patient._id || patient.patientId || patient.id
-        }`,
-        {
-          firstName: formData.fullName.split(" ")[0],
-          middleName: formData.fullName.split(" ").slice(1, -1).join(" ") || "",
-          lastName: formData.fullName.split(" ").slice(-1)[0],
-          dob: formData.dob,
-          age: parseInt(formData.age),
-          gender: formData.gender,
-          address: displayAddress,
-          addressCombined,
-          // Save separate name fields so backend can persist normalized address parts
-          region:
-            regions.find((r) => r.region_code === selectedRegion)
-              ?.region_name ||
-            patientDetails?.region ||
-            "",
-          province:
-            provinces.find((p) => p.province_code === selectedProvince)
-              ?.province_name ||
-            patientDetails?.province ||
-            "",
-          city:
-            cities.find((c) => c.city_code === selectedCity)?.city_name ||
-            patientDetails?.city ||
-            "",
-          barangay:
-            barangays.find((b) => b.brgy_code === selectedBarangay)
-              ?.brgy_name ||
-            patientDetails?.barangay ||
-            "",
-          street_subdivision:
-            streetAddress || patientDetails?.street_subdivision || "",
-          contact: formData.contact,
-          occupation: formData.occupation,
-          civilStatus: formData.civilStatus,
-          referralBy: formData.referralBy,
-          ageCategory: formData.ageCategory,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const profilePayload = {
+        firstName,
+        middleName,
+        lastName,
+        dob: personalFormData.dob || "",
+        age: personalFormData.age
+          ? parseInt(personalFormData.age, 10)
+          : undefined,
+        gender: personalFormData.gender || "",
+        email: personalFormData.email || "",
+        contact: personalFormData.contact || "",
+        occupation: personalFormData.occupation || "",
+        civilStatus: personalFormData.civilStatus || "",
+        referralBy: personalFormData.referralBy || "",
+        ageCategory: personalFormData.ageCategory || "",
+        address: displayAddress,
+        addressCombined: displayAddress,
+        region:
+          regions.find((r) => r.region_code === addressFormData.selectedRegion)
+            ?.region_name ||
+          patientDetails?.region ||
+          "",
+        province:
+          provinces.find(
+            (p) => p.province_code === addressFormData.selectedProvince
+          )?.province_name ||
+          patientDetails?.province ||
+          "",
+        city:
+          cities.find((c) => c.city_code === addressFormData.selectedCity)
+            ?.city_name ||
+          patientDetails?.city ||
+          "",
+        barangay:
+          barangays.find(
+            (b) => b.brgy_code === addressFormData.selectedBarangay
+          )?.brgy_name ||
+          patientDetails?.barangay ||
+          "",
+        street_subdivision:
+          addressFormData.streetAddress ||
+          patientDetails?.street_subdivision ||
+          "",
+      };
+
+      // Update profile
+      const profileUpdatePromise = axios.put(
+        `http://localhost:5000/api/profiles/${patientId}`,
+        profilePayload,
+        headers
       );
 
-      if (medicalHistoryId) {
-        await axios.put(
-          `http://localhost:5000/api/medicalhistory/${medicalHistoryId}`,
-          {
-            ocularHistory: medicalHistoryData.ocularHistory,
-            healthHistory: medicalHistoryData.healthHistory,
-            familyMedicalHistory: medicalHistoryData.familyMedicalHistory,
-            medications: medicalHistoryData.medications,
-            allergies: medicalHistoryData.allergies,
-            occupationalHistory: medicalHistoryData.occupationalHistory,
-            digitalHistory: medicalHistoryData.digitalHistory,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-      }
+      // Upsert medical history for patient
+      const medUpdatePromise = axios.put(
+        `http://localhost:5000/api/medicalhistory/patient/${patientId}`,
+        medicalHistoryData,
+        headers
+      );
+
+      await Promise.all([profileUpdatePromise, medUpdatePromise]);
+
       alert("Changes saved successfully!");
       setIsEditing(false);
-      // Optionally, refetch data or update state
-    } catch (error) {
+      if (typeof onDataUpdate === "function") onDataUpdate();
+      fetchAllData();
+    } catch (err) {
+      console.error("Failed to save changes:", err);
       alert("Failed to save changes. Please try again.");
     }
   };
 
-  useEffect(() => {
-    const fetchAllData = async () => {
-      if (!patient || !(patient._id || patient.patientId || patient.id)) return;
-      setLoading(true);
-      setError(null);
-      const id = patient._id || patient.patientId || patient.id;
-      const token = localStorage.getItem("token");
-      try {
-        // Fetch patient profile
-        const profileRes = await axios.get(
-          `http://localhost:5000/api/profiles/id/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setPatientDetails(profileRes.data);
-        // Populate formData from profile
-        // Backend now stores separate name fields: region, province, city, barangay, street_subdivision
-        const regionName = profileRes.data.region || "";
-        const provinceName = profileRes.data.province || "";
-        const cityName = profileRes.data.city || "";
-        const barangayName = profileRes.data.barangay || "";
-        const street = profileRes.data.street_subdivision || "";
-
-        // map names back to codes for selects
-        const regionObj = regions.find((r) => r.region_name === regionName);
-        const regionCode = regionObj?.region_code || "";
-
-        const provinceObj = provinces.find(
-          (p) =>
-            p.province_name === provinceName &&
-            (!regionCode || p.region_code === regionCode)
-        );
-        const provinceCode = provinceObj?.province_code || "";
-
-        const cityObj = cities.find(
-          (c) =>
-            c.city_name === cityName &&
-            (!provinceCode || c.province_code === provinceCode)
-        );
-        const cityCode = cityObj?.city_code || "";
-
-        const barangayObj = barangays.find(
-          (b) =>
-            b.brgy_name === barangayName &&
-            (!cityCode || b.city_code === cityCode)
-        );
-        const barangayCode = barangayObj?.brgy_code || "";
-
-        setSelectedRegion(regionCode);
-        setSelectedProvince(provinceCode);
-        setSelectedCity(cityCode);
-        setSelectedBarangay(barangayCode);
-        // Only populate streetAddress from explicit street_subdivision field.
-        // Previously we fell back to the whole address string which caused
-        // the street input to contain the combined address and resulted in
-        // appending that entire string when saving structured address parts.
-        setStreetAddress(street || "");
-
-        setFormData({
-          fullName: [
-            profileRes.data.firstName,
-            profileRes.data.middleName,
-            profileRes.data.lastName,
-          ]
-            .filter(Boolean)
-            .join(" "),
-          dob: profileRes.data.dob || "",
-          age: profileRes.data.age || "",
-          // prefer the normalized address field
-          address:
-            profileRes.data.address || profileRes.data.addressCombined || "",
-          contact: profileRes.data.contact || "",
-          occupation: profileRes.data.occupation || "",
-          civilStatus: profileRes.data.civilStatus || "",
-          referralBy: profileRes.data.referralBy || "",
-          gender: profileRes.data.gender || "",
-          ageCategory: profileRes.data.ageCategory || "",
-          chiefComplaint: "",
-          associatedComplaint: "",
-          diagnosis: "",
-          treatmentPlan: "",
-          visitDate: "",
-          doctor: "",
-          prescriptions: "",
-          notes: "",
-        });
-
-        // Fetch medical history
-        const medRes = await axios.get(
-          `http://localhost:5000/api/medicalhistory/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setMedicalHistoryData({
-          ocularHistory: medRes.data.ocularHistory || "",
-          healthHistory: medRes.data.healthHistory || "",
-          familyMedicalHistory: medRes.data.familyMedicalHistory || "",
-          medications: medRes.data.medications || "",
-          allergies: medRes.data.allergies || "",
-          occupationalHistory: medRes.data.occupationalHistory || "",
-          digitalHistory: medRes.data.digitalHistory || "",
-        });
-        setMedicalHistoryId(medRes.data._id);
-
-        // Fetch visit history
-        const visitRes = await axios.get(
-          `http://localhost:5000/api/visits/patient/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setVisitData(
-          (visitRes.data || []).sort(
-            (a, b) => new Date(b.visitDate) - new Date(a.visitDate)
-          )
-        );
-
-        // Optionally, set latest visit details in formData
-        if (visitRes.data && visitRes.data.length > 0) {
-          const latestVisit = visitRes.data[0];
-          setSelectedVisitDate(latestVisit.visitDate); // Set the most recent visit date
-          setFormData((prev) => ({
-            ...prev,
-            chiefComplaint: latestVisit.chiefComplaint || "",
-            associatedComplaint: latestVisit.associatedComplaint || "",
-            diagnosis: latestVisit.diagnosis || "",
-            treatmentPlan: latestVisit.treatmentPlan || "",
-            visitDate: latestVisit.visitDate || "",
-            doctor: latestVisit.doctor || "",
-            prescriptions: latestVisit.prescriptions || "",
-            notes: latestVisit.notes || "",
-          }));
-        }
-      } catch (err) {
-        setError("Failed to fetch patient data.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAllData();
-  }, [patient]);
-
-  // Helper for full name
+  // display full name
   const fullName = patientDetails
     ? [
         patientDetails.firstName,
@@ -577,48 +570,37 @@ const PatientInformationModal = ({
         .join(" ")
     : "";
 
-  // --- End fetching logic ---
+  // START OF UPDATED CODE BLOCK
+  // Helper to check if the medical history form data is empty
+  const isMedicalHistoryEmpty = !Object.values(medicalHistoryData).some(
+    (value) => value
+  );
+  // END OF UPDATED CODE BLOCK
 
-  // Handler for opening the New Visit modal
-  const handleAddNewVisit = () => setShowNewVisitModal(true);
-  const handleCloseNewVisitModal = () => setShowNewVisitModal(false);
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="text-white text-xl">Loading Patient Data...</div>
+      </div>
+    );
+  }
 
-  // Fetch visit data function
-  const fetchVisitData = async () => {
-    const id = patient._id || patient.patientId || patient.id;
-    const token = localStorage.getItem("token");
-    try {
-      const visitRes = await axios.get(
-        `http://localhost:5000/api/visits/patient/${id}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setVisitData(
-        (visitRes.data || []).sort(
-          (a, b) => new Date(b.visitDate) - new Date(a.visitDate)
-        )
-      );
-      // Optionally update formData with the latest visit
-      if (visitRes.data && visitRes.data.length > 0) {
-        const latestVisit = visitRes.data[0];
-        setSelectedVisitDate(latestVisit.visitDate);
-        setFormData((prev) => ({
-          ...prev,
-          chiefComplaint: latestVisit.chiefComplaint || "",
-          associatedComplaint: latestVisit.associatedComplaint || "",
-          diagnosis: latestVisit.diagnosis || "",
-          treatmentPlan: latestVisit.treatmentPlan || "",
-          visitDate: latestVisit.visitDate || "",
-          doctor: latestVisit.doctor || "",
-          prescriptions: latestVisit.prescriptions || "",
-          notes: latestVisit.notes || "",
-        }));
-      }
-    } catch (err) {
-      // Optionally handle error
-    }
-  };
+  if (error) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-8 rounded-lg">
+          <h3 className="text-red-500 text-xl mb-4">Error</h3>
+          <p>{error}</p>
+          <button
+            onClick={handleCloseModal}
+            className="mt-4 px-4 py-2 bg-gray-200 rounded"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -665,21 +647,21 @@ const PatientInformationModal = ({
                   <IoMdPerson className="text-deep-red mr-3 text-xl" />
                   <div>
                     <p className="text-gray-600 text-sm">Date of Birth</p>
-                    <p className="font-medium">{patient.dob}</p>
+                    <p className="font-medium">{personalFormData.dob}</p>
                   </div>
                 </div>
                 <div className="flex items-center">
                   <IoMdCall className="text-deep-red mr-3 text-xl" />
                   <div>
                     <p className="text-gray-600 text-sm">Phone</p>
-                    <p className="font-medium">{formData.contact}</p>
+                    <p className="font-medium">{personalFormData.contact}</p>
                   </div>
                 </div>
                 <div className="flex items-center">
                   <IoMdMail className="text-deep-red mr-3 text-xl" />
                   <div>
                     <p className="text-gray-600 text-sm">Email</p>
-                    <p className="font-medium">{patient.email}</p>
+                    <p className="font-medium">{personalFormData.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center">
@@ -687,7 +669,7 @@ const PatientInformationModal = ({
                   <div>
                     <p className="text-gray-600 text-sm">Address</p>
                     <p className="font-medium">
-                      {patient.address?.display || patient.address || ""}
+                      {addressFormData.displayAddress || ""}
                     </p>
                   </div>
                 </div>
@@ -789,8 +771,8 @@ const PatientInformationModal = ({
                         type="text"
                         id="fullName"
                         name="fullName"
-                        value={formData.fullName}
-                        onChange={handleChange}
+                        value={personalFormData.fullName}
+                        onChange={handlePersonalChange}
                         disabled={!isEditing}
                         className="font-medium w-full"
                       />
@@ -803,8 +785,8 @@ const PatientInformationModal = ({
                         type="date"
                         id="dob"
                         name="dob"
-                        value={formData.dob ? formData.dob.slice(0, 10) : ""}
-                        onChange={handleChange}
+                        value={personalFormData.dob || ""}
+                        onChange={handlePersonalChange}
                         disabled={!isEditing}
                         className="font-medium w-full"
                       />
@@ -817,8 +799,8 @@ const PatientInformationModal = ({
                         type="number"
                         id="age"
                         name="age"
-                        value={formData.age}
-                        onChange={handleChange}
+                        value={personalFormData.age}
+                        onChange={handlePersonalChange}
                         disabled={!isEditing}
                         className="font-medium w-full"
                       />
@@ -834,8 +816,8 @@ const PatientInformationModal = ({
                         type="text"
                         id="ageCategory"
                         name="ageCategory"
-                        value={formData.ageCategory}
-                        onChange={handleChange}
+                        value={personalFormData.ageCategory}
+                        onChange={handlePersonalChange}
                         disabled={!isEditing}
                         className="font-medium w-full"
                       />
@@ -851,8 +833,8 @@ const PatientInformationModal = ({
                         type="text"
                         id="occupation"
                         name="occupation"
-                        value={formData.occupation}
-                        onChange={handleChange}
+                        value={personalFormData.occupation}
+                        onChange={handlePersonalChange}
                         disabled={!isEditing}
                         className="font-medium w-full"
                       />
@@ -868,8 +850,8 @@ const PatientInformationModal = ({
                         type="text"
                         id="contact"
                         name="contact"
-                        value={formData.contact}
-                        onChange={handleChange}
+                        value={personalFormData.contact}
+                        onChange={handlePersonalChange}
                         disabled={!isEditing}
                         className="font-medium w-full"
                       />
@@ -882,8 +864,8 @@ const PatientInformationModal = ({
                         type="email"
                         id="email"
                         name="email"
-                        value={patient.email}
-                        onChange={handleChange}
+                        value={personalFormData.email}
+                        onChange={handlePersonalChange}
                         disabled={!isEditing}
                         className="font-medium w-full"
                       />
@@ -896,23 +878,24 @@ const PatientInformationModal = ({
                         Physical Address
                       </label>
                       {!isEditing ? (
-                        // Show structured address if available, otherwise show display string
                         <div className="font-medium w-full space-y-1">
-                          {selectedRegion ||
-                          selectedProvince ||
-                          selectedCity ||
-                          selectedBarangay ? (
+                          {addressFormData.selectedRegion ||
+                          addressFormData.selectedProvince ||
+                          addressFormData.selectedCity ||
+                          addressFormData.selectedBarangay ? (
                             <div className="grid grid-cols-1 gap-1">
                               <p>
                                 <span className="text-gray-500 text-sm">
                                   Region:{" "}
                                 </span>
                                 <span>
-                                  {selectedRegion
+                                  {addressFormData.selectedRegion
                                     ? regions.find(
-                                        (r) => r.region_code === selectedRegion
+                                        (r) =>
+                                          r.region_code ===
+                                          addressFormData.selectedRegion
                                       )?.region_name
-                                    : formData.address || ""}
+                                    : addressFormData.displayAddress || ""}
                                 </span>
                               </p>
                               <p>
@@ -920,10 +903,11 @@ const PatientInformationModal = ({
                                   Province:{" "}
                                 </span>
                                 <span>
-                                  {selectedProvince
+                                  {addressFormData.selectedProvince
                                     ? provinces.find(
                                         (p) =>
-                                          p.province_code === selectedProvince
+                                          p.province_code ===
+                                          addressFormData.selectedProvince
                                       )?.province_name
                                     : ""}
                                 </span>
@@ -933,9 +917,11 @@ const PatientInformationModal = ({
                                   City:{" "}
                                 </span>
                                 <span>
-                                  {selectedCity
+                                  {addressFormData.selectedCity
                                     ? cities.find(
-                                        (c) => c.city_code === selectedCity
+                                        (c) =>
+                                          c.city_code ===
+                                          addressFormData.selectedCity
                                       )?.city_name
                                     : ""}
                                 </span>
@@ -945,9 +931,11 @@ const PatientInformationModal = ({
                                   Barangay:{" "}
                                 </span>
                                 <span>
-                                  {selectedBarangay
+                                  {addressFormData.selectedBarangay
                                     ? barangays.find(
-                                        (b) => b.brgy_code === selectedBarangay
+                                        (b) =>
+                                          b.brgy_code ===
+                                          addressFormData.selectedBarangay
                                       )?.brgy_name
                                     : ""}
                                 </span>
@@ -956,23 +944,31 @@ const PatientInformationModal = ({
                                 <span className="text-gray-500 text-sm">
                                   Street:{" "}
                                 </span>
-                                <span>{streetAddress || ""}</span>
+                                <span>
+                                  {addressFormData.streetAddress || ""}
+                                </span>
                               </p>
                             </div>
                           ) : (
-                            <p>{formData.address}</p>
+                            <p>{addressFormData.displayAddress}</p>
                           )}
                         </div>
                       ) : (
                         <div className="space-y-3">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <select
-                              value={selectedRegion}
+                              name="selectedRegion"
+                              value={addressFormData.selectedRegion}
                               onChange={(e) => {
-                                setSelectedRegion(e.target.value);
-                                setSelectedProvince("");
-                                setSelectedCity("");
-                                setSelectedBarangay("");
+                                handleAddressChange(e);
+                                // reset dependent selects
+                                setAddressFormData((prev) => ({
+                                  ...prev,
+                                  selectedProvince: "",
+                                  selectedCity: "",
+                                  selectedBarangay: "",
+                                  selectedRegion: e.target.value,
+                                }));
                               }}
                               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl"
                             >
@@ -988,11 +984,16 @@ const PatientInformationModal = ({
                             </select>
 
                             <select
-                              value={selectedProvince}
+                              name="selectedProvince"
+                              value={addressFormData.selectedProvince}
                               onChange={(e) => {
-                                setSelectedProvince(e.target.value);
-                                setSelectedCity("");
-                                setSelectedBarangay("");
+                                handleAddressChange(e);
+                                setAddressFormData((prev) => ({
+                                  ...prev,
+                                  selectedCity: "",
+                                  selectedBarangay: "",
+                                  selectedProvince: e.target.value,
+                                }));
                               }}
                               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl"
                             >
@@ -1008,10 +1009,15 @@ const PatientInformationModal = ({
                             </select>
 
                             <select
-                              value={selectedCity}
+                              name="selectedCity"
+                              value={addressFormData.selectedCity}
                               onChange={(e) => {
-                                setSelectedCity(e.target.value);
-                                setSelectedBarangay("");
+                                handleAddressChange(e);
+                                setAddressFormData((prev) => ({
+                                  ...prev,
+                                  selectedCity: e.target.value,
+                                  selectedBarangay: "",
+                                }));
                               }}
                               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl"
                             >
@@ -1026,10 +1032,9 @@ const PatientInformationModal = ({
                             </select>
 
                             <select
-                              value={selectedBarangay}
-                              onChange={(e) =>
-                                setSelectedBarangay(e.target.value)
-                              }
+                              name="selectedBarangay"
+                              value={addressFormData.selectedBarangay}
+                              onChange={handleAddressChange}
                               className="w-full px-4 py-2.5 border border-gray-300 rounded-xl"
                             >
                               <option value="">Select Barangay</option>
@@ -1043,8 +1048,9 @@ const PatientInformationModal = ({
 
                           <input
                             type="text"
-                            value={streetAddress}
-                            onChange={(e) => setStreetAddress(e.target.value)}
+                            name="streetAddress"
+                            value={addressFormData.streetAddress}
+                            onChange={handleAddressChange}
                             placeholder="Street / Subdivision (optional)"
                             className="w-full px-4 py-2.5 border border-gray-300 rounded-xl"
                           />
@@ -1058,16 +1064,22 @@ const PatientInformationModal = ({
                       >
                         Civil Status
                       </label>
-                      <input
-                        type="text"
+                      <select
                         id="civilStatus"
                         name="civilStatus"
-                        value={formData.civilStatus}
-                        onChange={handleChange}
+                        value={personalFormData.civilStatus}
+                        onChange={handlePersonalChange}
                         disabled={!isEditing}
-                        className="font-medium w-full"
-                      />
+                        className="font-medium w-full px-3 py-2 border border-gray-300 rounded-md"
+                      >
+                        <option value="">Select Civil Status</option>
+                        <option value="Single">Single</option>
+                        <option value="Married">Married</option>
+                        <option value="Divorced">Divorced</option>
+                        <option value="Widowed">Widowed</option>
+                      </select>
                     </div>
+
                     <div>
                       <label className="text-sm text-gray-600" htmlFor="gender">
                         Gender
@@ -1076,8 +1088,8 @@ const PatientInformationModal = ({
                         type="text"
                         id="gender"
                         name="gender"
-                        value={formData.gender}
-                        onChange={handleChange}
+                        value={personalFormData.gender}
+                        onChange={handlePersonalChange}
                         disabled={!isEditing}
                         className="font-medium w-full"
                       />
@@ -1093,8 +1105,8 @@ const PatientInformationModal = ({
                         type="text"
                         id="referralBy"
                         name="referralBy"
-                        value={formData.referralBy}
-                        onChange={handleChange}
+                        value={personalFormData.referralBy}
+                        onChange={handlePersonalChange}
                         disabled={!isEditing}
                         className="font-medium w-full"
                       />
@@ -1141,127 +1153,137 @@ const PatientInformationModal = ({
                   <FaNotesMedical className="mr-2 text-deep-red" />
                   Medical History
                 </h4>
-                <div className="space-y-4">
-                  <div>
-                    <label
-                      className="text-sm text-gray-600 mb-1 block"
-                      htmlFor="ocularHistory"
-                    >
-                      Ocular History
-                    </label>
-                    <input
-                      type="text"
-                      id="ocularHistory"
-                      name="ocularHistory"
-                      value={medicalHistoryData.ocularHistory}
-                      onChange={handleMedicalHistoryChange}
-                      disabled={!isEditing}
-                      className="font-medium w-full"
-                    />
+                {/* START OF UPDATED CODE BLOCK */}
+                {isMedicalHistoryEmpty && !isEditing ? (
+                  <div className="text-center py-4">
+                    <p className="text-gray-500 italic">
+                      No medical history records found for this patient.
+                    </p>
                   </div>
-                  <div>
-                    <label
-                      className="text-sm text-gray-600 mb-1 block"
-                      htmlFor="healthHistory"
-                    >
-                      Health History
-                    </label>
-                    <input
-                      type="text"
-                      id="healthHistory"
-                      name="healthHistory"
-                      value={medicalHistoryData.healthHistory}
-                      onChange={handleMedicalHistoryChange}
-                      disabled={!isEditing}
-                      className="font-medium w-full"
-                    />
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label
+                        className="text-sm text-gray-600 mb-1 block"
+                        htmlFor="ocularHistory"
+                      >
+                        Ocular History
+                      </label>
+                      <input
+                        type="text"
+                        id="ocularHistory"
+                        name="ocularHistory"
+                        value={medicalHistoryData.ocularHistory}
+                        onChange={handleMedicalHistoryChange}
+                        disabled={!isEditing}
+                        className="font-medium w-full"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        className="text-sm text-gray-600 mb-1 block"
+                        htmlFor="healthHistory"
+                      >
+                        Health History
+                      </label>
+                      <input
+                        type="text"
+                        id="healthHistory"
+                        name="healthHistory"
+                        value={medicalHistoryData.healthHistory}
+                        onChange={handleMedicalHistoryChange}
+                        disabled={!isEditing}
+                        className="font-medium w-full"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        className="text-sm text-gray-600 mb-1 block"
+                        htmlFor="familyMedicalHistory"
+                      >
+                        Family Medical History
+                      </label>
+                      <input
+                        type="text"
+                        id="familyMedicalHistory"
+                        name="familyMedicalHistory"
+                        value={medicalHistoryData.familyMedicalHistory}
+                        onChange={handleMedicalHistoryChange}
+                        disabled={!isEditing}
+                        className="font-medium w-full"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        className="text-sm text-gray-600 mb-1 block"
+                        htmlFor="medications"
+                      >
+                        Medications
+                      </label>
+                      <input
+                        type="text"
+                        id="medications"
+                        name="medications"
+                        value={medicalHistoryData.medications}
+                        onChange={handleMedicalHistoryChange}
+                        disabled={!isEditing}
+                        className="font-medium w-full"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        className="text-sm text-gray-600 mb-1 block"
+                        htmlFor="allergies"
+                      >
+                        Allergies
+                      </label>
+                      <input
+                        type="text"
+                        id="allergies"
+                        name="allergies"
+                        value={medicalHistoryData.allergies}
+                        onChange={handleMedicalHistoryChange}
+                        disabled={!isEditing}
+                        className="font-medium w-full"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        className="text-sm text-gray-600 mb-1 block"
+                        htmlFor="occupationalHistory"
+                      >
+                        Occupational History
+                      </label>
+                      <input
+                        type="text"
+                        id="occupationalHistory"
+                        name="occupationalHistory"
+                        value={medicalHistoryData.occupationalHistory}
+                        onChange={handleMedicalHistoryChange}
+                        disabled={!isEditing}
+                        className="font-medium w-full"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        className="text-sm text-gray-600 mb-1 block"
+                        htmlFor="digitalHistory"
+                      >
+                        Digital History
+                      </label>
+                      <input
+                        type="text"
+                        id="digitalHistory"
+                        name="digitalHistory"
+                        value={medicalHistoryData.digitalHistory}
+                        onChange={handleMedicalHistoryChange}
+                        disabled={!isEditing}
+                        className="font-medium w-full"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label
-                      className="text-sm text-gray-600 mb-1 block"
-                      htmlFor="familyMedicalHistory"
-                    >
-                      Family Medical History
-                    </label>
-                    <input
-                      type="text"
-                      id="familyMedicalHistory"
-                      name="familyMedicalHistory"
-                      value={medicalHistoryData.familyMedicalHistory}
-                      onChange={handleMedicalHistoryChange}
-                      disabled={!isEditing}
-                      className="font-medium w-full"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className="text-sm text-gray-600 mb-1 block"
-                      htmlFor="medications"
-                    >
-                      Medications
-                    </label>
-                    <input
-                      type="text"
-                      id="medications"
-                      name="medications"
-                      value={medicalHistoryData.medications}
-                      onChange={handleMedicalHistoryChange}
-                      disabled={!isEditing}
-                      className="font-medium w-full"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className="text-sm text-gray-600 mb-1 block"
-                      htmlFor="allergies"
-                    >
-                      Allergies
-                    </label>
-                    <input
-                      type="text"
-                      id="allergies"
-                      name="allergies"
-                      value={medicalHistoryData.allergies}
-                      onChange={handleMedicalHistoryChange}
-                      disabled={!isEditing}
-                      className="font-medium w-full"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className="text-sm text-gray-600 mb-1 block"
-                      htmlFor="occupationalHistory"
-                    >
-                      Occupational History
-                    </label>
-                    <input
-                      type="text"
-                      id="occupationalHistory"
-                      name="occupationalHistory"
-                      value={medicalHistoryData.occupationalHistory}
-                      onChange={handleMedicalHistoryChange}
-                      disabled={!isEditing}
-                      className="font-medium w-full"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className="text-sm text-gray-600 mb-1 block"
-                      htmlFor="digitalHistory"
-                    >
-                      Digital History
-                    </label>
-                    <input
-                      type="text"
-                      id="digitalHistory"
-                      name="digitalHistory"
-                      value={medicalHistoryData.digitalHistory}
-                      onChange={handleMedicalHistoryChange}
-                      disabled={!isEditing}
-                      className="font-medium w-full"
-                    />
-                  </div>
-                </div>
+                )}
+                {/* END OF UPDATED CODE BLOCK */}
               </div>
             )}
 
@@ -1273,7 +1295,7 @@ const PatientInformationModal = ({
                     Visit Specific Details
                   </h4>
                   <div className="flex items-center space-x-2 w-1/3">
-                    {visitData.length > 0 && (
+                    {visitHistory.length > 0 && (
                       <>
                         <label
                           htmlFor="visitDate"
@@ -1288,7 +1310,7 @@ const PatientInformationModal = ({
                           onChange={handleVisitDateChange}
                           className="p-2 border rounded-md w-full"
                         >
-                          {visitData.map((visit) => (
+                          {visitHistory.map((visit) => (
                             <option key={visit._id} value={visit.visitDate}>
                               {new Date(visit.visitDate).toLocaleDateString()}
                             </option>
@@ -1306,19 +1328,24 @@ const PatientInformationModal = ({
                   </div>
                 </div>
 
-                {visitData.length > 0 ? (
+                {visitHistory.length > 0 ? (
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-white p-4 rounded-lg">
                         <p className="text-sm text-gray-600">Visit Date</p>
                         <p className="font-medium">
-                          {new Date(formData.visitDate).toLocaleDateString()}
+                          {currentVisitDetails.visitDate
+                            ? new Date(
+                                currentVisitDetails.visitDate
+                              ).toLocaleDateString()
+                            : "N/A"}
                         </p>
                       </div>
                       <div className="bg-white p-4 rounded-lg">
                         <p className="text-sm text-gray-600">Chief Complaint</p>
                         <p className="font-medium">
-                          {formData.chiefComplaint || "No Chief Complaint"}
+                          {currentVisitDetails.chiefComplaint ||
+                            "No Chief Complaint"}
                         </p>
                       </div>
                       <div className="bg-white p-4 rounded-lg">
@@ -1326,38 +1353,42 @@ const PatientInformationModal = ({
                           Associated Complaint
                         </p>
                         <p className="font-medium">
-                          {formData.associatedComplaint ||
+                          {currentVisitDetails.associatedComplaint ||
                             "No Associated Complaint"}
                         </p>
                       </div>
                       <div className="bg-white p-4 rounded-lg">
                         <p className="text-sm text-gray-600">Diagnosis</p>
                         <p className="font-medium">
-                          {formData.diagnosis || "No Diagnosis"}
+                          {currentVisitDetails.diagnosis || "No Diagnosis"}
                         </p>
                       </div>
                       <div className="bg-white p-4 rounded-lg">
                         <p className="text-sm text-gray-600">Treatment Plan</p>
                         <p className="font-medium">
-                          {formData.treatmentPlan ||
+                          {currentVisitDetails.treatmentPlan ||
                             "No Available Treatment Plan"}
                         </p>
                       </div>
                       <div className="bg-white p-4 rounded-lg">
                         <p className="text-sm text-gray-600">Assigned Doctor</p>
-                        <p className="font-medium">{formData.doctor}</p>
+                        <p className="font-medium">
+                          {currentVisitDetails.doctor}
+                        </p>
                       </div>
                       <div className="bg-white p-4 rounded-lg">
                         <p className="text-sm text-gray-600 mb-1">Notes</p>
                         <p className="font-medium">
-                          {formData.notes || "No notes available"}
+                          {currentVisitDetails.notes || "No notes available"}
                         </p>
                       </div>
                       <div className="bg-white p-4 rounded-lg">
                         <p className="text-sm text-gray-600 mb-1">
                           Prescribed Medications
                         </p>
-                        <p className="font-medium">{formData.prescriptions}</p>
+                        <p className="font-medium">
+                          {currentVisitDetails.prescriptions}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1384,7 +1415,6 @@ const PatientInformationModal = ({
 
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Recent Invoices */}
                     <div className="bg-white p-4 rounded-lg col-span-2">
                       <h5 className="font-bold text-gray-800 mb-3">
                         Recent Invoices
@@ -1482,7 +1512,6 @@ const PatientInformationModal = ({
                       </div>
                     </div>
 
-                    {/* Payment Summary */}
                     <div className="bg-white p-4 rounded-lg">
                       <h5 className="font-bold text-gray-800 mb-3">
                         Payment Summary
@@ -1493,7 +1522,10 @@ const PatientInformationModal = ({
                           <span className="font-bold">
                             ₱
                             {invoices
-                              .reduce((sum, inv) => sum + inv.subtotal, 0)
+                              .reduce(
+                                (sum, inv) => sum + (inv.subtotal || 0),
+                                0
+                              )
                               .toFixed(2)}
                           </span>
                         </div>
@@ -1528,7 +1560,6 @@ const PatientInformationModal = ({
                       </div>
                     </div>
 
-                    {/* Payment History */}
                     <div className="bg-white p-4 rounded-lg">
                       <h5 className="font-bold text-gray-800 mb-3">
                         Payment History
@@ -1600,7 +1631,7 @@ const PatientInformationModal = ({
               </>
             )}
             <button
-              onClick={() => handleDeletePatient(patient._id)}
+              onClick={() => handleDeletePatient(patientId)}
               className="px-5 py-2.5 bg-gradient-to-r from-deep-red to-dark-red text-white rounded-xl hover:opacity-90 transition-all flex items-center"
             >
               <FaTrash className="mr-2" /> Delete
@@ -1608,12 +1639,13 @@ const PatientInformationModal = ({
           </div>
         </div>
       </div>
+
       {showNewVisitModal && (
         <NewVisitModal
           isOpen={showNewVisitModal}
-          patientId={patient._id || patient.patientId || patient.id}
+          patientId={patientId}
           onClose={handleCloseNewVisitModal}
-          onSave={fetchVisitData}
+          onSave={handleNewVisitSave}
         />
       )}
 
@@ -1621,7 +1653,7 @@ const PatientInformationModal = ({
         <InvoiceInputModal
           onClose={() => setShowInvoiceModal(false)}
           currentUser={currentUser}
-          patientId={patient._id || patient.patientId || patient.id}
+          patientId={patientId}
         />
       )}
     </div>

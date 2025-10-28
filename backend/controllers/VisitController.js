@@ -44,10 +44,10 @@ export const getVisitById = async (req, res) => {
 export const createVisit = async (req, res) => {
   try {
     const { patientId, appointmentId } = req.body;
-    
+
     // Create the visit
     const visit = await Visit.create(req.body);
-    
+
     // Update the profile to add this visit to the visits array
     if (visit._id) {
       await Profile.findOneAndUpdate(
@@ -55,7 +55,7 @@ export const createVisit = async (req, res) => {
         { $push: { visits: visit._id } }
       );
     }
-    
+
     res.status(201).json(visit);
   } catch (error) {
     console.error("Error creating visit:", error);
@@ -99,23 +99,23 @@ export const deleteVisit = async (req, res) => {
   try {
     const { id } = req.params;
     const visit = await Visit.findById(id);
-    
+
     if (!visit) {
       return res.status(404).json({
         status: "error",
         message: "Visit not found",
       });
     }
-    
+
     // Remove the visit from the profile's visits array
     await Profile.findOneAndUpdate(
       { patientId: visit.patientId },
       { $pull: { visits: id } }
     );
-    
+
     // Delete the visit
     await Visit.findByIdAndDelete(id);
-    
+
     res.status(200).json({
       status: "success",
       message: "Visit deleted successfully",

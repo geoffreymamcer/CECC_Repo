@@ -97,73 +97,26 @@ const PatientPortalPatientList = () => {
     try {
       const token = localStorage.getItem("token");
 
-      // 1. Create Profile using the data passed up from the modal
+      // ✅ We only need ONE API call now.
+      // We send the entire newPatientData object, which includes the
+      // nested caseHistory object, directly to the profiles endpoint.
+      // The backend controller will handle creating both the profile and the case history.
       await axios.post(
         "http://localhost:5000/api/profiles",
-        {
-          _id: newPatientData.patientId,
-          patientId: newPatientData.patientId,
-          firstName: newPatientData.firstName,
-          middleName: newPatientData.middleName,
-          lastName: newPatientData.lastName,
-          dob: newPatientData.dob,
-          age: newPatientData.age,
-          gender: newPatientData.gender,
-          address: newPatientData.address,
-          addressCombined: newPatientData.addressCombined,
-          region: newPatientData.region,
-          province: newPatientData.province,
-          city: newPatientData.city,
-          barangay: newPatientData.barangay,
-          street_subdivision: newPatientData.street_subdivision,
-          contact: newPatientData.contact,
-          occupation: newPatientData.occupation,
-          civilStatus: newPatientData.civilStatus,
-          referralBy: newPatientData.referralBy,
-          ageCategory: newPatientData.ageCategory,
-        },
+        newPatientData, // ✅ Send the complete object from the modal
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // 2. Create Medical History
-      await axios.post(
-        "http://localhost:5000/api/medicalhistory",
-        {
-          patientId: newPatientData.patientId,
-          ocularHistory: newPatientData.ocularHistory,
-          healthHistory: newPatientData.healthHistory,
-          familyMedicalHistory: newPatientData.familyMedicalHistory,
-          medications: newPatientData.medications,
-          allergies: newPatientData.allergies,
-          occupationalHistory: newPatientData.occupationalHistoryMH,
-          digitalHistory: newPatientData.digitalHistory,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      // 3. Create Initial Visit Record
-      await axios.post(
-        "http://localhost:5000/api/visits",
-        {
-          patientId: newPatientData.patientId,
-          visitDate: new Date(),
-          chiefComplaint: newPatientData.chiefComplaint,
-          associatedComplaint: newPatientData.associatedComplaint,
-          diagnosis: newPatientData.diagnosis,
-          treatmentPlan: newPatientData.treatmentPlan,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      // If all API calls are successful, close the modal
+      // If the API call is successful, close the modal
       setIsAddModalOpen(false);
       alert("Patient record created successfully!");
 
-      // THEN, re-fetch the entire patient list to get the latest data
-      // This is the key that makes the UI update in real-time!
+      // Re-fetch the entire patient list to get the latest data.
+      // This makes the UI update in real-time.
       fetchPatients();
     } catch (err) {
       console.error("Failed to add patient record:", err);
+      // Provide a more specific error message if the backend sends one
       alert(err.response?.data?.message || "Error: Could not add patient.");
     }
   };

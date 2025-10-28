@@ -4,7 +4,7 @@ import {
   createMedicalHistory,
   updateMedicalHistory,
   updateMedicalHistoryByPatientId,
-  deleteMedicalHistory
+  deleteMedicalHistory,
 } from "../controllers/MedicalHistoryController.js";
 import { auth } from "../middleware/auth.js";
 

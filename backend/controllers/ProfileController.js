@@ -1,5 +1,11 @@
 import Profile from "../models/Profile.js";
 import Visit from "../models/Visit.js";
+import CaseHistory from "../models/CaseHistory.js";
+import ClinicalExamination from "../models/ClinicalExamination.js";
+import BasicBinocularVisionTests from "../models/BasicBinocularVisionTests.js";
+import SlitLampFunduscopy from "../models/SlitLampFunduscopy.js";
+import DiagnosticAssessmentPlan from "../models/DiagnosticAssessmentPlan.js";
+import PlanOfManagement from "../models/PlanOfManagement.js";
 
 export const getProfileCount = async (req, res) => {
   try {
@@ -96,9 +102,17 @@ export const getProfileByPatientId = async (req, res) => {
 // Create new profile
 export const createProfile = async (req, res) => {
   try {
-    const { _id } = req.body;
+    const {
+      _id,
+      caseHistory,
+      clinicalExamination,
+      basicBinocularVisionTests,
+      slitLampFunduscopy,
+      diagnosticAssessmentPlan,
+      planOfManagement,
+      ...profileData
+    } = req.body;
 
-    // Check for duplicate profile by _id
     const existingProfile = await Profile.findById(_id);
     if (existingProfile) {
       return res.status(400).json({
@@ -107,24 +121,75 @@ export const createProfile = async (req, res) => {
       });
     }
 
-    // Set patientId to _id for backward compatibility if not provided
-    if (!req.body.patientId && _id) {
-      req.body.patientId = _id;
+    if (!profileData.patientId && _id) {
+      profileData.patientId = _id;
     }
 
-    // If separate address fields are provided, derive the combined display strings
-    const { region, province, city, barangay, street_subdivision } = req.body;
+    const { region, province, city, barangay, street_subdivision } =
+      profileData;
     if (region || province || city || barangay) {
       const combined = [barangay, city, province, region]
         .filter(Boolean)
         .join(", ");
-      req.body.addressCombined = combined;
-      req.body.address = street_subdivision
+      profileData.addressCombined = combined;
+      profileData.address = street_subdivision
         ? `${street_subdivision}, ${combined}`
         : combined;
     }
 
-    const profile = await Profile.create(req.body);
+    const profile = await Profile.create({ _id, ...profileData });
+
+    if (caseHistory) {
+      const newCaseHistory = await CaseHistory.create({
+        ...caseHistory,
+        patientId: profile._id,
+      });
+      profile.caseHistory = newCaseHistory._id;
+    }
+
+    // Create and link Clinical Examination if provided
+    if (clinicalExamination) {
+      const newClinicalExamination = await ClinicalExamination.create({
+        ...clinicalExamination,
+        patientId: profile._id,
+      });
+      profile.clinicalExamination = newClinicalExamination._id;
+    }
+
+    if (basicBinocularVisionTests) {
+      const newBinocularTests = await BasicBinocularVisionTests.create({
+        ...basicBinocularVisionTests,
+        patientId: profile._id,
+      });
+      profile.basicBinocularVisionTests = newBinocularTests._id;
+    }
+
+    if (slitLampFunduscopy) {
+      const newSlitLampFunduscopy = await SlitLampFunduscopy.create({
+        ...slitLampFunduscopy,
+        patientId: profile._id,
+      });
+      profile.slitLampFunduscopy = newSlitLampFunduscopy._id;
+    }
+
+    if (diagnosticAssessmentPlan) {
+      const newDiagnosticPlan = await DiagnosticAssessmentPlan.create({
+        ...diagnosticAssessmentPlan,
+        patientId: profile._id,
+      });
+      profile.diagnosticAssessmentPlan = newDiagnosticPlan._id;
+    }
+
+    if (planOfManagement) {
+      const newPlanOfManagement = await PlanOfManagement.create({
+        ...planOfManagement,
+        patientId: profile._id,
+      });
+      profile.planOfManagement = newPlanOfManagement._id;
+    }
+
+    await profile.save();
+
     res.status(201).json(profile);
   } catch (error) {
     console.error("Error creating profile:", error);

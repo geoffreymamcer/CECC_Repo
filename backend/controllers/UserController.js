@@ -2,6 +2,9 @@ import User from "../models/User.js";
 import Profile from "../models/Profile.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { sendVerificationEmail } from "../services/emailService.js";
+
+const pendingVerifications = {};
 
 export const signup = async (req, res) => {
   try {
@@ -13,49 +16,98 @@ export const signup = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({
         status: "error",
-        message: "User already exists",
+        message: "User with this email already exists",
       });
     }
 
-    // Generate a custom ID for the new user
+    // Generate 6-digit verification code
+    const verificationCode = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
+
+    // Hash password before storing it temporarily
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Store user data and verification code temporarily
+    pendingVerifications[email] = {
+      firstName,
+      middleName,
+      lastName,
+      phone_number,
+      email,
+      password: hashedPassword,
+      verificationCode,
+      expiresAt: Date.now() + 3600000, // 1 hour expiry
+    };
+
+    // Send verification email
+    await sendVerificationEmail(email, verificationCode, firstName);
+
+    res.status(200).json({
+      status: "success",
+      message:
+        "Verification code sent to your email. Please verify to create your account.",
+    });
+  } catch (error) {
+    console.error("Signup error:", error);
+    res.status(500).json({
+      status: "error",
+      message: error.message || "An error occurred during signup",
+    });
+  }
+};
+
+export const verifyEmail = async (req, res) => {
+  try {
+    const { email, verificationCode } = req.body;
+
+    const pendingData = pendingVerifications[email];
+
+    // Check if data exists and is not expired
+    if (!pendingData || pendingData.expiresAt < Date.now()) {
+      return res.status(400).json({
+        status: "error",
+        message:
+          "Verification code is invalid or has expired. Please sign up again.",
+      });
+    }
+
+    // Check if the code matches
+    if (pendingData.verificationCode !== verificationCode) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid verification code.",
+      });
+    }
+
+    // --- User Creation Logic (moved from original signup) ---
+    const { firstName, middleName, lastName, phone_number, password } =
+      pendingData;
     const currentYear = new Date().getFullYear().toString().slice(-2);
     const prefix = `CECC${currentYear}-`;
-
-    // Find the highest existing number for this year in Users
     const highestUser = await User.findOne(
       { _id: new RegExp(`^${prefix}`) },
       { _id: 1 },
       { sort: { _id: -1 } }
     );
-
     let nextNumber = 1;
     if (highestUser && highestUser._id) {
-      const currentNumber = parseInt(highestUser._id.split("-")[1]);
-      nextNumber = currentNumber + 1;
+      nextNumber = parseInt(highestUser._id.split("-")[1]) + 1;
     }
-
-    // Check for existing profiles with the same ID pattern
     const highestProfile = await Profile.findOne(
       { _id: new RegExp(`^${prefix}`) },
       { _id: 1 },
       { sort: { _id: -1 } }
     );
-
     if (highestProfile && highestProfile._id) {
       const profileNumber = parseInt(highestProfile._id.split("-")[1]);
       if (profileNumber >= nextNumber) {
         nextNumber = profileNumber + 1;
       }
     }
-
-    // Generate the final ID
     const customId = `${prefix}${nextNumber.toString().padStart(4, "0")}`;
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create new user with the custom ID
     const newUser = await User.create({
       _id: customId,
       firstName,
@@ -63,26 +115,24 @@ export const signup = async (req, res) => {
       lastName,
       phone_number,
       email,
-      password: hashedPassword,
-      role: "patient", // Default role for signup
-      patientId: customId, // Set patientId to the same value for backward compatibility
+      password, // Already hashed
+      role: "patient",
+      patientId: customId,
     });
 
-    // Create a profile with the same _id as the user
     try {
       await Profile.create({
-        _id: newUser._id, // Use the same custom ID
-        patientId: newUser._id, // Set patientId to the same value for backward compatibility
+        _id: newUser._id,
+        patientId: newUser._id,
         firstName,
         middleName,
         lastName,
         email,
         phone_number,
-        address: "", // To be filled by admin
-        dob: "", // To be filled by admin
+        address: "",
+        dob: "",
       });
     } catch (profileError) {
-      // Cleanup: delete the user if profile creation fails
       await User.findByIdAndDelete(newUser._id);
       return res.status(400).json({
         status: "error",
@@ -90,20 +140,18 @@ export const signup = async (req, res) => {
       });
     }
 
-    // Create token
+    // Cleanup the pending verification data
+    delete pendingVerifications[email];
+
     const token = jwt.sign(
       { id: newUser._id, role: newUser.role },
       process.env.JWT_SECRET || "your-secret-key",
       { expiresIn: "24h" }
     );
-
-    // Remove password from response
     const userResponse = {
       id: newUser._id,
       firstName: newUser.firstName,
-      middleName: newUser.middleName,
       lastName: newUser.lastName,
-      phone_number: newUser.phone_number,
       email: newUser.email,
       role: newUser.role,
     };
@@ -114,10 +162,10 @@ export const signup = async (req, res) => {
       user: userResponse,
     });
   } catch (error) {
-    console.error("Signup error:", error);
+    console.error("Email verification error:", error);
     res.status(500).json({
       status: "error",
-      message: error.message || "An error occurred during signup",
+      message: error.message || "An error occurred during verification",
     });
   }
 };
