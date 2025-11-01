@@ -24,7 +24,11 @@ const diagnosticAssessmentPlanSchema = new mongoose.Schema({
     type: String,
     ref: "Profile",
     required: true,
-    unique: true,
+  },
+  visitId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Visit",
+    required: true,
   },
   diagnosticTests: {
     aberrometry: { type: Boolean, default: false },

@@ -1,33 +1,15 @@
 // controllers/CaseHistoryController.js
 import CaseHistory from "../models/CaseHistory.js";
-import Profile from "../models/Profile.js";
 
-export const createCaseHistory = async (req, res) => {
+// --- MODIFIED --- Renamed function and updated logic
+export const getCaseHistoryByRecordId = async (req, res) => {
   try {
-    const { patientId } = req.body;
-
-    const profile = await Profile.findById(patientId);
-    if (!profile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
-
-    const caseHistory = await CaseHistory.create(req.body);
-
-    profile.caseHistory = caseHistory._id;
-    await profile.save();
-
-    res.status(201).json(caseHistory);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-export const getCaseHistoryByPatientId = async (req, res) => {
-  try {
-    const { patientId } = req.params;
-    const caseHistory = await CaseHistory.findOne({ patientId });
+    // Use 'recordId' to match the route parameter
+    const { recordId } = req.params;
+    // Use the more direct and efficient findById method
+    const caseHistory = await CaseHistory.findById(recordId);
     if (!caseHistory) {
-      return res.status(404).json({ message: "Case history not found" });
+      return res.status(404).json({ message: "Case history record not found" });
     }
     res.status(200).json(caseHistory);
   } catch (error) {
@@ -35,25 +17,23 @@ export const getCaseHistoryByPatientId = async (req, res) => {
   }
 };
 
-export const upsertCaseHistoryByPatientId = async (req, res) => {
+// --- MODIFIED --- Renamed function and updated logic
+export const updateCaseHistoryByRecordId = async (req, res) => {
   try {
-    const { patientId } = req.params;
+    // Use 'recordId' to match the route parameter
+    const { recordId } = req.params;
     const data = req.body;
 
-    const profile = await Profile.findById(patientId);
-    if (!profile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
+    // Use findByIdAndUpdate, which is the correct method for updating by _id
+    const caseHistory = await CaseHistory.findByIdAndUpdate(recordId, data, {
+      new: true,
+      runValidators: true,
+    });
 
-    const caseHistory = await CaseHistory.findOneAndUpdate(
-      { patientId: patientId },
-      { ...data, patientId: patientId },
-      { new: true, upsert: true, runValidators: true }
-    );
-
-    if (!profile.caseHistory) {
-      profile.caseHistory = caseHistory._id;
-      await profile.save();
+    if (!caseHistory) {
+      return res.status(404).json({
+        message: "Could not find a case history record to update.",
+      });
     }
 
     res.status(200).json(caseHistory);

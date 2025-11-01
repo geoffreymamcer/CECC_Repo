@@ -35,34 +35,6 @@ const profileSchema = new mongoose.Schema(
     civilStatus: { type: String },
     referralBy: { type: String },
     ageCategory: { type: String },
-    caseHistory: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "CaseHistory",
-    },
-    clinicalExamination: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "ClinicalExamination",
-    },
-    medicalHistoryId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "MedicalHistory",
-    },
-    basicBinocularVisionTests: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "BasicBinocularVisionTests",
-    },
-    slitLampFunduscopy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "SlitLampFunduscopy",
-    },
-    diagnosticAssessmentPlan: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "DiagnosticAssessmentPlan",
-    },
-    planOfManagement: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "PlanOfManagement",
-    },
     visits: [
       {
         type: mongoose.Schema.Types.ObjectId,

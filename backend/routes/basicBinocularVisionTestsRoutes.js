@@ -1,15 +1,14 @@
+// routes/basicBinocularVisionTestsRoutes.js
 import express from "express";
 import {
-  createBasicBinocularVisionTests,
-  getBasicBinocularVisionTestsByPatientId,
-  upsertBasicBinocularVisionTestsByPatientId,
+  getBinocularTestsByRecordId,
+  updateBinocularTestsByRecordId,
 } from "../controllers/BasicBinocularVisionTestsController.js";
 import { auth } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.post("/", auth, createBasicBinocularVisionTests);
-router.get("/:patientId", auth, getBasicBinocularVisionTestsByPatientId);
-router.put("/:patientId", auth, upsertBasicBinocularVisionTestsByPatientId);
+router.get("/visit/:recordId", auth, getBinocularTestsByRecordId);
+router.put("/visit/:recordId", auth, updateBinocularTestsByRecordId);
 
 export default router;

@@ -1,41 +1,19 @@
 // controllers/SlitLampFunduscopyController.js
 import SlitLampFunduscopy from "../models/SlitLampFunduscopy.js";
-import Profile from "../models/Profile.js";
+// --- REMOVED --- The Profile model is no longer needed in this file.
 
-// Create a new Slit Lamp and Funduscopy record
-export const createSlitLampFunduscopy = async (req, res) => {
+// --- REMOVED --- The createSlitLampFunduscopy function is obsolete.
+
+// --- MODIFIED --- Fetches a single record by its own unique _id.
+export const getSlitLampFunduscopyByRecordId = async (req, res) => {
   try {
-    const { patientId } = req.body;
-
-    // Check if a profile exists for the given patientId
-    const profile = await Profile.findById(patientId);
-    if (!profile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
-
-    // Create the new examination record
-    const examination = await SlitLampFunduscopy.create(req.body);
-
-    // Link the new record to the patient's profile
-    profile.slitLampFunduscopy = examination._id;
-    await profile.save();
-
-    res.status(201).json(examination);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Get a Slit Lamp and Funduscopy record by patient ID
-export const getSlitLampFunduscopyByPatientId = async (req, res) => {
-  try {
-    const { patientId } = req.params;
-    const examination = await SlitLampFunduscopy.findOne({ patientId });
+    const { recordId } = req.params;
+    const examination = await SlitLampFunduscopy.findById(recordId);
 
     if (!examination) {
       return res
         .status(404)
-        .json({ message: "Slit Lamp and Funduscopy examination not found" });
+        .json({ message: "Slit Lamp and Funduscopy record not found" });
     }
 
     res.status(200).json(examination);
@@ -43,26 +21,25 @@ export const getSlitLampFunduscopyByPatientId = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-export const upsertSlitLampFunduscopyByPatientId = async (req, res) => {
+
+// --- MODIFIED --- Updates a single record by its own unique _id.
+export const updateSlitLampFunduscopyByRecordId = async (req, res) => {
   try {
-    const { patientId } = req.params;
+    const { recordId } = req.params;
     const data = req.body;
 
-    // Check if a profile exists
-    const profile = await Profile.findById(patientId);
-    if (!profile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
-
-    const examination = await SlitLampFunduscopy.findOneAndUpdate(
-      { patientId: patientId },
-      { ...data, patientId: patientId },
-      { new: true, upsert: true, runValidators: true }
+    const examination = await SlitLampFunduscopy.findByIdAndUpdate(
+      recordId,
+      data,
+      { new: true, runValidators: true }
     );
 
-    if (!profile.slitLampFunduscopy) {
-      profile.slitLampFunduscopy = examination._id;
-      await profile.save();
+    if (!examination) {
+      return res
+        .status(404)
+        .json({
+          message: "Could not find Slit Lamp and Funduscopy record to update.",
+        });
     }
 
     res.status(200).json(examination);

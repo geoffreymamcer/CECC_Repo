@@ -1,35 +1,18 @@
 // controllers/PlanOfManagementController.js
 import PlanOfManagement from "../models/PlanOfManagement.js";
-import Profile from "../models/Profile.js";
+// --- REMOVED --- The Profile model is no longer needed in this file.
 
-export const createPlanOfManagement = async (req, res) => {
+// --- REMOVED --- The createPlanOfManagement function is obsolete.
+
+// --- MODIFIED --- Fetches a single plan of management record by its own unique _id.
+export const getPlanOfManagementByRecordId = async (req, res) => {
   try {
-    const { patientId } = req.body;
-
-    const profile = await Profile.findById(patientId);
-    if (!profile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
-
-    const plan = await PlanOfManagement.create(req.body);
-
-    profile.planOfManagement = plan._id;
-    await profile.save();
-
-    res.status(201).json(plan);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-export const getPlanOfManagementByPatientId = async (req, res) => {
-  try {
-    const { patientId } = req.params;
-    const plan = await PlanOfManagement.findOne({ patientId });
+    const { recordId } = req.params;
+    const plan = await PlanOfManagement.findById(recordId);
     if (!plan) {
       return res
         .status(404)
-        .json({ message: "Plan of Management not found for this patient" });
+        .json({ message: "Plan of Management record not found" });
     }
     res.status(200).json(plan);
   } catch (error) {
@@ -37,25 +20,23 @@ export const getPlanOfManagementByPatientId = async (req, res) => {
   }
 };
 
-export const upsertPlanOfManagementByPatientId = async (req, res) => {
+// --- MODIFIED --- Updates a single plan of management record by its own unique _id.
+export const updatePlanOfManagementByRecordId = async (req, res) => {
   try {
-    const { patientId } = req.params;
+    const { recordId } = req.params;
     const data = req.body;
 
-    const profile = await Profile.findById(patientId);
-    if (!profile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
+    const plan = await PlanOfManagement.findByIdAndUpdate(recordId, data, {
+      new: true,
+      runValidators: true,
+    });
 
-    const plan = await PlanOfManagement.findOneAndUpdate(
-      { patientId: patientId },
-      { ...data, patientId: patientId },
-      { new: true, upsert: true, runValidators: true }
-    );
-
-    if (!profile.planOfManagement) {
-      profile.planOfManagement = plan._id;
-      await profile.save();
+    if (!plan) {
+      return res
+        .status(404)
+        .json({
+          message: "Could not find Plan of Management record to update.",
+        });
     }
 
     res.status(200).json(plan);

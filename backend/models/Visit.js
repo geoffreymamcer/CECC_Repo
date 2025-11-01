@@ -1,3 +1,4 @@
+// models/Visit.js
 import mongoose from "mongoose";
 
 const visitSchema = new mongoose.Schema(
@@ -7,22 +8,6 @@ const visitSchema = new mongoose.Schema(
       required: true,
       ref: "User",
     },
-    chiefComplaint: {
-      type: String,
-      required: true,
-    },
-    associatedComplaint: {
-      type: String,
-      default: "",
-    },
-    diagnosis: {
-      type: String,
-      default: "",
-    },
-    treatmentPlan: {
-      type: String,
-      default: "",
-    },
     visitDate: {
       type: Date,
       default: Date.now,
@@ -31,6 +16,31 @@ const visitSchema = new mongoose.Schema(
       type: String,
       default: "Dr. Philip Richard Budiongan",
     },
+    caseHistory: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "CaseHistory",
+    },
+    clinicalExamination: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ClinicalExamination",
+    },
+    basicBinocularVisionTests: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "BasicBinocularVisionTests",
+    },
+    slitLampFunduscopy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SlitLampFunduscopy",
+    },
+    diagnosticAssessmentPlan: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DiagnosticAssessmentPlan",
+    },
+    planOfManagement: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PlanOfManagement",
+    },
+
     notes: {
       type: String,
       default: "no notes yet",

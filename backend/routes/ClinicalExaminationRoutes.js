@@ -1,16 +1,15 @@
-// routes/clinicalExaminationRoutes.js
+// routes/ClinicalExaminationRoutes.js
 import express from "express";
 import {
-  createClinicalExamination,
-  getClinicalExaminationByPatientId,
-  upsertClinicalExaminationByPatientId,
+  getClinicalExaminationByRecordId,
+  updateClinicalExaminationByRecordId,
 } from "../controllers/ClinicalExaminationController.js";
 import { auth } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.post("/", auth, createClinicalExamination);
-router.get("/:patientId", auth, getClinicalExaminationByPatientId);
-router.put("/:patientId", auth, upsertClinicalExaminationByPatientId);
+router.get("/visit/:recordId", auth, getClinicalExaminationByRecordId);
+
+router.put("/visit/:recordId", auth, updateClinicalExaminationByRecordId);
 
 export default router;

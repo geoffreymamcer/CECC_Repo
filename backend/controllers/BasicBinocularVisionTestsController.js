@@ -1,60 +1,36 @@
 // controllers/BasicBinocularVisionTestsController.js
 import BasicBinocularVisionTests from "../models/BasicBinocularVisionTests.js";
-import Profile from "../models/Profile.js";
 
-export const createBasicBinocularVisionTests = async (req, res) => {
+export const getBinocularTestsByRecordId = async (req, res) => {
   try {
-    const { patientId } = req.body;
-
-    const profile = await Profile.findById(patientId);
-    if (!profile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
-
-    const tests = await BasicBinocularVisionTests.create(req.body);
-
-    profile.basicBinocularVisionTests = tests._id;
-    await profile.save();
-
-    res.status(201).json(tests);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-export const getBasicBinocularVisionTestsByPatientId = async (req, res) => {
-  try {
-    const { patientId } = req.params;
-    const tests = await BasicBinocularVisionTests.findOne({ patientId });
+    const { recordId } = req.params;
+    const tests = await BasicBinocularVisionTests.findById(recordId);
     if (!tests) {
       return res
         .status(404)
-        .json({ message: "Basic binocular vision tests not found" });
+        .json({ message: "Basic binocular vision tests record not found" });
     }
     res.status(200).json(tests);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-export const upsertBasicBinocularVisionTestsByPatientId = async (req, res) => {
+
+export const updateBinocularTestsByRecordId = async (req, res) => {
   try {
-    const { patientId } = req.params;
+    const { recordId } = req.params;
     const data = req.body;
 
-    const profile = await Profile.findById(patientId);
-    if (!profile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
-
-    const tests = await BasicBinocularVisionTests.findOneAndUpdate(
-      { patientId: patientId },
-      { ...data, patientId: patientId },
-      { new: true, upsert: true, runValidators: true }
+    const tests = await BasicBinocularVisionTests.findByIdAndUpdate(
+      recordId,
+      data,
+      { new: true, runValidators: true }
     );
 
-    if (!profile.basicBinocularVisionTests) {
-      profile.basicBinocularVisionTests = tests._id;
-      await profile.save();
+    if (!tests) {
+      return res.status(404).json({
+        message: "Could not find binocular vision tests record to update.",
+      });
     }
 
     res.status(200).json(tests);

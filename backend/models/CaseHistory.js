@@ -7,6 +7,11 @@ const caseHistorySchema = new mongoose.Schema({
     ref: "Profile",
     required: true,
   },
+  visitId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Visit",
+    required: true,
+  },
   chiefComplaint: {
     blurring: Boolean,
     headache: Boolean,

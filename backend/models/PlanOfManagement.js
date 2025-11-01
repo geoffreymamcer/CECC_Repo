@@ -41,7 +41,11 @@ const planOfManagementSchema = new mongoose.Schema(
       type: String,
       ref: "Profile",
       required: true,
-      unique: true,
+    },
+    visitId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Visit",
+      required: true,
     },
     slitLampManagement: {
       od: { type: String, default: "" },

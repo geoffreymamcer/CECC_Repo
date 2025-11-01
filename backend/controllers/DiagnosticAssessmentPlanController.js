@@ -1,46 +1,18 @@
 // controllers/DiagnosticAssessmentPlanController.js
 import DiagnosticAssessmentPlan from "../models/DiagnosticAssessmentPlan.js";
-import Profile from "../models/Profile.js";
+// --- REMOVED --- The Profile model is no longer needed in this file.
 
-// Create a new Diagnostic Assessment Plan
-export const createDiagnosticAssessmentPlan = async (req, res) => {
+// --- REMOVED --- The createDiagnosticAssessmentPlan function is obsolete.
+
+// --- MODIFIED --- Fetches a single diagnostic plan record by its own unique _id.
+export const getDiagnosticPlanByRecordId = async (req, res) => {
   try {
-    const { patientId } = req.body;
-
-    const profile = await Profile.findById(patientId);
-    if (!profile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
-
-    // Check if a record for this patient already exists
-    const existingPlan = await DiagnosticAssessmentPlan.findOne({ patientId });
-    if (existingPlan) {
-      return res
-        .status(400)
-        .json({ message: "Diagnostic plan already exists for this patient." });
-    }
-
-    const plan = await DiagnosticAssessmentPlan.create(req.body);
-
-    // Link this new plan to the patient's profile
-    profile.diagnosticAssessmentPlan = plan._id;
-    await profile.save();
-
-    res.status(201).json(plan);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Get Diagnostic Assessment Plan by Patient ID
-export const getDiagnosticAssessmentPlanByPatientId = async (req, res) => {
-  try {
-    const { patientId } = req.params;
-    const plan = await DiagnosticAssessmentPlan.findOne({ patientId });
+    const { recordId } = req.params;
+    const plan = await DiagnosticAssessmentPlan.findById(recordId);
 
     if (!plan) {
       return res.status(404).json({
-        message: "Diagnostic Assessment Plan not found for this patient.",
+        message: "Diagnostic Assessment Plan record not found.",
       });
     }
 
@@ -50,28 +22,25 @@ export const getDiagnosticAssessmentPlanByPatientId = async (req, res) => {
   }
 };
 
-export const upsertDiagnosticAssessmentPlanByPatientId = async (req, res) => {
+// --- MODIFIED --- Updates a single diagnostic plan record by its own unique _id.
+export const updateDiagnosticPlanByRecordId = async (req, res) => {
   try {
-    const { patientId } = req.params;
+    const { recordId } = req.params;
     const data = req.body;
 
-    // Check if a profile exists
-    const profile = await Profile.findById(patientId);
-    if (!profile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
-
-    // Find and update or create a new record
-    const plan = await DiagnosticAssessmentPlan.findOneAndUpdate(
-      { patientId: patientId },
-      { ...data, patientId: patientId },
-      { new: true, upsert: true, runValidators: true }
+    const plan = await DiagnosticAssessmentPlan.findByIdAndUpdate(
+      recordId,
+      data,
+      { new: true, runValidators: true }
     );
 
-    // If the profile doesn't have a reference to the record, add it
-    if (!profile.diagnosticAssessmentPlan) {
-      profile.diagnosticAssessmentPlan = plan._id;
-      await profile.save();
+    if (!plan) {
+      return res
+        .status(404)
+        .json({
+          message:
+            "Could not find Diagnostic Assessment Plan record to update.",
+        });
     }
 
     res.status(200).json(plan);

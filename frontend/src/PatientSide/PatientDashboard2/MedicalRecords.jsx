@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { FaDownload, FaSpinner } from "react-icons/fa";
 
+const formatDate = (dateString) => {
+  if (!dateString) return "N/A";
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
 const MedicalRecords = () => {
   const [activeTab, setActiveTab] = useState("visit-history");
   const [invoices, setInvoices] = useState([]);
@@ -10,6 +19,10 @@ const MedicalRecords = () => {
   const [medicalHistory, setMedicalHistory] = useState(null);
   const [medicalHistoryLoading, setMedicalHistoryLoading] = useState(false);
   const [medicalHistoryError, setMedicalHistoryError] = useState(null);
+  const [visitReports, setVisitReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsError, setReportsError] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -23,6 +36,10 @@ const MedicalRecords = () => {
 
   // Fetch invoices when component mounts
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const headers = { headers: { Authorization: `Bearer ${token}` } };
     const fetchInvoices = async () => {
       setLoading(true);
       try {
@@ -166,8 +183,65 @@ const MedicalRecords = () => {
       }
     };
 
+    const fetchVisitReports = async () => {
+      setReportsLoading(true);
+      setReportsError(null);
+      try {
+        // Use the new secure endpoint
+        const response = await axios.get(
+          "http://localhost:5000/api/visits/my-visits",
+          headers
+        );
+        setVisitReports(response.data);
+      } catch (err) {
+        console.error("Error fetching visit reports:", err);
+        setReportsError("Failed to load test results.");
+      } finally {
+        setReportsLoading(false);
+      }
+    };
+
     fetchMedicalHistory();
+    fetchVisitReports();
   }, []);
+
+  const handleDownloadReport = async (visit) => {
+    if (downloadingId) return; // Prevent multiple downloads
+    setDownloadingId(visit._id);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:5000/api/visits/${visit._id}/pdf`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: "blob", // Crucial for file downloads
+        }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `clinic-report-${
+          new Date(visit.visitDate).toISOString().split("T")[0]
+        }.pdf`
+      );
+      document.body.appendChild(link);
+      link.click();
+
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error downloading report:", err);
+      alert(
+        "Sorry, we were unable to download the report. Please try again later."
+      );
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6 transition-all duration-300 hover:shadow-lg">
@@ -226,46 +300,56 @@ const MedicalRecords = () => {
 
         {activeTab === "test-results" && (
           <div className="p-4 rounded-lg bg-gray-50 animate-fadeIn">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="font-medium text-gray-800">Recent Test Results</h4>
-              <button className="px-3 py-1 bg-dark-red text-white text-sm rounded hover:bg-deep-red transition-all duration-200 transform hover:scale-[1.02]">
-                Download All
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div className="border p-4 rounded hover:shadow transition">
-                <div className="flex justify-between">
-                  <div>
-                    <p className="font-medium">Color Vision Test</p>
-                    <p className="text-sm text-gray-600">May 15, 2023</p>
-                  </div>
-                  <span className="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded">
-                    Completed
-                  </span>
-                </div>
-                <p className="mt-2">
-                  Result: Mild Protanomaly (Red-weak) - Score: 87/100
-                </p>
-                <button className="mt-3 px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-all duration-200 transform hover:scale-[1.02]">
-                  View Details
-                </button>
+            <h4 className="font-medium text-gray-800 mb-4">
+              Your Visit Reports
+            </h4>
+            {reportsLoading ? (
+              <div className="text-center py-4 text-gray-600">
+                Loading reports...
               </div>
-              <div className="border p-4 rounded hover:shadow transition">
-                <div className="flex justify-between">
-                  <div>
-                    <p className="font-medium">Visual Field Test</p>
-                    <p className="text-sm text-gray-600">March 10, 2023</p>
-                  </div>
-                  <span className="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded">
-                    Completed
-                  </span>
-                </div>
-                <p className="mt-2">Result: Normal peripheral vision</p>
-                <button className="mt-3 px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-all duration-200 transform hover:scale-[1.02]">
-                  View Details
-                </button>
+            ) : reportsError ? (
+              <div className="text-center py-4 text-red-600">
+                {reportsError}
               </div>
-            </div>
+            ) : visitReports.length === 0 ? (
+              <div className="text-center py-4 text-gray-500">
+                No test results or reports found.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {visitReports.map((visit) => (
+                  <div
+                    key={visit._id}
+                    className="border p-4 rounded hover:shadow-md transition bg-white"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold text-dark-red">
+                          Clinical Report
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Visit Date: {formatDate(visit.visitDate)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDownloadReport(visit)}
+                        disabled={downloadingId === visit._id}
+                        className="px-4 py-2 bg-dark-red text-white text-sm rounded hover:bg-deep-red transition-all duration-200 transform hover:scale-[1.02] flex items-center disabled:bg-gray-400"
+                      >
+                        {downloadingId === visit._id ? (
+                          <FaSpinner className="animate-spin mr-2" />
+                        ) : (
+                          <FaDownload className="mr-2" />
+                        )}
+                        {downloadingId === visit._id
+                          ? "Generating..."
+                          : "Download"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

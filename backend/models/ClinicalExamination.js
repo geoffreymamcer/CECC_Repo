@@ -72,7 +72,11 @@ const clinicalExaminationSchema = new mongoose.Schema({
     type: String,
     ref: "Profile",
     required: true,
-    unique: true,
+  },
+  visitId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Visit",
+    required: true,
   },
   visualAcuity: {
     chartUsed: { type: String, default: "" },

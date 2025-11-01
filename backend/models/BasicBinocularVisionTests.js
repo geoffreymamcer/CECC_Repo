@@ -14,7 +14,11 @@ const basicBinocularVisionTestsSchema = new mongoose.Schema({
     type: String,
     ref: "Profile",
     required: true,
-    unique: true,
+  },
+  visitId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Visit",
+    required: true,
   },
   binocularTests: {
     stereoAcuityLangs: { type: String, default: "" },

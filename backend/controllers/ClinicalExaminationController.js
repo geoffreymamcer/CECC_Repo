@@ -1,40 +1,18 @@
 // controllers/ClinicalExaminationController.js
 import ClinicalExamination from "../models/ClinicalExamination.js";
-import Profile from "../models/Profile.js";
+// --- REMOVED --- The Profile model is no longer needed for these operations.
 
-export const createClinicalExamination = async (req, res) => {
+// --- REMOVED --- createClinicalExamination is obsolete and has been deleted.
+
+// --- MODIFIED --- Fetches a single clinical examination record by its own unique _id.
+export const getClinicalExaminationByRecordId = async (req, res) => {
   try {
-    const { patientId } = req.body;
-
-    // Check if a profile exists for the given patientId
-    const profile = await Profile.findById(patientId);
-    if (!profile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
-
-    // Create a new clinical examination record
-    const clinicalExamination = await ClinicalExamination.create(req.body);
-
-    // Link the new clinical examination record to the profile
-    profile.clinicalExamination = clinicalExamination._id;
-    await profile.save();
-
-    res.status(201).json(clinicalExamination);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-export const getClinicalExaminationByPatientId = async (req, res) => {
-  try {
-    const { patientId } = req.params;
-    const clinicalExamination = await ClinicalExamination.findOne({
-      patientId,
-    });
+    const { recordId } = req.params;
+    const clinicalExamination = await ClinicalExamination.findById(recordId); // Find by its own ID
     if (!clinicalExamination) {
       return res
         .status(404)
-        .json({ message: "Clinical examination not found" });
+        .json({ message: "Clinical examination record not found" });
     }
     res.status(200).json(clinicalExamination);
   } catch (error) {
@@ -42,25 +20,24 @@ export const getClinicalExaminationByPatientId = async (req, res) => {
   }
 };
 
-export const upsertClinicalExaminationByPatientId = async (req, res) => {
+// --- MODIFIED --- Updates a single clinical examination record by its own unique _id.
+export const updateClinicalExaminationByRecordId = async (req, res) => {
   try {
-    const { patientId } = req.params;
+    const { recordId } = req.params;
     const data = req.body;
 
-    const profile = await Profile.findById(patientId);
-    if (!profile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
-
-    const clinicalExamination = await ClinicalExamination.findOneAndUpdate(
-      { patientId: patientId },
-      { ...data, patientId: patientId },
-      { new: true, upsert: true, runValidators: true }
+    const clinicalExamination = await ClinicalExamination.findByIdAndUpdate(
+      recordId, // Find by its own ID
+      data,
+      { new: true, runValidators: true }
     );
 
-    if (!profile.clinicalExamination) {
-      profile.clinicalExamination = clinicalExamination._id;
-      await profile.save();
+    if (!clinicalExamination) {
+      return res
+        .status(404)
+        .json({
+          message: "Could not find Clinical Examination record to update.",
+        });
     }
 
     res.status(200).json(clinicalExamination);
