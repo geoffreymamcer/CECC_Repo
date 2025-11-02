@@ -3,7 +3,7 @@ import adminRoutes from "./adminRoutes.js";
 import profileRoutes from "./profileRoutes.js";
 import userRoutes from "./userRoutes.js";
 import patientRoutes from "./patientRoutes.js";
-import inventoryRoutes from "./InventoryRoutes.js";
+import inventoryRoutes from "./inventoryRoutes.js";
 import appointmentRoutes from "./appointmentRoutes.js";
 import colorVisionTestRoutes from "./colorVisionTestRoutes.js";
 import medicalHistoryRoutes from "./medicalHistoryRoutes.js";
