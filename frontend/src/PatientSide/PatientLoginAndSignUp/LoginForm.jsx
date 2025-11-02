@@ -3,6 +3,7 @@ import FormGroup from "./FormGroup";
 import "./PatientLogin.css";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import instance from "../../api/axios";
 
 export default function LoginForm({ toggleForm }) {
   const [email, setEmail] = useState("");
@@ -17,10 +18,7 @@ export default function LoginForm({ toggleForm }) {
     setIsLoggingIn(true);
 
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/users/login",
-        { email, password }
-      );
+      const response = await instance.post("/users/login", { email, password });
 
       if (response.data.status === "success") {
         // --- CHANGE HERE ---
