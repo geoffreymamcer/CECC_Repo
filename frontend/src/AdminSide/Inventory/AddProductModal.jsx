@@ -6,6 +6,7 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
     name: "", // maps to productName
     type: "", // maps to productType
     description: "", // maps to productDescription
+    cost: "",
     price: "", // maps to productPrice
     stock: "", // maps to availableStocks
     sku: "", // not used in schema but kept for future use
@@ -56,11 +57,10 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
       !formData.type ||
       !formData.description ||
       !formData.price ||
-      !formData.stock ||
-      !formData.sku ||
-      !formData.status
+      !formData.cost ||
+      !formData.stock
     ) {
-      alert("Please fill in all required fields");
+      alert("Please fill in all required fields marked with *");
       return;
     }
 
@@ -84,6 +84,7 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
       productType: formData.type,
       productDescription: formData.description,
       productPrice: Number(formData.price),
+      productCost: Number(formData.cost), // --- NEW --- Add productCost to the payload
       availableStocks: Number(formData.stock),
       stocksStatus: formData.status,
       productImage: formData.productImage || "",
@@ -107,12 +108,14 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
       return;
     }
 
-    // Validate number fields are positive
-    if (product.productPrice <= 0) {
-      alert("Price must be greater than 0");
+    if (product.productPrice <= 0 || product.productCost <= 0) {
+      alert("Price and Cost must be greater than 0");
       return;
     }
-
+    if (product.productCost >= product.productPrice) {
+      alert("Cost cannot be greater than or equal to the selling price.");
+      return;
+    }
     if (product.availableStocks < 0) {
       alert("Stock cannot be negative");
       return;
@@ -213,7 +216,7 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Price ($) *
+                  Selling Price (PHP) *
                 </label>
                 <input
                   type="number"
@@ -221,13 +224,33 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
                   value={formData.price}
                   onChange={handleInputChange}
                   required
-                  min="0"
+                  min="0.01"
                   step="0.01"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-deep-red focus:border-deep-red"
                   placeholder="0.00"
                 />
               </div>
 
+              {/* --- NEW --- Product Cost Input Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Product Cost (PHP) *
+                </label>
+                <input
+                  type="number"
+                  name="cost"
+                  value={formData.cost}
+                  onChange={handleInputChange}
+                  required
+                  min="0.01"
+                  step="0.01"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-deep-red focus:border-deep-red"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Initial Stock *
@@ -243,42 +266,38 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
                   placeholder="0"
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  SKU *
+                  SKU
                 </label>
                 <input
                   type="text"
                   name="sku"
                   value={formData.sku}
                   onChange={handleInputChange}
-                  required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-deep-red focus:border-deep-red"
                   placeholder="e.g., ACL123"
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status *
-                </label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-deep-red focus:border-deep-red"
-                >
-                  <option value="in stock">In Stock</option>
-                  <option value="low">Low Stock</option>
-                  <option value="out of stock">Out of Stock</option>
-                </select>
-              </div>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Status *
+              </label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleInputChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-deep-red focus:border-deep-red"
+              >
+                <option value="in stock">In Stock</option>
+                <option value="low">Low Stock</option>
+                <option value="out of stock">Out of Stock</option>
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Product Image

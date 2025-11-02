@@ -1,100 +1,160 @@
-// src/components/sales/ItemSalesDistribution.jsx
-import React from "react";
-import { FaGlasses, FaEyeDropper, FaEye } from "react-icons/fa";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-} from "chart.js";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Pie } from "react-chartjs-2";
 
 // Register ChartJS components
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale);
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+// Define a consistent color palette using your theme
+const CHART_COLORS = [
+  "#7F0000", // deep-red
+  "#A52A2A", // Brown
+  "#CD5C5C", // Indian Red
+  "#DC143C", // Crimson
+  "#C71585", // Medium Violet Red
+  "#DB7093", // Pale Violet Red
+  "#8B0000", // dark-red
+  "#B22222", // Firebrick
+];
 
 const ItemSalesDistribution = () => {
-  const eyeItems = [
-    { name: "Prescription Glasses", sales: 420, color: "#7F0000" },
-    { name: "Contact Lenses", sales: 380, color: "#8B0000" },
-    { name: "Sunglasses", sales: 320, color: "#A52A2A" },
-    { name: "Eye Drops", sales: 280, color: "#B22222" },
-    { name: "Reading Glasses", sales: 220, color: "#CD5C5C" },
-    { name: "Eye Vitamins", sales: 180, color: "#DC143C" },
-  ];
+  const [chartData, setChartData] = useState(null);
+  const [totalSales, setTotalSales] = useState(0);
+  const [topItem, setTopItem] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const totalSales = eyeItems.reduce((sum, item) => sum + item.sales, 0);
+  useEffect(() => {
+    const fetchSalesData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          "http://localhost:5000/api/invoices/analytics/item-distribution",
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
 
-  // Chart.js data configuration
-  const chartData = {
-    labels: eyeItems.map((item) => item.name),
-    datasets: [
-      {
-        data: eyeItems.map((item) => item.sales),
-        backgroundColor: eyeItems.map((item) => item.color),
-        borderColor: "white",
-        borderWidth: 2,
-      },
-    ],
-  };
+        const salesData = response.data;
+        if (!salesData || salesData.length === 0) {
+          throw new Error("No sales data available to display.");
+        }
 
-  // Chart.js options
+        const total = salesData.reduce((sum, item) => sum + item.sales, 0);
+        setTotalSales(total);
+        setTopItem(salesData[0]);
+
+        setChartData({
+          labels: salesData.map((item) => item.name),
+          datasets: [
+            {
+              data: salesData.map((item) => item.sales),
+              backgroundColor: salesData.map(
+                (_, index) => CHART_COLORS[index % CHART_COLORS.length]
+              ),
+              borderColor: "#FFFFFF",
+              borderWidth: 2,
+            },
+          ],
+        });
+      } catch (err) {
+        console.error("Error fetching item sales distribution:", err);
+        setError(err.message || "Could not load data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSalesData();
+  }, []);
+
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
+      // --- THIS IS THE KEY CHANGE ---
+      // We disable the default legend to create our own custom one.
       legend: {
-        display: true,
-        position: "bottom",
-        labels: {
-          usePointStyle: true,
-          padding: 20,
-          font: {
-            size: 12,
-          },
-        },
+        display: false,
       },
       tooltip: {
         callbacks: {
           label: (context) => {
             const value = context.raw;
-            const percentage = ((value / totalSales) * 100).toFixed(1);
-            return `$${value.toLocaleString()} (${percentage}%)`;
+            const percentage =
+              totalSales > 0 ? ((value / totalSales) * 100).toFixed(1) : 0;
+            return `₱${Number(value).toLocaleString()} (${percentage}%)`;
           },
         },
       },
     },
   };
 
-  return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 animate-fadeIn">
-      <div className="flex justify-between items-center mb-6">
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl shadow-lg p-6 flex justify-center items-center h-[500px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-deep-red"></div>
+      </div>
+    );
+  }
+
+  if (error || !chartData) {
+    return (
+      <div className="bg-white rounded-2xl shadow-lg p-6 h-[500px]">
         <h2 className="text-xl font-bold text-gray-800">
           Item Sales Distribution
         </h2>
-        <div className="text-sm text-gray-500">
-          Total: ${totalSales.toLocaleString()}
+        <div className="flex justify-center items-center h-full text-gray-500">
+          <p>{error || "No data to display."}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl shadow-lg p-6 animate-fadeIn">
+      <div className="flex justify-between items-start mb-4">
+        <h2 className="text-xl font-bold text-gray-800">
+          Item Sales Distribution
+        </h2>
+        <div className="text-sm text-gray-500 font-medium whitespace-nowrap">
+          Total: ₱{totalSales.toLocaleString()}
         </div>
       </div>
 
       {/* Chart Container */}
-      <div className="h-[300px] mb-6">
+      <div className="h-[250px] w-full flex justify-center items-center mx-auto mb-6">
         <Pie data={chartData} options={chartOptions} />
       </div>
 
-      {/* Top Selling Item Card */}
-      <div className="mt-6 bg-gradient-to-r from-deep-red to-dark-red rounded-xl p-4 text-white">
-        <div className="flex items-center">
-          <div className="flex-1">
-            <h3 className="font-bold">Top Selling Item</h3>
-            <p className="text-sm opacity-90">{eyeItems[0].name}</p>
+      {/* --- NEW --- Custom Legend */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 px-4">
+        {chartData.labels.map((label, index) => (
+          <div key={label} className="flex items-center">
+            <span
+              className="h-3 w-3 rounded-full mr-2"
+              style={{
+                backgroundColor: chartData.datasets[0].backgroundColor[index],
+              }}
+            ></span>
+            <span className="text-sm text-gray-600">{label}</span>
           </div>
-          <div className="text-3xl font-bold">
-            {Math.round((eyeItems[0].sales / totalSales) * 100)}%
+        ))}
+      </div>
+
+      {/* --- MODIFIED --- Top Selling Item Card */}
+      {topItem && (
+        <div className="mt-8 bg-[#7F0000] rounded-xl p-5 text-white flex justify-between items-center">
+          <div>
+            <h3 className="font-bold text-lg">Top Selling Category</h3>
+            <p className="text-sm opacity-90">{topItem.name}</p>
+          </div>
+          <div className="text-4xl font-bold">
+            {totalSales > 0
+              ? `${Math.round((topItem.sales / totalSales) * 100)}%`
+              : "0%"}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

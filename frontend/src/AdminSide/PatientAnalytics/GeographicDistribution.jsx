@@ -1,7 +1,27 @@
 import React from "react";
 import { FaMapMarkedAlt } from "react-icons/fa";
+import { MapContainer, TileLayer, CircleMarker, Tooltip } from "react-leaflet";
 
 const GeographicDistribution = ({ locations }) => {
+  // Find the location with the most patients to help center the map
+  const topLocation =
+    locations.length > 0
+      ? locations.reduce(
+          (max, loc) => (loc.patients > max.patients ? loc : max),
+          locations[0]
+        )
+      : null;
+
+  const mapCenter = topLocation
+    ? [topLocation.lat, topLocation.lng]
+    : [14.5995, 120.9842]; // Default to Manila if no data
+
+  // Calculate a dynamic radius for map markers
+  const calculateRadius = (patients) => {
+    // Use a non-linear scale (like square root) to make differences more visible
+    return 5 + Math.sqrt(patients) * 2;
+  };
+
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 animate-fadeIn">
       <h2 className="text-xl font-bold text-gray-800 flex items-center mb-6">
@@ -9,53 +29,76 @@ const GeographicDistribution = ({ locations }) => {
         Patient Geographic Distribution
       </h2>
 
-      <div className="space-y-5">
-        {locations.map((location, index) => (
-          <div key={index} className="flex items-center">
-            <div className="w-24 text-sm font-medium">{location.city}</div>
-            <div className="flex-1 mx-4">
-              <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-deep-red to-dark-red rounded-full transition-all duration-700 ease-in-out"
-                  style={{
-                    width: `${location.percentage}%`,
-                    animation: "fadeIn 0.8s ease-in-out",
-                  }}
-                ></div>
+      {/* Progress Bar Section (Unchanged) */}
+      <div className="space-y-4 mb-8">
+        {locations.slice(0, 5).map(
+          (
+            location,
+            index // Show top 5 for brevity
+          ) => (
+            <div key={index} className="flex items-center">
+              <div className="w-32 text-sm font-medium truncate">
+                {location.city}
+              </div>
+              <div className="flex-1 mx-4">
+                <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-deep-red to-dark-red rounded-full"
+                    style={{ width: `${location.percentage}%` }}
+                  ></div>
+                </div>
+              </div>
+              <div className="w-24 text-right font-bold text-sm">
+                {location.patients} ({location.percentage}%)
               </div>
             </div>
-            <div className="w-20 text-right font-bold">
-              {location.patients} ({location.percentage}%)
-            </div>
-          </div>
-        ))}
+          )
+        )}
       </div>
 
-      <div className="mt-8 bg-gray-50 rounded-xl p-4">
-        <div className="flex items-center">
-          <div className="flex-1">
+      {/* --- MODIFIED --- Interactive Map Section --- */}
+      <div className="mt-6 bg-gray-50 rounded-xl p-4">
+        <div className="flex justify-between items-center mb-4">
+          <div>
             <h3 className="font-bold text-gray-800">
               Patient Distribution Map
             </h3>
             <p className="text-gray-600 text-sm mt-1">
-              Visual representation of patient locations
+              Circles are sized by patient count
             </p>
           </div>
-          <div className="bg-gradient-to-br from-deep-red to-dark-red text-white px-4 py-2 rounded-lg">
-            View Map
-          </div>
+          {/* The "View Map" button is no longer necessary as the map is always visible */}
         </div>
-        <div className="mt-4 relative">
-          <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-40 flex items-center justify-center">
-            <div className="text-gray-500">Interactive Map Visualization</div>
-          </div>
-
-          {/* Map markers */}
-          <div className="absolute top-1/4 left-1/4 w-4 h-4 rounded-full bg-deep-red border-2 border-white"></div>
-          <div className="absolute top-1/3 right-1/4 w-6 h-6 rounded-full bg-dark-red border-2 border-white"></div>
-          <div className="absolute bottom-1/3 left-1/3 w-5 h-5 rounded-full bg-red-800 border-2 border-white"></div>
-          <div className="absolute bottom-1/4 right-1/3 w-4 h-4 rounded-full bg-deep-red border-2 border-white"></div>
-          <div className="absolute top-1/2 left-1/2 w-7 h-7 rounded-full bg-dark-red border-2 border-white"></div>
+        <div className="h-64 w-full rounded-lg overflow-hidden border-2 border-dashed">
+          <MapContainer
+            center={mapCenter}
+            zoom={10}
+            scrollWheelZoom={false}
+            style={{ height: "100%", width: "100%" }}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            {locations.map((location) => (
+              <CircleMarker
+                key={location.city}
+                center={[location.lat, location.lng]}
+                radius={calculateRadius(location.patients)}
+                pathOptions={{
+                  color: "#7F0000", // deep-red
+                  fillColor: "#8B0000", // dark-red
+                  fillOpacity: 0.7,
+                }}
+              >
+                <Tooltip>
+                  <strong>{location.city}</strong>
+                  <br />
+                  {location.patients} Patients ({location.percentage}%)
+                </Tooltip>
+              </CircleMarker>
+            ))}
+          </MapContainer>
         </div>
       </div>
     </div>

@@ -11,6 +11,8 @@ import {
   MoreVertical,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import PatientVisitsChart from "./PatientVisitsChart";
+import PatientDemographicsChart from "./PatientDemographicsChart";
 
 const Dashboard = () => {
   const { user } = useAuth(); // <-- 2. GET THE LOGGED-IN USER
@@ -235,29 +237,8 @@ const Dashboard = () => {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Line Chart Card */}
-        <div className="bg-white rounded-2xl shadow-md p-6">
-          <h2 className="text-lg font-semibold text-[#7F0000] mb-4">
-            Patient Visits Per Week
-          </h2>
-          <div className="h-64 bg-gray-100 rounded-xl flex items-center justify-center">
-            <p className="text-gray-500">
-              Line chart visualization would appear here
-            </p>
-          </div>
-        </div>
-
-        {/* Pie Chart Card */}
-        <div className="bg-white rounded-2xl shadow-md p-6">
-          <h2 className="text-lg font-semibold text-[#7F0000] mb-4">
-            Patient Demographics by Age
-          </h2>
-          <div className="h-64 bg-gray-100 rounded-xl flex items-center justify-center">
-            <p className="text-gray-500">
-              Pie chart visualization would appear here
-            </p>
-          </div>
-        </div>
+        <PatientVisitsChart />
+        <PatientDemographicsChart />
       </div>
 
       {/* Tables Section */}

@@ -27,6 +27,12 @@ const ProductListSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    productCost: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
+    },
     availableStocks: {
       type: Number,
       required: true,

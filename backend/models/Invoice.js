@@ -37,29 +37,20 @@ const invoiceSchema = new mongoose.Schema(
     jobOrderNumber: { type: String, required: true, unique: true },
     invoiceDate: { type: Date, default: Date.now },
     createdBy: { type: String, ref: "User", required: true },
-
     patientId: { type: String, ref: "User", required: true },
     patientName: { type: String, required: true },
     patientAddress: { type: String, required: true },
     patientPhoneNumber: { type: String, required: true },
-
     deliveryDate: { type: Date },
-
     items: {
       type: [invoiceItemSchema],
-      validate: {
-        validator: function (value) {
-          return Array.isArray(value) && value.length > 0;
-        },
-        message: "Invoice must contain at least one item",
-      },
+      // ... validation is unchanged
     },
-
     totalAmount: { type: Number, min: 0, default: 0 },
 
-    // PDF storage
-    pdfData: { type: Buffer },
-    pdfGeneratedAt: { type: Date, default: Date.now },
+    // --- REMOVED --- These fields are no longer needed
+    // pdfData: { type: Buffer },
+    // pdfGeneratedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );

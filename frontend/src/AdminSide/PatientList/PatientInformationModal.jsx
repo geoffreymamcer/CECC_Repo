@@ -620,8 +620,9 @@ const PatientInformationModal = ({
   const handleViewPDF = async (invoiceId) => {
     try {
       const token = localStorage.getItem("token");
+      // --- MODIFIED --- Use the correct '/pdf/view' endpoint
       const response = await axios.get(
-        `http://localhost:5000/api/invoices/${invoiceId}/pdf`,
+        `http://localhost:5000/api/invoices/${invoiceId}/pdf/view`,
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: "blob",
@@ -640,23 +641,23 @@ const PatientInformationModal = ({
   const handleDownloadPDF = async (invoiceId, invoiceNumber) => {
     try {
       const token = localStorage.getItem("token");
+      // --- MODIFIED --- Use the correct '/pdf/download' endpoint
       const response = await axios.get(
-        `http://localhost:5000/api/invoices/${invoiceId}/pdf`,
+        `http://localhost:5000/api/invoices/${invoiceId}/pdf/download`,
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: "blob",
         }
       );
 
-      const file = new Blob([response.data], { type: "application/pdf" });
-      const downloadUrl = URL.createObjectURL(file);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
-      link.href = downloadUrl;
+      link.href = url;
       link.download = `invoice-${invoiceNumber}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(downloadUrl);
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error downloading PDF:", error);
       alert("Failed to download PDF. Please try again.");

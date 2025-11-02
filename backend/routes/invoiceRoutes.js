@@ -1,52 +1,53 @@
 import express from "express";
 import {
+  createInvoice,
   getInvoicesByPatientId,
   getInvoiceById,
-  createInvoice,
   updateInvoice,
   deleteInvoice,
-  getNextInvoiceNumbers,
-  downloadInvoicePDF,
   getPatientInvoices,
-  getInvoicePDF,
   getRecentInvoices,
   getTodaysRevenue,
+  getNextInvoiceNumbers,
+  downloadInvoicePDF, // Our new on-demand generator
+  viewInvoicePDF, // Our new on-demand generator
+  getItemSalesDistribution,
+  getSalesOverTime,
+  getSalesByAgeGroup,
+  getSalesBreakdown,
+  getSummaryCardStats,
 } from "../controllers/InvoiceController.js";
 import { auth } from "../middleware/auth.js";
+import { adminAuth } from "../middleware/adminAuth.js"; // Assuming you have this
 
 const router = express.Router();
 
-// Get total revenue for today
+// This route should be protected to only allow owner/admin access
+router.get(
+  "/analytics/item-distribution",
+  [auth, adminAuth],
+  getItemSalesDistribution
+);
+router.get("/analytics/sales-over-time", [auth, adminAuth], getSalesOverTime);
+router.get("/analytics/by-age-group", [auth, adminAuth], getSalesByAgeGroup);
+router.get("/analytics/sales-breakdown", [auth, adminAuth], getSalesBreakdown);
+router.get("/analytics/summary-cards", [auth, adminAuth], getSummaryCardStats);
+
+// --- Static routes first ---
 router.get("/revenue/today", auth, getTodaysRevenue);
-
-// Get invoices for the logged-in patient
-router.get("/patient", auth, getPatientInvoices);
-
-// Get PDF for specific invoice
-router.get("/:id/pdf/view", auth, getInvoicePDF);
-router.get("/:id/pdf/download", auth, getInvoicePDF);
-
-// Get all invoices for a patient (admin route)
-router.get("/patient/:patientId", auth, getInvoicesByPatientId);
-
+router.get("/patient", auth, getPatientInvoices); // For logged-in patient
 router.get("/recent", auth, getRecentInvoices);
-
-// Preview next numbers for a given date (no increment) - must be before ":id"
 router.get("/preview/next", auth, getNextInvoiceNumbers);
 
-// Get a single invoice by ID
+// --- Dynamic routes with IDs last ---
+router.get("/patient/:patientId", auth, getInvoicesByPatientId); // For admin to get any patient's invoices
+router.get("/:id/pdf/view", auth, viewInvoicePDF);
+router.get("/:id/pdf/download", auth, downloadInvoicePDF);
 router.get("/:id", auth, getInvoiceById);
-
-// Create a new invoice
-router.post("/", auth, createInvoice);
-
-// Update an invoice
 router.put("/:id", auth, updateInvoice);
-
-// Delete an invoice
 router.delete("/:id", auth, deleteInvoice);
 
-// Download invoice PDF
-router.get("/:id/pdf", auth, downloadInvoicePDF);
+// --- POST route ---
+router.post("/", auth, createInvoice);
 
 export default router;

@@ -402,30 +402,17 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
 
   // Handle PDF download
   const handleDownloadPDF = async () => {
-    if (!createdInvoice) return;
-
+    if (!createdInvoice?._id) return;
     try {
       const token = localStorage.getItem("token");
-      console.log(
-        "Attempting to download PDF for invoice:",
-        createdInvoice._id
-      );
-
       const response = await axios.get(
-        `http://localhost:5000/api/invoices/${createdInvoice._id}/pdf`,
+        `http://localhost:5000/api/invoices/${createdInvoice._id}/pdf/download`,
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: "blob",
         }
       );
 
-      console.log(
-        "PDF download response received:",
-        response.status,
-        response.headers
-      );
-
-      // Create download link
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -437,45 +424,38 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-
-      console.log("PDF download completed successfully");
     } catch (error) {
       console.error("PDF download error:", error);
-
-      if (error.response) {
-        // Server responded with error status
-        console.error(
-          "Error response:",
-          error.response.status,
-          error.response.data
-        );
-        if (error.response.status === 404) {
-          alert(
-            "PDF not found. The invoice may not have been generated properly."
-          );
-        } else if (error.response.status === 500) {
-          alert("Server error while generating PDF. Please try again.");
-        } else {
-          alert(
-            `Download failed: ${error.response.status} - ${
-              error.response.data?.message || "Unknown error"
-            }`
-          );
-        }
-      } else if (error.request) {
-        // Request was made but no response received
-        console.error("No response received:", error.request);
-        alert(
-          "Cannot connect to server. Please check if the backend is running."
-        );
-      } else {
-        // Something else happened
-        console.error("Other error:", error.message);
-        alert(`Download failed: ${error.message}`);
-      }
+      // --- MODIFIED --- More specific error message
+      alert(
+        "Failed to generate or download PDF. Please check server logs for details."
+      );
     }
   };
 
+  const handleViewPDF = async () => {
+    if (!createdInvoice?._id) return;
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://localhost:5000/api/invoices/${createdInvoice._id}/pdf/view`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: "blob",
+        }
+      );
+
+      const file = new Blob([response.data], { type: "application/pdf" });
+      const fileURL = URL.createObjectURL(file);
+      window.open(fileURL, "_blank");
+    } catch (error) {
+      console.error("PDF view error:", error);
+      // --- MODIFIED --- More specific error message
+      alert(
+        "Failed to generate or view PDF. Please check server logs for details."
+      );
+    }
+  };
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -1067,6 +1047,7 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
           {/* Action Buttons */}
           <div className="flex justify-end space-x-3 mt-6">
             {!createdInvoice ? (
+              // This block now correctly shows BEFORE the invoice is created
               <>
                 <button
                   type="button"
@@ -1084,7 +1065,15 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
                 </button>
               </>
             ) : (
+              // This block now correctly shows AFTER the invoice is created
               <>
+                <button
+                  type="button"
+                  onClick={handleViewPDF}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  View PDF
+                </button>
                 <button
                   type="button"
                   onClick={handleDownloadPDF}

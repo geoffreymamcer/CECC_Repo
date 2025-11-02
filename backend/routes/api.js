@@ -16,6 +16,7 @@ import basicBinocularVisionTestsRoutes from "./basicBinocularVisionTestsRoutes.j
 import slitLampFunduscopyRoutes from "./slitLampFunduscopyRoutes.js";
 import diagnosticAssessmentPlanRoutes from "./diagnosticAssessmentPlanRoutes.js";
 import planOfManagementRoutes from "./planOfManagementRoutes.js";
+import analyticsRoutes from "./analyticsRoutes.js";
 
 const router = express.Router();
 
@@ -56,6 +57,7 @@ router.use("/slit-lamp-funduscopy", slitLampFunduscopyRoutes);
 router.use("/diagnostic-assessment-plan", diagnosticAssessmentPlanRoutes);
 
 router.use("/plan-of-management", planOfManagementRoutes);
+router.use("/analytics", analyticsRoutes);
 
 // Plan of Management routes
 // Visit routes
