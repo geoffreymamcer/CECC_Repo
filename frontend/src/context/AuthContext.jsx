@@ -1,15 +1,11 @@
-// src/context/AuthContext.jsx
-
 import React, { createContext, useState, useEffect, useContext } from "react";
-import axios from "axios";
+import instance from "../api/axios";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  // --- 1. ADD A NEW STATE FOR LOGIN/LOGOUT LOADING ---
-  // This helps prevent race conditions during authentication changes.
   const [isAuthLoading, setIsAuthLoading] = useState(false);
 
   useEffect(() => {
@@ -17,34 +13,34 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem("token");
       if (token) {
         try {
-          axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-          const response = await axios.get(
-            "http://localhost:5000/api/users/me"
-          );
+          // --- 2. USE THE CENTRAL API INSTANCE ---
+          // No need to set headers manually, the instance will handle it.
+          const response = await api.get("/users/me");
           setUser(response.data.data.user);
         } catch (error) {
-          console.error("Could not fetch user", error);
+          console.error("Token present but could not fetch user", error);
           localStorage.removeItem("token");
-          delete axios.defaults.headers.common["Authorization"];
         }
       }
       setIsLoading(false);
     };
-
     fetchUser();
   }, []);
 
+  // --- 3. REPURPOSE THIS LOGIN FUNCTION for the PATIENT LOGIN ---
   const login = async (email, password) => {
-    setIsAuthLoading(true); // <-- 2. SET LOADING TO TRUE AT THE START
+    setIsAuthLoading(true);
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/users/admin-login",
-        { email, password }
-      );
+      // Use the central API instance
+      const response = await api.post("/users/login", { email, password });
+
       const { token, user: userData } = response.data;
+
       localStorage.setItem("token", token);
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+      // Update the user state immediately
       setUser(userData);
+
       return { success: true };
     } catch (error) {
       console.error(
@@ -56,29 +52,20 @@ export const AuthProvider = ({ children }) => {
         message: error.response?.data?.message || "Login failed",
       };
     } finally {
-      setIsAuthLoading(false); // <-- 3. SET LOADING TO FALSE AT THE END
+      setIsAuthLoading(false);
     }
   };
 
   const logout = () => {
     localStorage.removeItem("token");
-    delete axios.defaults.headers.common["Authorization"];
     setUser(null);
-    // 4. FIX LOGOUT REDIRECT to point to your admin login page, not the homepage.
-    window.location.href = "/";
+    window.location.href = "/"; // Redirect to the patient login page
   };
 
-  const authContextValue = {
-    user,
-    isLoading,
-    isAuthLoading, // <-- 5. EXPOSE THE NEW LOADING STATE
-    login,
-    logout,
-  };
+  const authContextValue = { user, isLoading, isAuthLoading, login, logout };
 
   return (
     <AuthContext.Provider value={authContextValue}>
-      {/* We wait for the initial page load check to complete before rendering */}
       {!isLoading && children}
     </AuthContext.Provider>
   );

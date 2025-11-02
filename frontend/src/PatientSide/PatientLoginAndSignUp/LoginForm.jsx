@@ -2,46 +2,31 @@ import React, { useState } from "react";
 import FormGroup from "./FormGroup";
 import "./PatientLogin.css";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import instance from "../../api/axios";
+import { useAuth } from "../../context/AuthContext";
 
 export default function LoginForm({ toggleForm }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const navigate = useNavigate();
+
+  // --- 2. GET THE LOGIN FUNCTION and isAuthLoading FROM THE CONTEXT ---
+  const { login, isAuthLoading } = useAuth();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
-    setIsLoggingIn(true);
 
-    try {
-      const response = await instance.post("/users/login", { email, password });
+    // --- 3. CALL THE CONTEXT LOGIN FUNCTION ---
+    const result = await login(email, password);
 
-      if (response.data.status === "success") {
-        // --- CHANGE HERE ---
-        // DO NOT store the user object in localStorage.
-        // localStorage.setItem("user", JSON.stringify(response.data.user)); // <-- REMOVE THIS LINE
-
-        // ONLY store the token.
-        localStorage.setItem("token", response.data.token);
-
-        // Instead of navigating directly, you'll likely call a function
-        // from a new AuthContext to set the user state and then navigate.
-        // For simplicity here, we'll just navigate, but the next step is key.
-
-        // A full reload ensures the app fetches the user with the new token.
-        window.location.href = "/user-dashboard";
-      }
-    } catch (error) {
-      console.error("Error logging in:", error);
-      setError(
-        error.response?.data?.message || "Failed to log in. Please try again."
-      );
-    } finally {
-      setIsLoggingIn(false);
+    if (result.success) {
+      // --- 4. NAVIGATE, DO NOT RELOAD ---
+      // The context has already set the user state, so we can just navigate.
+      navigate("/user-dashboard");
+    } else {
+      setError(result.message || "Failed to log in. Please try again.");
     }
   };
 
@@ -69,9 +54,10 @@ export default function LoginForm({ toggleForm }) {
       <button
         type="submit"
         className="w-full bg-dark-red text-white py-3 rounded-lg font-bold btn-hover transition-all duration-300 flex items-center justify-center space-x-2"
-        disabled={isLoggingIn}
+        // --- 5. USE isAuthLoading FROM THE CONTEXT ---
+        disabled={isAuthLoading}
       >
-        <span>{isLoggingIn ? "Logging in..." : "Log In"}</span>
+        <span>{isAuthLoading ? "Logging in..." : "Log In"}</span>
         <i className="fas fa-arrow-right animate-pulse-slow" />
       </button>
 
