@@ -13,9 +13,7 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem("token");
       if (token) {
         try {
-          // --- 2. USE THE CENTRAL API INSTANCE ---
-          // No need to set headers manually, the instance will handle it.
-          const response = await api.get("/users/me");
+          const response = await instance.get("/users/me");
           setUser(response.data.data.user);
         } catch (error) {
           console.error("Token present but could not fetch user", error);
@@ -27,18 +25,15 @@ export const AuthProvider = ({ children }) => {
     fetchUser();
   }, []);
 
-  // --- 3. REPURPOSE THIS LOGIN FUNCTION for the PATIENT LOGIN ---
   const login = async (email, password) => {
     setIsAuthLoading(true);
     try {
-      // Use the central API instance
-      const response = await api.post("/users/login", { email, password });
+      const response = await instance.post("/users/login", { email, password });
 
       const { token, user: userData } = response.data;
 
       localStorage.setItem("token", token);
 
-      // Update the user state immediately
       setUser(userData);
 
       return { success: true };
