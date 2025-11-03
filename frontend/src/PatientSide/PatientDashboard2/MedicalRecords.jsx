@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import instance from "../../api/axios";
-import { FaDownload, FaSpinner } from "react-icons/fa";
+import { FaDownload, FaSpinner, FaEye } from "react-icons/fa";
 
 const formatDate = (dateString) => {
   if (!dateString) return "N/A";
@@ -37,91 +37,71 @@ const MedicalRecords = () => {
   // Fetch invoices when component mounts
   useEffect(() => {
     const fetchAllRecords = async () => {
-      setLoading(true); // Use a single loading state for simplicity
+      setLoading(true);
       setError(null);
-      setVisitsLoading(true);
-      setMedicalHistoryLoading(true);
-      setReportsLoading(true);
-
       try {
-        // The api instance handles the token automatically
-        const [invoicesRes, visitsRes, medicalHistoryRes, visitReportsRes] =
-          await Promise.all([
-            instance.get("/invoices/patient"), // Fetches invoices for logged-in user
-            instance.get("/visits/my-visits"), // Fetches visits for logged-in user
-            instance.get("/medicalhistory/me"), // Assumes a '/me' route for medical history
-            instance.get("/visits/my-visits"), // Re-use visits for reports
-          ]);
+        // Fetch all necessary data in parallel
+        const [invoicesRes, visitsRes, medicalHistoryRes] = await Promise.all([
+          instance.get("/invoices/patient").catch((err) => ({ error: err })), // Fetches invoices for logged-in user
+          instance.get("/visits/my-visits").catch((err) => ({ error: err })), // Fetches visits for logged-in user
+          instance.get("/medicalhistory/me").catch((err) => ({ error: err })), // Fetches medical history for logged-in user
+        ]);
 
-        setInvoices(invoicesRes.data);
+        // Check for errors in each response
+        if (invoicesRes.error) throw new Error("Could not load receipts.");
+        if (visitsRes.error) throw new Error("Could not load visit history.");
+        if (
+          medicalHistoryRes.error &&
+          medicalHistoryRes.error.response?.status !== 404
+        ) {
+          throw new Error("Could not load health history.");
+        }
 
-        // Filter for past visits
-        const now = new Date();
-        const pastVisits = (visitsRes.data || []).filter(
-          (visit) => new Date(visit.appointmentDate || visit.visitDate) < now
-        );
-        pastVisits.sort(
-          (a, b) =>
-            new Date(b.appointmentDate || b.visitDate) -
-            new Date(a.appointmentDate || a.visitDate)
-        );
-        setVisits(pastVisits);
+        setInvoices(invoicesRes.data || []);
 
-        setMedicalHistory(medicalHistoryRes.data);
-        setVisitReports(visitReportsRes.data);
+        // The same visit data is used for "Visit History" and "Test Results"
+        const allVisits = visitsRes.data || [];
+        allVisits.sort((a, b) => new Date(b.visitDate) - new Date(a.visitDate));
+        setVisits(allVisits);
+
+        setMedicalHistory(medicalHistoryRes.data || null);
       } catch (err) {
         console.error("Error fetching medical records:", err);
-        // Gracefully handle 404 for medical history
-        if (
-          err.response &&
-          err.response.config.url.includes("/medicalhistory") &&
-          err.response.status === 404
-        ) {
-          setMedicalHistory(null);
-        } else {
-          setError("Failed to load some records. Please try again.");
-        }
+        setError(err.message || "Failed to load records. Please try again.");
       } finally {
         setLoading(false);
-        setVisitsLoading(false);
-        setMedicalHistoryLoading(false);
-        setReportsLoading(false);
       }
     };
 
     fetchAllRecords();
   }, []);
 
-  const handleDownloadReport = async (visit) => {
+  const handlePdfAction = async (type, endpoint) => {
     if (downloadingId) return;
-    setDownloadingId(visit._id);
-
+    setDownloadingId(endpoint); // Use the unique endpoint as the loading key
     try {
-      // The 'api' instance will automatically include the auth token
-      const response = await instance.get(
-        `/visits/${visit._id}/pdf/download`, // Use the specific download endpoint
-        { responseType: "blob" }
-      );
+      const response = await instance.get(endpoint, { responseType: "blob" });
+      const file = new Blob([response.data], { type: "application/pdf" });
+      const fileURL = URL.createObjectURL(file);
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute(
-        "download",
-        `clinic-report-${
-          new Date(visit.visitDate).toISOString().split("T")[0]
-        }.pdf`
-      );
-      document.body.appendChild(link);
-      link.click();
-
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      if (type === "view") {
+        window.open(fileURL, "_blank");
+      } else {
+        // download
+        const link = document.createElement("a");
+        link.href = fileURL;
+        const fileName = endpoint.includes("invoices")
+          ? `invoice-${endpoint.split("/")[2]}.pdf`
+          : `clinic-report-${endpoint.split("/")[2]}.pdf`;
+        link.setAttribute("download", fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(fileURL);
+      }
     } catch (err) {
-      console.error("Error downloading report:", err);
-      alert(
-        "Sorry, we were unable to download the report. Please try again later."
-      );
+      console.error(`Error ${type}ing PDF:`, err);
+      alert(`Failed to ${type} PDF. Please try again later.`);
     } finally {
       setDownloadingId(null);
     }
@@ -183,28 +163,22 @@ const MedicalRecords = () => {
         )}
 
         {activeTab === "test-results" && (
-          <div className="p-4 rounded-lg bg-gray-50 animate-fadeIn">
+          <div className="p-4 rounded-lg bg-gray-50">
             <h4 className="font-medium text-gray-800 mb-4">
               Your Visit Reports
             </h4>
-            {reportsLoading ? (
-              <div className="text-center py-4 text-gray-600">
-                Loading reports...
-              </div>
-            ) : reportsError ? (
-              <div className="text-center py-4 text-red-600">
-                {reportsError}
-              </div>
-            ) : visitReports.length === 0 ? (
-              <div className="text-center py-4 text-gray-500">
-                No test results or reports found.
-              </div>
+            {loading ? (
+              <p>Loading reports...</p>
+            ) : visits.length === 0 ? (
+              <p className="text-center text-gray-500 py-4">
+                No reports found.
+              </p>
             ) : (
               <div className="space-y-4">
-                {visitReports.map((visit) => (
+                {visits.map((visit) => (
                   <div
                     key={visit._id}
-                    className="border p-4 rounded hover:shadow-md transition bg-white"
+                    className="border p-4 rounded bg-white hover:shadow-md"
                   >
                     <div className="flex justify-between items-center">
                       <div>
@@ -215,20 +189,46 @@ const MedicalRecords = () => {
                           Visit Date: {formatDate(visit.visitDate)}
                         </p>
                       </div>
-                      <button
-                        onClick={() => handleDownloadReport(visit)}
-                        disabled={downloadingId === visit._id}
-                        className="px-4 py-2 bg-dark-red text-white text-sm rounded hover:bg-deep-red transition-all duration-200 transform hover:scale-[1.02] flex items-center disabled:bg-gray-400"
-                      >
-                        {downloadingId === visit._id ? (
-                          <FaSpinner className="animate-spin mr-2" />
-                        ) : (
-                          <FaDownload className="mr-2" />
-                        )}
-                        {downloadingId === visit._id
-                          ? "Generating..."
-                          : "Download"}
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() =>
+                            handlePdfAction(
+                              "view",
+                              `/visits/${visit._id}/pdf/view`
+                            )
+                          }
+                          disabled={
+                            downloadingId === `/visits/${visit._id}/pdf/view`
+                          }
+                          className="px-3 py-1 text-sm border border-dark-red text-dark-red rounded hover:bg-red-50 flex items-center disabled:opacity-50"
+                        >
+                          {downloadingId === `/visits/${visit._id}/pdf/view` ? (
+                            <FaSpinner className="animate-spin" />
+                          ) : (
+                            <FaEye />
+                          )}
+                        </button>
+                        <button
+                          onClick={() =>
+                            handlePdfAction(
+                              "download",
+                              `/visits/${visit._id}/pdf/download`
+                            )
+                          }
+                          disabled={
+                            downloadingId ===
+                            `/visits/${visit._id}/pdf/download`
+                          }
+                          className="px-3 py-1 text-sm bg-dark-red text-white rounded hover:bg-deep-red flex items-center disabled:opacity-50"
+                        >
+                          {downloadingId ===
+                          `/visits/${visit._id}/pdf/download` ? (
+                            <FaSpinner className="animate-spin" />
+                          ) : (
+                            <FaDownload />
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -310,27 +310,22 @@ const MedicalRecords = () => {
           </div>
         )}
         {activeTab === "receipts" && (
-          <div className="p-4 rounded-lg bg-gray-50 animate-fadeIn">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="font-medium text-gray-800">Invoices & Receipts</h4>
-            </div>
+          <div className="p-4 rounded-lg bg-gray-50">
+            <h4 className="font-medium text-gray-800 mb-4">
+              Invoices & Receipts
+            </h4>
             {loading ? (
-              <div className="text-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-dark-red mx-auto"></div>
-                <p className="mt-2 text-gray-600">Loading invoices...</p>
-              </div>
-            ) : error ? (
-              <div className="text-red-600 p-4 text-center">{error}</div>
+              <p>Loading invoices...</p>
             ) : invoices.length === 0 ? (
-              <div className="text-gray-600 text-center py-4">
+              <p className="text-center text-gray-500 py-4">
                 No invoices found.
-              </div>
+              </p>
             ) : (
               <ul className="space-y-3">
                 {invoices.map((invoice) => (
                   <li
                     key={invoice._id}
-                    className="border p-4 rounded hover:shadow transition"
+                    className="border p-4 rounded bg-white hover:shadow"
                   >
                     <div className="flex justify-between">
                       <div>
@@ -347,62 +342,27 @@ const MedicalRecords = () => {
                       <span className="text-sm text-gray-700 font-medium">
                         PHP {invoice.totalAmount.toFixed(2)}
                       </span>
-                    </div>{" "}
+                    </div>
                     <div className="mt-3 flex space-x-2">
                       <button
-                        onClick={async () => {
-                          try {
-                            const response = await instance.get(
-                              `/invoices/${invoice._id}/pdf/view`,
-                              { responseType: "blob" }
-                            );
-                            const url = window.URL.createObjectURL(
-                              new Blob([response.data], {
-                                type: "application/pdf",
-                              })
-                            );
-                            window.open(url, "_blank");
-                          } catch (err) {
-                            console.error("Error viewing PDF:", err);
-                            alert(
-                              "Failed to view PDF. Please try again later."
-                            );
-                          }
-                        }}
-                        className="px-3 py-1 text-sm bg-dark-red text-white rounded hover:bg-deep-red transition-all duration-200"
+                        onClick={() =>
+                          handlePdfAction(
+                            "view",
+                            `/invoices/${invoice._id}/pdf/view`
+                          )
+                        }
+                        className="px-3 py-1 text-sm bg-dark-red text-white rounded hover:bg-deep-red"
                       >
                         View PDF
                       </button>
                       <button
-                        onClick={async () => {
-                          try {
-                            const response = await instance.get(
-                              `/invoices/${invoice._id}/pdf/download`,
-                              { responseType: "blob" }
-                            );
-                            const url = window.URL.createObjectURL(
-                              new Blob([response.data], {
-                                type: "application/pdf",
-                              })
-                            );
-                            const link = document.createElement("a");
-                            link.href = url;
-                            link.setAttribute(
-                              "download",
-                              `invoice-${invoice.invoiceNumber}.pdf`
-                            );
-                            document.body.appendChild(link);
-                            link.click();
-                            link.remove();
-                            window.URL.revokeObjectURL(url);
-                          } catch (err) {
-                            console.error("Error downloading PDF:", err);
-                            alert(
-                              "Failed to download PDF. Please try again later."
-                            );
-                          }
-                        }}
-                        className="px-3 py-1 text-sm border border-dark-red text-dark-red rounded hover:bg-red-50 transition-all duration-200"
+                        onClick={() =>
+                          handlePdfAction(
+                            "download",
+                            `/invoices/${invoice._id}/pdf/download`
+                          )
+                        }
+                        className="px-3 py-1 text-sm border border-dark-red text-dark-red rounded hover:bg-red-50"
                       >
                         Download PDF
                       </button>
