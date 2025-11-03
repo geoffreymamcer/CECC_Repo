@@ -76,10 +76,13 @@ const MedicalRecords = () => {
     fetchAllRecords();
   }, []);
 
-  const handlePdfAction = async (type, endpoint) => {
+  const handlePdfAction = async (type, visitId) => {
     if (downloadingId) return;
-    setDownloadingId(endpoint); // Use the unique endpoint as the loading key
+    setDownloadingId(visitId); // Use visitId as the loading key
     try {
+      // --- MODIFIED --- Construct the correct, secure patient-facing URL
+      const endpoint = `/visits/my-visits/${visitId}/pdf/${type}`;
+
       const response = await instance.get(endpoint, { responseType: "blob" });
       const file = new Blob([response.data], { type: "application/pdf" });
       const fileURL = URL.createObjectURL(file);
@@ -90,10 +93,7 @@ const MedicalRecords = () => {
         // download
         const link = document.createElement("a");
         link.href = fileURL;
-        const fileName = endpoint.includes("invoices")
-          ? `invoice-${endpoint.split("/")[2]}.pdf`
-          : `clinic-report-${endpoint.split("/")[2]}.pdf`;
-        link.setAttribute("download", fileName);
+        link.setAttribute("download", `clinic-report-${visitId}.pdf`);
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -190,39 +190,24 @@ const MedicalRecords = () => {
                         </p>
                       </div>
                       <div className="flex space-x-2">
+                        {/* --- MODIFIED --- Pass only the visit._id to the handler */}
                         <button
-                          onClick={() =>
-                            handlePdfAction(
-                              "view",
-                              `/visits/${visit._id}/pdf/view`
-                            )
-                          }
-                          disabled={
-                            downloadingId === `/visits/${visit._id}/pdf/view`
-                          }
+                          onClick={() => handlePdfAction("view", visit._id)}
+                          disabled={downloadingId === visit._id}
                           className="px-3 py-1 text-sm border border-dark-red text-dark-red rounded hover:bg-red-50 flex items-center disabled:opacity-50"
                         >
-                          {downloadingId === `/visits/${visit._id}/pdf/view` ? (
+                          {downloadingId === visit._id ? (
                             <FaSpinner className="animate-spin" />
                           ) : (
                             <FaEye />
                           )}
                         </button>
                         <button
-                          onClick={() =>
-                            handlePdfAction(
-                              "download",
-                              `/visits/${visit._id}/pdf/download`
-                            )
-                          }
-                          disabled={
-                            downloadingId ===
-                            `/visits/${visit._id}/pdf/download`
-                          }
+                          onClick={() => handlePdfAction("download", visit._id)}
+                          disabled={downloadingId === visit._id}
                           className="px-3 py-1 text-sm bg-dark-red text-white rounded hover:bg-deep-red flex items-center disabled:opacity-50"
                         >
-                          {downloadingId ===
-                          `/visits/${visit._id}/pdf/download` ? (
+                          {downloadingId === visit._id ? (
                             <FaSpinner className="animate-spin" />
                           ) : (
                             <FaDownload />

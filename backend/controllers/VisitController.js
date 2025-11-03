@@ -324,3 +324,89 @@ export const adminViewVisitPDF = async (req, res) => {
     res.status(500).json({ message: "Failed to generate PDF report." });
   }
 };
+
+export const viewMyVisitPDF = async (req, res) => {
+  try {
+    const { visitId } = req.params;
+    const patientId = req.user.id; // Get ID from the logged-in user's token
+
+    const visit = await Visit.findById(visitId)
+      .populate(
+        "caseHistory clinicalExamination basicBinocularVisionTests slitLampFunduscopy diagnosticAssessmentPlan planOfManagement"
+      )
+      .lean();
+    if (!visit) {
+      return res.status(404).json({ message: "Visit report not found." });
+    }
+
+    // Security Check: Does this visit belong to the logged-in user?
+    if (visit.patientId !== patientId) {
+      return res
+        .status(403)
+        .json({
+          message: "Forbidden: You do not have permission to view this report.",
+        });
+    }
+
+    const patient = await Profile.findById(patientId).lean();
+    if (!patient) {
+      return res
+        .status(404)
+        .json({ message: "Associated patient profile not found." });
+    }
+
+    // Use a helper or directly call the PDF generation
+    const pdfBuffer = await generateVisitReport(visit, patient);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "inline");
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error("Error in viewMyVisitPDF:", error);
+    res.status(500).json({ message: "Failed to generate PDF report." });
+  }
+};
+
+// PATIENT-facing function to DOWNLOAD a PDF
+export const downloadMyVisitPDF = async (req, res) => {
+  try {
+    const { visitId } = req.params;
+    const patientId = req.user.id;
+
+    const visit = await Visit.findById(visitId)
+      .populate(
+        "caseHistory clinicalExamination basicBinocularVisionTests slitLampFunduscopy diagnosticAssessmentPlan planOfManagement"
+      )
+      .lean();
+    if (!visit) {
+      return res.status(404).json({ message: "Visit report not found." });
+    }
+
+    // Security Check: Does this visit belong to the logged-in user?
+    if (visit.patientId !== patientId) {
+      return res
+        .status(403)
+        .json({
+          message:
+            "Forbidden: You do not have permission to download this report.",
+        });
+    }
+
+    const patient = await Profile.findById(patientId).lean();
+    if (!patient) {
+      return res.status(404).json({ message: "Patient profile not found." });
+    }
+
+    const pdfBuffer = await generateVisitReport(visit, patient);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="clinic-report-${
+        visit.visitDate.toISOString().split("T")[0]
+      }.pdf"`
+    );
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error("Error in downloadMyVisitPDF:", error);
+    res.status(500).json({ message: "Failed to generate PDF report." });
+  }
+};

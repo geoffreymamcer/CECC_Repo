@@ -1,50 +1,39 @@
 import express from "express";
 import {
+  getMyVisits,
   getVisitsByPatientId,
   getVisitById,
   createVisit,
   updateVisit,
   deleteVisit,
-  downloadVisitPDF,
-  viewVisitPDF,
-  getMyVisits,
-  adminDownloadVisitPDF, // --- NEW ---
+  viewMyVisitPDF, // New patient-specific function
+  downloadMyVisitPDF, // New patient-specific function
   adminViewVisitPDF,
+  adminDownloadVisitPDF,
 } from "../controllers/VisitController.js";
 import { auth } from "../middleware/auth.js";
 import { adminAuth } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
-// --- NEW --- Secure route for a logged-in patient to get their own visits
+// --- PATIENT-FACING ROUTES ---
 router.get("/my-visits", auth, getMyVisits);
+router.get("/my-visits/:visitId/pdf/view", auth, viewMyVisitPDF);
+router.get("/my-visits/:visitId/pdf/download", auth, downloadMyVisitPDF);
 
-// Get all visits for a patient
-router.get("/patient/:patientId", auth, getVisitsByPatientId);
-
-// Get a single visit by ID
-router.get("/:id", auth, getVisitById);
-
-// Create a new visit
-router.post("/", auth, createVisit);
-
-// Update a visit
-router.put("/:id", auth, updateVisit);
-
-// Delete a visit
-router.delete("/:id", auth, deleteVisit);
-
-//route for downloading the PDF
-router.get("/:visitId/pdf", auth, downloadVisitPDF);
-
-// Route for viewing the PDF
-router.get("/:visitId/pdf/view", auth, viewVisitPDF);
-
+// --- ADMIN-FACING ROUTES ---
+router.get("/patient/:patientId", [auth, adminAuth], getVisitsByPatientId);
+router.get("/admin/:visitId/pdf/view", [auth, adminAuth], adminViewVisitPDF);
 router.get(
   "/admin/:visitId/pdf/download",
   [auth, adminAuth],
   adminDownloadVisitPDF
 );
-router.get("/admin/:visitId/pdf/view", [auth, adminAuth], adminViewVisitPDF);
+
+// --- GENERAL ROUTES (Used by both, but primarily admin) ---
+router.get("/:id", auth, getVisitById);
+router.post("/", auth, createVisit);
+router.put("/:id", auth, updateVisit);
+router.delete("/:id", auth, deleteVisit);
 
 export default router;
