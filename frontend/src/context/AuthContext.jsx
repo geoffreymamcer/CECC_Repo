@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
-import instance from "../api/axios";
+import api from "../api/axios";
 
 const AuthContext = createContext(null);
 
@@ -13,11 +13,12 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem("token");
       if (token) {
         try {
-          const response = await instance.get("/users/me");
+          // The interceptor in api/axios.js automatically adds the token header
+          const response = await api.get("/users/me");
           setUser(response.data.data.user);
         } catch (error) {
           console.error("Token present but could not fetch user", error);
-          localStorage.removeItem("token");
+          localStorage.removeItem("token"); // Clean up invalid token
         }
       }
       setIsLoading(false);
@@ -28,14 +29,13 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setIsAuthLoading(true);
     try {
-      const response = await instance.post("/users/login", { email, password });
-
+      const response = await api.post("/users/login", { email, password });
       const { token, user: userData } = response.data;
-
       localStorage.setItem("token", token);
 
-      setUser(userData);
+      // No need to set axios defaults here anymore.
 
+      setUser(userData);
       return { success: true };
     } catch (error) {
       console.error(
@@ -53,8 +53,9 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem("token");
+    // No need to delete axios defaults here anymore.
     setUser(null);
-    window.location.href = "/"; // Redirect to the patient login page
+    window.location.href = "/";
   };
 
   const authContextValue = { user, isLoading, isAuthLoading, login, logout };
