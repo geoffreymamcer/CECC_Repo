@@ -2,52 +2,71 @@ import React, { useState, useEffect } from "react";
 import ProfilePicture from "./ProfilePicture";
 import PatientInfo from "./PatientInfo";
 import "./PatientProfileInterface.css";
+import instance from "../../api/axios";
+
+const calculateAge = (dob) => {
+  if (!dob) return "";
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
+    age--;
+  }
+  return age;
+};
+
+const getAgeCategory = (age) => {
+  if (!age && age !== 0) return "";
+  if (age < 13) return "Child";
+  if (age < 20) return "Teenager";
+  if (age < 60) return "Adult";
+  return "Senior";
+};
 
 const ProfileCard = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch profile data
+  // --- MODIFIED --- useEffect now uses api.get
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setError("Missing authentication token. Please log in again.");
-          setLoading(false);
-          return;
-        }
-        const res = await fetch("http://localhost:5000/api/profiles/me", {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.message || `Failed to fetch profile: ${res.status}`);
-        }
-        const data = await res.json();
-        // Try to get patientId from data, or from localStorage user as fallback
-        let patientId = data.patientId || data._id || data.id;
-        if (!patientId) {
-          try {
-            const userString = localStorage.getItem("user");
-            if (userString) {
-              const userData = JSON.parse(userString);
-              patientId = userData.patientId || userData._id || userData.id;
-            }
-          } catch {}
-        }
+        const response = await instance.get("/profiles/me");
+
+        const data = response.data;
+        const dob = data.dob
+          ? new Date(data.dob).toISOString().split("T")[0]
+          : "";
+        const age = calculateAge(dob);
+        const ageCategory = getAgeCategory(age);
+
+        // Set a single, clean profile state object
         setProfile({
-          ...data,
-          patientId,
+          firstName: data.firstName || "",
+          middleName: data.middleName || "",
+          lastName: data.lastName || "",
+          phone: data.phone_number || data.contact || "",
+          email: data.email || "",
+          dob: dob,
+          age: age,
+          ageCategory: ageCategory,
+          gender: data.gender || "",
+          civiStatus: data.civilStatus || "",
+          occupation: data.occupation || "",
+          address: data.address || "",
+          patientId: data.patientId || data._id,
+          profilePicture: data.profilePicture, // Don't forget the profile picture
         });
       } catch (err) {
-        setError(err.message || "Failed to fetch profile");
+        console.error("Failed to fetch profile:", err);
+        setError(err.response?.data?.message || "Failed to fetch profile");
       } finally {
         setLoading(false);
       }
@@ -55,7 +74,6 @@ const ProfileCard = () => {
     fetchProfile();
   }, []);
 
-  // Update profile (used for profile picture change)
   const updateProfile = (newProfileData) => {
     setProfile((prev) => ({ ...prev, ...newProfileData }));
   };
@@ -65,6 +83,14 @@ const ProfileCard = () => {
   }
   if (error) {
     return <div className="profile-card text-red-600">{error}</div>;
+  }
+  // Add a check in case profile failed to load
+  if (!profile) {
+    return (
+      <div className="profile-card text-gray-500">
+        Could not load profile data.
+      </div>
+    );
   }
 
   return (
@@ -94,7 +120,7 @@ const ProfileCard = () => {
         </div>
 
         <div className="md:w-2/3 p-6 md:p-8">
-          <PatientInfo />
+          <PatientInfo profileData={profile} />
         </div>
       </div>
     </div>

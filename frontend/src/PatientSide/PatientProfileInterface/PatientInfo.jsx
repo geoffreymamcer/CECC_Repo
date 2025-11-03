@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./PatientProfileInterface.css";
 import ChangePasswordModal from "./ChangePasswordModal ";
+import instance from "../../api/axios";
 
 // Helper function to calculate age from DOB
 const calculateAge = (dob) => {
@@ -27,93 +28,14 @@ const getAgeCategory = (age) => {
   return "Senior";
 };
 
-const PatientInfo = () => {
+const PatientInfo = ({ profileData }) => {
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const [patientData, setPatientData] = useState({
-    firstName: "",
-    middleName: "",
-    lastName: "",
-    phone: "",
-    email: "",
-    dob: "",
-    age: "",
-    ageCategory: "",
-    gender: "",
-    civiStatus: "",
-    occupation: "",
-    address: "",
-  });
+  const [patientData, setPatientData] = useState(profileData);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [tempData, setTempData] = useState({ ...patientData });
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setError("Missing authentication token. Please log in again.");
-          setLoading(false);
-          return;
-        }
-        const res = await fetch("http://localhost:5000/api/profiles/me", {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(
-            errorData.message || `Failed to fetch profile: ${res.status}`
-          );
-        }
-        const data = await res.json();
-        // Try to get patientId from data, or from localStorage user as fallback
-        let patientId = data.patientId || data._id || data.id;
-        if (!patientId) {
-          try {
-            const userString = localStorage.getItem("user");
-            if (userString) {
-              const userData = JSON.parse(userString);
-              patientId = userData.patientId || userData._id || userData.id;
-            }
-          } catch {}
-        }
-        const dob = data.dob
-          ? new Date(data.dob).toISOString().split("T")[0]
-          : "";
-        const age = calculateAge(dob);
-        const ageCategory = getAgeCategory(age);
-
-        setPatientData({
-          firstName: data.firstName || "",
-          middleName: data.middleName || "",
-          lastName: data.lastName || "",
-          phone: data.phone_number || "",
-          email: data.email || "",
-          dob: dob,
-          age: age,
-          ageCategory: ageCategory,
-          gender: data.gender || "",
-          civiStatus: data.civilStatus || "",
-          occupation: data.occupation || "",
-          address: data.address || "",
-          ...(patientId && { patientId }),
-          ...(data._id && { _id: data._id }),
-          ...(data.id && { id: data.id }),
-        });
-      } catch (err) {
-        setError(err.message || "Failed to fetch profile");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, []);
 
   const handleEditClick = async () => {
     if (isEditing) {
@@ -130,25 +52,16 @@ const PatientInfo = () => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Missing authentication token. Please log in again.");
-        setLoading(false);
-        return;
-      }
-      // Always require patientId for update
-      const patientId =
-        patientData.patientId || patientData._id || patientData.id;
+      const patientId = patientData.patientId;
       if (!patientId) {
-        setError("Cannot update profile: patient ID not found.");
-        setLoading(false);
-        return;
+        throw new Error("Cannot update profile: Patient ID is missing.");
       }
-      const endpoint = `http://localhost:5000/api/profiles/${patientId}`;
-      // Calculate age and ageCategory
+
+      // Calculate age and ageCategory from the temporary data before sending
       const age = calculateAge(tempData.dob);
       const ageCategory = getAgeCategory(age);
 
+      // Construct the payload to send to the backend
       const updatedProfile = {
         firstName: tempData.firstName,
         middleName: tempData.middleName,
@@ -159,42 +72,47 @@ const PatientInfo = () => {
         age: age,
         ageCategory: ageCategory,
         gender: tempData.gender,
-        civilStatus: tempData.civiStatus,
+        civilStatus: tempData.civiStatus, // Note: your state uses 'civiStatus', the model uses 'civilStatus'
         occupation: tempData.occupation,
         address: tempData.address,
       };
-      const res = await fetch(endpoint, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(updatedProfile),
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to update profile");
-      }
-      const data = await res.json();
+
+      // Use the central api instance to send the PUT request
+      const response = await instance.put(
+        `/profiles/${patientId}`,
+        updatedProfile
+      );
+
+      // Get the final, saved data back from the server
+      const data = response.data;
+
+      const dob = data.dob
+        ? new Date(data.dob).toISOString().split("T")[0]
+        : "";
+      const savedAge = calculateAge(dob);
+
+      // Update the main component state with the confirmed data from the server
       setPatientData({
+        ...patientData, // Keep non-editable fields like patientId
         firstName: data.firstName || "",
         middleName: data.middleName || "",
         lastName: data.lastName || "",
-        phone: data.phone_number || "",
+        phone: data.phone_number || data.contact || "",
         email: data.email || "",
-        dob: data.dob ? new Date(data.dob).toISOString().split("T")[0] : "",
+        dob: dob,
+        age: savedAge,
+        ageCategory: getAgeCategory(savedAge),
         gender: data.gender || "",
         civiStatus: data.civilStatus || "",
         occupation: data.occupation || "",
         address: data.address || "",
-        // keep id fields if present
-        ...(data.patientId && { patientId: data.patientId }),
-        ...(data._id && { _id: data._id }),
-        ...(data.id && { id: data.id }),
       });
+
+      // Exit editing mode
       setIsEditing(false);
     } catch (err) {
-      setError(err.message || "Failed to update profile");
+      console.error("Failed to update profile:", err);
+      setError(err.response?.data?.message || "Failed to update profile.");
     } finally {
       setLoading(false);
     }

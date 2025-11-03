@@ -7,6 +7,7 @@ import {
   FiCheckCircle,
   FiAlertTriangle,
 } from "react-icons/fi";
+import instance from "../../api/axios";
 
 const ColorVisionTest = () => {
   const navigate = useNavigate();
@@ -21,24 +22,23 @@ const ColorVisionTest = () => {
         setLoading(true);
         const token = localStorage.getItem("token");
         if (!token) {
-          throw new Error("Authentication required");
+          throw new Error("Authentication required to view test records.");
         }
-        const response = await fetch(
-          "http://localhost:5000/api/colorvisiontest",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch color vision test records");
-        }
-        const data = await response.json();
-        setTestRecords(data);
+
+        // --- 2. REPLACE FETCH WITH API.GET ---
+        // The Authorization header is now handled automatically by the api instance.
+        const response = await instance.get("/colorvisiontest");
+
+        // axios places the data directly in `response.data`
+        setTestRecords(response.data);
       } catch (err) {
         console.error("Error fetching color vision test records:", err);
-        setError(err.message);
+        // Use axios's more detailed error message if available
+        setError(
+          err.response?.data?.message ||
+            err.message ||
+            "Failed to fetch test records"
+        );
       } finally {
         setLoading(false);
       }

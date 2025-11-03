@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FiCalendar, FiClock, FiEdit2, FiInfo } from "react-icons/fi";
 import "../PatientDashboard2/PatientDashboard2.css";
 import axios from "axios";
+import instance from "../../api/axios";
 
 import { useRef } from "react";
 
@@ -82,16 +83,12 @@ const Appointments = () => {
         alert("You must be logged in to book an appointment.");
         return;
       }
-      await axios.post(
-        "http://localhost:5000/api/appointments",
-        appointmentData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      await instance.post("/appointments", appointmentData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
       setShowConfirmation(true);
     } catch (error) {
       setShowConfirmation(false);

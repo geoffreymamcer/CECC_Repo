@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import instance from "../../api/axios";
 
 const ChangePasswordModal = ({ onClose }) => {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -26,47 +27,43 @@ const ChangePasswordModal = ({ onClose }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
     setIsSubmitting(true);
+    setErrors({}); // Clear previous API errors
 
-    // Real API call
-    fetch("/api/users/change-password", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({
+    try {
+      // Use async/await with a try...catch block for cleaner logic
+      const response = await instance.post("/users/change-password", {
         currentPassword,
         newPassword,
-      }),
-    })
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) {
-          setErrors({ api: data.message || "Failed to change password" });
-          setIsSubmitting(false);
-          return;
-        }
-        setIsSubmitting(false);
-        setSuccess(true);
-        // Reset form and close modal after success
-        setTimeout(() => {
-          setCurrentPassword("");
-          setNewPassword("");
-          setConfirmPassword("");
-          setSuccess(false);
-          onClose();
-        }, 1500);
-      })
-      .catch((err) => {
-        setErrors({ api: "An error occurred. Please try again." });
-        setIsSubmitting(false);
       });
+
+      // axios will throw an error for non-2xx responses, so we only handle success here
+      setIsSubmitting(false);
+      setSuccess(true);
+
+      // Reset form and close modal after a short delay
+      setTimeout(() => {
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setSuccess(false);
+        onClose();
+      }, 1500);
+    } catch (err) {
+      // axios provides detailed errors in err.response
+      console.error("Error changing password:", err);
+      setErrors({
+        instance:
+          err.response?.data?.message ||
+          "An unexpected error occurred. Please try again.",
+      });
+      setIsSubmitting(false);
+    }
   };
 
   return (

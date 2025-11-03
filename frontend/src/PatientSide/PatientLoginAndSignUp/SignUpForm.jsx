@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import FormGroup from "./FormGroup";
 import "./PatientLogin.css";
 import axios from "axios";
+import instance from "../../api/axios";
 
 export default function SignupForm({ toggleForm }) {
   const [firstName, setFirstname] = useState("");
@@ -36,17 +37,14 @@ export default function SignupForm({ toggleForm }) {
 
     try {
       // Step 1: Send user details to get a verification code
-      const response = await axios.post(
-        "http://localhost:5000/api/users/signup",
-        {
-          firstName,
-          middleName,
-          lastName,
-          phone_number: phoneNumber,
-          email,
-          password,
-        }
-      );
+      const response = await instance.post("/users/signup", {
+        firstName,
+        middleName,
+        lastName,
+        phone_number: phoneNumber,
+        email,
+        password,
+      });
 
       if (response.data.status === "success") {
         setMessage(response.data.message);
@@ -72,13 +70,10 @@ export default function SignupForm({ toggleForm }) {
 
     try {
       // Step 2: Verify the code and create the account
-      const response = await axios.post(
-        "http://localhost:5000/api/users/verify-email",
-        {
-          email,
-          verificationCode,
-        }
-      );
+      const response = await instance.post("/users/verify-email", {
+        email,
+        verificationCode,
+      });
 
       if (response.data.status === "success") {
         localStorage.setItem("token", response.data.token);

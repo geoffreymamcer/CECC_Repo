@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import instance from "../../api/axios"; // Adjust path if necessary
 
 const ProductPreview = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Simple seeded RNG (mulberry32) using today's date as seed so selection changes daily
   const mulberry32 = (a) => () => {
     let t = (a += 0x6d2b79f5);
     t = Math.imul(t ^ (t >>> 15), t | 1);
@@ -31,53 +30,47 @@ const ProductPreview = () => {
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem("token");
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await instance.get("/inventory");
 
-        // Use relative path so frontend proxy (if present) forwards to backend
-        const res = await axios.get("/api/inventory", { headers });
-
-        const docs =
-          res.data && res.data.products ? res.data.products : res.data;
+        const docs = res.data?.products || res.data;
 
         if (!Array.isArray(docs) || docs.length === 0) {
           throw new Error("No products available");
         }
 
-        // Seed derived from today's date (YYYYMMDD)
+        // Seeding logic is unchanged
         const today = new Date();
         const seed =
           today.getFullYear() * 10000 +
           (today.getMonth() + 1) * 100 +
           today.getDate();
-
         const shuffled = seededShuffle(docs, seed);
 
-        // Pick up to 4 products
-        const picked = shuffled
-          .slice(0, Math.min(4, shuffled.length))
-          .map((d) => ({
-            name: d.productName || "Unnamed product",
-            description: d.productDescription || "",
-            status: d.stocksStatus || "in stock",
-            price: d.productPrice ? `₱${d.productPrice.toFixed(2)}` : "₱0.00",
-            statusColor:
-              d.stocksStatus === "in stock"
-                ? "green"
-                : d.stocksStatus === "low"
-                ? "yellow"
-                : "red",
-            image:
-              d.productImage ||
-              "https://via.placeholder.com/150x100?text=Product",
-          }));
+        const picked = shuffled.slice(0, 4).map((d) => ({
+          name: d.productName || "Unnamed product",
+          description: d.productDescription || "",
+          status: d.stocksStatus || "in stock",
+          price: d.productPrice ? `₱${d.productPrice.toFixed(2)}` : "₱0.00",
+          statusColor:
+            d.stocksStatus === "in stock"
+              ? "green"
+              : d.stocksStatus === "low"
+              ? "yellow"
+              : "red",
+          image:
+            d.productImage ||
+            `https://via.placeholder.com/150x100?text=${d.productName.replace(
+              /\s/g,
+              "+"
+            )}`,
+        }));
 
         if (mounted) setProducts(picked);
       } catch (err) {
         console.error("ProductPreview fetch error:", err);
         if (mounted)
           setError(
-            err?.response?.data?.message ||
+            err.response?.data?.message ||
               err.message ||
               "Error fetching products"
           );
@@ -93,43 +86,8 @@ const ProductPreview = () => {
     };
   }, []);
 
-  const placeholders = [
-    {
-      name: "Blue Light Glasses",
-      description: "Anti-reflective coating",
-      status: "In stock",
-      price: "₱129.99",
-      statusColor: "green",
-      image: "https://via.placeholder.com/150x100?text=Blue+Light+Glasses",
-    },
-    {
-      name: "Contact Lens Solution",
-      description: "Multi-purpose 10oz",
-      status: "In stock",
-      price: "₱14.99",
-      statusColor: "green",
-      image: "https://via.placeholder.com/150x100?text=Contact+Lens+Solution",
-    },
-    {
-      name: "Progressive Lenses",
-      description: "Premium package",
-      status: "Backordered",
-      price: "₱349.99",
-      statusColor: "yellow",
-      image: "https://via.placeholder.com/150x100?text=Progressive+Lenses",
-    },
-    {
-      name: "Eye Drops",
-      description: "For dry eyes relief",
-      status: "Out of stock",
-      price: "₱8.99",
-      statusColor: "red",
-      image: "https://via.placeholder.com/150x100?text=Eye+Drops",
-    },
-  ];
-
-  const display =
-    !loading && !error && products.length > 0 ? products : placeholders;
+  // --- 3. REMOVED PLACEHOLDERS ---
+  // The 'placeholders' array has been completely removed.
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 transition-all duration-300 hover:shadow-lg">
@@ -145,42 +103,64 @@ const ProductPreview = () => {
         </a>
       </div>
 
-      {loading ? (
-        <div>Loading recommendations...</div>
-      ) : error ? (
-        <div className="text-sm text-red-500">{error}</div>
-      ) : null}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-        {display.map((product, index) => (
-          <div
-            key={index}
-            className="border rounded-lg overflow-hidden hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
-          >
-            <div className="bg-gray-100 h-40 flex items-center justify-center">
-              <img
-                src={product.image}
-                alt={product.name}
-                className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
-              />
-            </div>
-            <div className="p-3">
-              <h4 className="font-medium">{product.name}</h4>
-              <p className="text-sm text-gray-600 mb-2">
-                {product.description}
-              </p>
-              <div className="flex justify-between items-center">
-                <span
-                  className={`text-xs px-2 py-1 bg-${product.statusColor}-100 text-${product.statusColor}-800 rounded`}
-                >
-                  {product.status}
-                </span>
-                <span className="font-medium">{product.price}</span>
+      {/* --- MODIFIED --- Simplified Render Logic */}
+      {loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 animate-pulse">
+          {/* Skeleton loaders for a better UX */}
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="border rounded-lg overflow-hidden">
+              <div className="bg-gray-200 h-40"></div>
+              <div className="p-3 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="text-center py-10 text-red-500">{error}</div>
+      )}
+
+      {!loading && !error && products.length === 0 && (
+        <div className="text-center py-10 text-gray-500">
+          No products to recommend at this time.
+        </div>
+      )}
+
+      {!loading && !error && products.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+          {products.map((product, index) => (
+            <div
+              key={index}
+              className="border rounded-lg overflow-hidden hover:shadow-md transition-all duration-300 transform hover:-translate-y-1"
+            >
+              <div className="bg-gray-100 h-40 flex items-center justify-center">
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+                />
+              </div>
+              <div className="p-3">
+                <h4 className="font-medium truncate">{product.name}</h4>
+                <p className="text-sm text-gray-600 mb-2 truncate">
+                  {product.description}
+                </p>
+                <div className="flex justify-between items-center">
+                  <span
+                    className={`text-xs px-2 py-1 bg-${product.statusColor}-100 text-${product.statusColor}-800 rounded`}
+                  >
+                    {product.status}
+                  </span>
+                  <span className="font-medium">{product.price}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

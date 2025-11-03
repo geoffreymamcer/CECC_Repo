@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import "./PatientProfileInterface.css";
+import instance from "../../api/axios";
 
 const ProfilePicture = ({ profile, updateProfile }) => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
 
   // Use profile.profilePicture if available, else fallback
-  const profilePic = profile?.profilePicture ||
-    "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&q=80";
+  const profilePic =
+    profile?.profilePicture ||
+    "https://st3.depositphotos.com/6672868/13701/v/450/depositphotos_137014128-stock-illustration-user-profile-icon.jpg";
 
   // Image compression (from reference)
   const compressImage = (file) => {
@@ -50,33 +52,30 @@ const ProfilePicture = ({ profile, updateProfile }) => {
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     setUploading(true);
     setError(null);
+
     try {
-      // Compress image
       const compressedImage = await compressImage(file);
-      // Upload to backend
-      const token = localStorage.getItem("token");
-      const patientId = profile.patientId || profile._id || profile.id;
-      if (!patientId) throw new Error("Patient ID not found.");
-      const endpoint = `http://localhost:5000/api/profiles/${patientId}`;
-      const res = await fetch(endpoint, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ profilePicture: compressedImage }),
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to update profile picture");
+
+      const patientId = profile.patientId || profile._id;
+      if (!patientId) {
+        throw new Error("Patient ID not found. Cannot upload picture.");
       }
-      const data = await res.json();
-      // Update parent profile
-      updateProfile({ profilePicture: data.profilePicture });
+
+      // Use the central api instance. The auth header is handled automatically.
+      const response = await instance.put(`/profiles/${patientId}`, {
+        profilePicture: compressedImage,
+      });
+
+      // Update parent profile state with the new picture URL from the server's response
+      updateProfile({ profilePicture: response.data.profilePicture });
     } catch (err) {
-      setError(err.message || "Failed to update profile picture");
+      console.error("Failed to update profile picture:", err);
+      setError(
+        err.response?.data?.message || "Failed to update profile picture"
+      );
     } finally {
       setUploading(false);
     }
@@ -119,12 +118,17 @@ const ProfilePicture = ({ profile, updateProfile }) => {
           onChange={handleFileChange}
           disabled={uploading}
         />
-        {uploading && <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-white/70 text-[#7F0000] text-sm font-bold">Uploading...</div>}
+        {uploading && (
+          <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-white/70 text-[#7F0000] text-sm font-bold">
+            Uploading...
+          </div>
+        )}
       </div>
 
       <div className="text-center">
         <h2 className="text-xl md:text-2xl font-bold">
-          {profile?.firstName || ""} {profile?.middleName || ""} {profile?.lastName || ""}
+          {profile?.firstName || ""} {profile?.middleName || ""}{" "}
+          {profile?.lastName || ""}
         </h2>
         <p className="text-white/80 text-sm md:text-base">
           Patient ID: {profile?.patientId || profile?._id || profile?.id || "-"}

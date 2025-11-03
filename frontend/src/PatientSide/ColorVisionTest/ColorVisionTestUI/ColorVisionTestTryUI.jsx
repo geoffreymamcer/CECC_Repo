@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { FiArrowLeft, FiArrowRight, FiHome, FiEye } from "react-icons/fi";
 import { ishiharaTestPlatesConsistent } from "./questionsList"; // Ensure this is the correct path
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import instance from "../../../api/axios";
 
 // --- HELPER FUNCTIONS ---
 
@@ -222,7 +223,7 @@ const IshiharaTest = () => {
   }, [isCompleted, testAnswers, plates.length]);
 
   useEffect(() => {
-    // Step 2: Once AI results are processed and visionStatus is set, submit to the backend.
+    // Step 2: Once AI results are processed, submit to the backend.
     if (visionStatus && !submitSuccess && !isSubmitting) {
       const submitTestResults = async () => {
         setIsSubmitting(true);
@@ -233,8 +234,9 @@ const IshiharaTest = () => {
         const accuracy = Math.round((correctPlates / totalPlates) * 100);
 
         try {
-          const token = localStorage.getItem("token");
-          if (!token) throw new Error("Authentication required");
+          const token = localStorage.getItem("token"); // Still good to check for token existence
+          if (!token)
+            throw new Error("Authentication required to save results.");
 
           const payload = {
             answers: testResults.map((r) => r.userAnswer),
@@ -246,25 +248,20 @@ const IshiharaTest = () => {
             testDate: new Date().toISOString(),
           };
 
-          const response = await fetch(
-            "http://localhost:5000/api/colorvisiontest",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify(payload),
-            }
-          );
+          // --- 2. REPLACE FETCH WITH API.POST ---
+          // The Authorization header is handled automatically by the axios instance.
+          const response = await instance.post("/colorvisiontest", payload);
 
-          if (!response.ok) {
-            throw new Error("Failed to save test result");
-          }
-
+          // axios throws an error on non-2xx status, so no need for `if (!response.ok)`
+          console.log("Test result saved:", response.data);
           setSubmitSuccess(true);
         } catch (err) {
-          setSubmitError(err.message);
+          console.error("Failed to save test result to backend:", err);
+          setSubmitError(
+            err.response?.data?.message ||
+              err.message ||
+              "Failed to save test result"
+          );
         } finally {
           setIsSubmitting(false);
         }

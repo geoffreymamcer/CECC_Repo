@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import instance from "../../api/axios";
 import { FaDownload, FaSpinner } from "react-icons/fa";
 
 const formatDate = (dateString) => {
@@ -36,187 +36,71 @@ const MedicalRecords = () => {
 
   // Fetch invoices when component mounts
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+    const fetchAllRecords = async () => {
+      setLoading(true); // Use a single loading state for simplicity
+      setError(null);
+      setVisitsLoading(true);
+      setMedicalHistoryLoading(true);
+      setReportsLoading(true);
 
-    const headers = { headers: { Authorization: `Bearer ${token}` } };
-    const fetchInvoices = async () => {
-      setLoading(true);
       try {
-        const token = localStorage.getItem("token");
+        // The api instance handles the token automatically
+        const [invoicesRes, visitsRes, medicalHistoryRes, visitReportsRes] =
+          await Promise.all([
+            instance.get("/invoices/patient"), // Fetches invoices for logged-in user
+            instance.get("/visits/my-visits"), // Fetches visits for logged-in user
+            instance.get("/medicalhistory/me"), // Assumes a '/me' route for medical history
+            instance.get("/visits/my-visits"), // Re-use visits for reports
+          ]);
 
-        // First, let's check the user's profile/ID
-        const userResponse = await axios.get(
-          "http://localhost:5000/api/profiles/me",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        console.log("User Profile:", userResponse.data); // Log the user profile
+        setInvoices(invoicesRes.data);
 
-        // Now fetch invoices
-        const response = await axios.get(
-          "http://localhost:5000/api/invoices/patient",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+        // Filter for past visits
+        const now = new Date();
+        const pastVisits = (visitsRes.data || []).filter(
+          (visit) => new Date(visit.appointmentDate || visit.visitDate) < now
         );
-        console.log("Invoices Response:", response.data); // Log the invoices response
-        setInvoices(response.data);
+        pastVisits.sort(
+          (a, b) =>
+            new Date(b.appointmentDate || b.visitDate) -
+            new Date(a.appointmentDate || a.visitDate)
+        );
+        setVisits(pastVisits);
+
+        setMedicalHistory(medicalHistoryRes.data);
+        setVisitReports(visitReportsRes.data);
       } catch (err) {
-        console.error("Error fetching invoices:", err);
-        if (err.response) {
-          console.log("Error Response:", err.response.data); // Log detailed error
-          setError(
-            err.response.data.message ||
-              "Failed to load invoices. Please try again later."
-          );
+        console.error("Error fetching medical records:", err);
+        // Gracefully handle 404 for medical history
+        if (
+          err.response &&
+          err.response.config.url.includes("/medicalhistory") &&
+          err.response.status === 404
+        ) {
+          setMedicalHistory(null);
         } else {
-          setError("Failed to load invoices. Please try again later.");
+          setError("Failed to load some records. Please try again.");
         }
       } finally {
         setLoading(false);
-      }
-    };
-
-    fetchInvoices();
-    // Fetch past visits for the logged-in user
-    const fetchVisits = async () => {
-      setVisitsLoading(true);
-      setVisitsError(null);
-      try {
-        const token = localStorage.getItem("token");
-        // get current user's profile to obtain their id/patientId
-        const profileRes = await axios.get("/api/profiles/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const userProfile = profileRes.data;
-        const patientId = userProfile.patientId || userProfile._id;
-
-        // Fetch appointments for this patient
-        const apptRes = await axios.get(`/api/appointments/${patientId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        let appts = Array.isArray(apptRes.data)
-          ? apptRes.data
-          : apptRes.data.appointments || [];
-
-        // Filter only past appointments (appointmentDate + appointmentTime < now)
-        const now = new Date();
-        const past = appts.filter((a) => {
-          if (!a.appointmentDate) return false;
-          const date = new Date(a.appointmentDate);
-          // appointmentTime may be stored as string like '14:30' or '2:30 PM'
-          let apptDateTime = date;
-          if (a.appointmentTime) {
-            // try to parse HH:mm
-            const timeParts = a.appointmentTime.split(":");
-            if (timeParts.length === 2) {
-              const hours = parseInt(timeParts[0], 10);
-              const minutes = parseInt(timeParts[1], 10);
-              if (!isNaN(hours) && !isNaN(minutes)) {
-                apptDateTime = new Date(date);
-                apptDateTime.setHours(hours, minutes, 0, 0);
-              }
-            }
-          }
-          return apptDateTime < now;
-        });
-
-        // sort descending by date (most recent first)
-        past.sort(
-          (a, b) => new Date(b.appointmentDate) - new Date(a.appointmentDate)
-        );
-
-        setVisits(past);
-      } catch (err) {
-        console.error("Error fetching visits:", err);
-        setVisitsError(
-          err?.response?.data?.message || err.message || "Failed to load visits"
-        );
-      } finally {
         setVisitsLoading(false);
-      }
-    };
-
-    fetchVisits();
-    // Fetch medical history for the logged-in user
-    const fetchMedicalHistory = async () => {
-      setMedicalHistoryLoading(true);
-      setMedicalHistoryError(null);
-      try {
-        const token = localStorage.getItem("token");
-        const profileRes = await axios.get("/api/profiles/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const userProfile = profileRes.data;
-        const patientId = userProfile.patientId || userProfile._id;
-
-        const mhRes = await axios.get(
-          `http://localhost:5000/api/medicalhistory/${patientId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        setMedicalHistory(mhRes.data);
-      } catch (err) {
-        // START OF UPDATED CODE BLOCK
-        console.error("Error fetching medical history:", err);
-        // Gracefully handle 404: it means no record exists, which is not an application error.
-        if (err.response && err.response.status === 404) {
-          setMedicalHistory(null); // Set data to null to show "No medical history found."
-        } else {
-          // For all other errors (e.g., 500), show an error message.
-          setMedicalHistoryError(
-            err?.response?.data?.message ||
-              err.message ||
-              "Failed to load medical history"
-          );
-        }
-        // END OF UPDATED CODE BLOCK
-      } finally {
         setMedicalHistoryLoading(false);
-      }
-    };
-
-    const fetchVisitReports = async () => {
-      setReportsLoading(true);
-      setReportsError(null);
-      try {
-        // Use the new secure endpoint
-        const response = await axios.get(
-          "http://localhost:5000/api/visits/my-visits",
-          headers
-        );
-        setVisitReports(response.data);
-      } catch (err) {
-        console.error("Error fetching visit reports:", err);
-        setReportsError("Failed to load test results.");
-      } finally {
         setReportsLoading(false);
       }
     };
 
-    fetchMedicalHistory();
-    fetchVisitReports();
+    fetchAllRecords();
   }, []);
 
   const handleDownloadReport = async (visit) => {
-    if (downloadingId) return; // Prevent multiple downloads
+    if (downloadingId) return;
     setDownloadingId(visit._id);
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:5000/api/visits/${visit._id}/pdf`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: "blob", // Crucial for file downloads
-        }
+      // The 'api' instance will automatically include the auth token
+      const response = await instance.get(
+        `/visits/${visit._id}/pdf/download`, // Use the specific download endpoint
+        { responseType: "blob" }
       );
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -463,39 +347,26 @@ const MedicalRecords = () => {
                       <span className="text-sm text-gray-700 font-medium">
                         PHP {invoice.totalAmount.toFixed(2)}
                       </span>
-                    </div>
+                    </div>{" "}
                     <div className="mt-3 flex space-x-2">
                       <button
                         onClick={async () => {
                           try {
-                            const token = localStorage.getItem("token");
-                            const response = await axios.get(
-                              `http://localhost:5000/api/invoices/${invoice._id}/pdf/view`,
-                              {
-                                headers: { Authorization: `Bearer ${token}` },
-                                responseType: "blob",
-                              }
+                            const response = await instance.get(
+                              `/invoices/${invoice._id}/pdf/view`,
+                              { responseType: "blob" }
                             );
-
-                            // Create blob URL and open in new window
-                            const blob = new Blob([response.data], {
-                              type: "application/pdf",
-                            });
-                            const url = window.URL.createObjectURL(blob);
+                            const url = window.URL.createObjectURL(
+                              new Blob([response.data], {
+                                type: "application/pdf",
+                              })
+                            );
                             window.open(url, "_blank");
                           } catch (err) {
                             console.error("Error viewing PDF:", err);
-                            if (err.response?.status === 403) {
-                              alert(
-                                "You don't have permission to view this invoice."
-                              );
-                            } else if (err.response?.status === 404) {
-                              alert("PDF not found for this invoice.");
-                            } else {
-                              alert(
-                                "Failed to view PDF. Please try again later."
-                              );
-                            }
+                            alert(
+                              "Failed to view PDF. Please try again later."
+                            );
                           }
                         }}
                         className="px-3 py-1 text-sm bg-dark-red text-white rounded hover:bg-deep-red transition-all duration-200"
@@ -505,16 +376,10 @@ const MedicalRecords = () => {
                       <button
                         onClick={async () => {
                           try {
-                            const token = localStorage.getItem("token");
-                            const response = await axios.get(
-                              `http://localhost:5000/api/invoices/${invoice._id}/pdf/download`,
-                              {
-                                headers: { Authorization: `Bearer ${token}` },
-                                responseType: "blob",
-                              }
+                            const response = await instance.get(
+                              `/invoices/${invoice._id}/pdf/download`,
+                              { responseType: "blob" }
                             );
-
-                            // Create download link
                             const url = window.URL.createObjectURL(
                               new Blob([response.data], {
                                 type: "application/pdf",
@@ -532,17 +397,9 @@ const MedicalRecords = () => {
                             window.URL.revokeObjectURL(url);
                           } catch (err) {
                             console.error("Error downloading PDF:", err);
-                            if (err.response?.status === 403) {
-                              alert(
-                                "You don't have permission to download this invoice."
-                              );
-                            } else if (err.response?.status === 404) {
-                              alert("PDF not found for this invoice.");
-                            } else {
-                              alert(
-                                "Failed to download PDF. Please try again later."
-                              );
-                            }
+                            alert(
+                              "Failed to download PDF. Please try again later."
+                            );
                           }
                         }}
                         className="px-3 py-1 text-sm border border-dark-red text-dark-red rounded hover:bg-red-50 transition-all duration-200"
