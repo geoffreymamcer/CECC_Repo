@@ -306,14 +306,17 @@ const MedicalRecords = () => {
             )}
           </div>
         )}
-        // --- REPLACE 'receipts' JSX ---
         {activeTab === "receipts" && (
           <div className="p-4 rounded-lg bg-gray-50">
             <h4 className="font-medium text-gray-800 mb-4">
               Invoices & Receipts
             </h4>
             {loading ? (
-              <p>Loading invoices...</p>
+              <div className="text-center py-4 text-gray-500">
+                Loading invoices...
+              </div>
+            ) : error ? (
+              <div className="text-center py-4 text-red-500">{error}</div>
             ) : invoices.length === 0 ? (
               <p className="text-center text-gray-500 py-4">
                 No invoices found.
@@ -321,13 +324,15 @@ const MedicalRecords = () => {
             ) : (
               <ul className="space-y-3">
                 {invoices.map((invoice) => {
+                  // Define endpoints and filename for clarity
                   const viewEndpoint = `/invoices/${invoice._id}/pdf/view`;
                   const downloadEndpoint = `/invoices/${invoice._id}/pdf/download`;
                   const fileName = `invoice-${invoice.invoiceNumber}.pdf`;
+
                   return (
                     <li
                       key={invoice._id}
-                      className="border p-4 rounded bg-white hover:shadow"
+                      className="border p-4 rounded bg-white hover:shadow transition"
                     >
                       <div className="flex justify-between">
                         <div>
@@ -347,26 +352,42 @@ const MedicalRecords = () => {
                       </div>
                       <div className="mt-3 flex space-x-2">
                         <button
-                          onClick={() =>
-                            handlePdfAction(
-                              "view",
-                              `/invoices/${invoice._id}/pdf/view`
-                            )
+                          onClick={() => handlePdfAction("view", viewEndpoint)}
+                          disabled={
+                            downloadingId === viewEndpoint ||
+                            downloadingId === downloadEndpoint
                           }
-                          className="px-3 py-1 text-sm bg-dark-red text-white rounded hover:bg-deep-red"
+                          className="px-3 py-1 text-sm bg-dark-red text-white rounded hover:bg-deep-red transition-all duration-200 flex items-center justify-center w-28 disabled:bg-gray-400"
                         >
-                          View PDF
+                          {downloadingId === viewEndpoint ? (
+                            <FaSpinner className="animate-spin" />
+                          ) : (
+                            <>
+                              <FaEye className="mr-2" /> View
+                            </>
+                          )}
                         </button>
                         <button
                           onClick={() =>
                             handlePdfAction(
                               "download",
-                              `/invoices/${invoice._id}/pdf/download`
+                              downloadEndpoint,
+                              fileName
                             )
                           }
-                          className="px-3 py-1 text-sm border border-dark-red text-dark-red rounded hover:bg-red-50"
+                          disabled={
+                            downloadingId === viewEndpoint ||
+                            downloadingId === downloadEndpoint
+                          }
+                          className="px-3 py-1 text-sm border border-dark-red text-dark-red rounded hover:bg-red-50 transition-all duration-200 flex items-center justify-center w-32 disabled:opacity-50"
                         >
-                          Download PDF
+                          {downloadingId === downloadEndpoint ? (
+                            <FaSpinner className="animate-spin" />
+                          ) : (
+                            <>
+                              <FaDownload className="mr-2" /> Download
+                            </>
+                          )}
                         </button>
                       </div>
                     </li>
