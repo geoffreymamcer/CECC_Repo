@@ -1,3 +1,5 @@
+// --- START OF FILE server.js ---
+
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -28,18 +30,34 @@ const app = express();
 // Middleware
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
-app.use(
-  cors({
-    origin: [
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      "https://cecc-test.vercel.app",
-    ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-User-Timezone"],
-  })
-);
+
+// ✨ --- FIX START --- ✨
+// Refactored CORS configuration for better flexibility and standard practice.
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://cecc-test.vercel.app",
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, or server-to-server)
+    if (!origin) return callback(null, true);
+    // Allow the request if the origin is in our whitelist
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    } else {
+      // Otherwise, block the request
+      return callback(new Error("Not allowed by CORS"));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-User-Timezone"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+// ✨ --- FIX END --- ✨
 
 // Serve static files from the uploads directory
 app.use("/uploads", express.static("uploads"));
