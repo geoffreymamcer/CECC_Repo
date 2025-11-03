@@ -324,7 +324,8 @@ const MedicalRecords = () => {
             ) : (
               <ul className="space-y-3">
                 {invoices.map((invoice) => {
-                  // Define endpoints and filename for clarity
+                  // --- THIS IS THE FIX ---
+                  // Define the correct, separate endpoints for invoices
                   const viewEndpoint = `/invoices/${invoice._id}/pdf/view`;
                   const downloadEndpoint = `/invoices/${invoice._id}/pdf/download`;
                   const fileName = `invoice-${invoice.invoiceNumber}.pdf`;
