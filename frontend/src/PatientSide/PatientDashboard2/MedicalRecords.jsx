@@ -161,7 +161,6 @@ const MedicalRecords = () => {
             </div>
           </div>
         )}
-
         {activeTab === "test-results" && (
           <div className="p-4 rounded-lg bg-gray-50">
             <h4 className="font-medium text-gray-800 mb-4">
@@ -235,7 +234,6 @@ const MedicalRecords = () => {
             )}
           </div>
         )}
-
         {activeTab === "health-history" && (
           <div className="p-4 rounded-lg bg-gray-50 animate-fadeIn">
             <div className="flex justify-between items-center mb-4">
@@ -308,6 +306,7 @@ const MedicalRecords = () => {
             )}
           </div>
         )}
+        // --- REPLACE 'receipts' JSX ---
         {activeTab === "receipts" && (
           <div className="p-4 rounded-lg bg-gray-50">
             <h4 className="font-medium text-gray-800 mb-4">
@@ -330,11 +329,31 @@ const MedicalRecords = () => {
                       key={invoice._id}
                       className="border p-4 rounded bg-white hover:shadow"
                     >
-                      {/* ... invoice info display ... */}
+                      <div className="flex justify-between">
+                        <div>
+                          <p className="font-medium">
+                            Invoice #{invoice.invoiceNumber}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {new Date(invoice.invoiceDate).toLocaleDateString()}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Job Order: {invoice.jobOrderNumber}
+                          </p>
+                        </div>
+                        <span className="text-sm text-gray-700 font-medium">
+                          PHP {invoice.totalAmount.toFixed(2)}
+                        </span>
+                      </div>
                       <div className="mt-3 flex space-x-2">
                         <button
-                          onClick={() => handlePdfAction("view", viewEndpoint)}
-                          className="..."
+                          onClick={() =>
+                            handlePdfAction(
+                              "view",
+                              `/invoices/${invoice._id}/pdf/view`
+                            )
+                          }
+                          className="px-3 py-1 text-sm bg-dark-red text-white rounded hover:bg-deep-red"
                         >
                           View PDF
                         </button>
@@ -342,11 +361,10 @@ const MedicalRecords = () => {
                           onClick={() =>
                             handlePdfAction(
                               "download",
-                              downloadEndpoint,
-                              fileName
+                              `/invoices/${invoice._id}/pdf/download`
                             )
                           }
-                          className="..."
+                          className="px-3 py-1 text-sm border border-dark-red text-dark-red rounded hover:bg-red-50"
                         >
                           Download PDF
                         </button>
@@ -358,7 +376,6 @@ const MedicalRecords = () => {
             )}
           </div>
         )}
-
         {activeTab === "visit-history" && (
           <div className="p-4 rounded-lg bg-gray-50 animate-fadeIn">
             <div className="flex justify-between items-center mb-4">
