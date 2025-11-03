@@ -29,7 +29,7 @@ function formatCurrency(amount) {
 }
 
 // Generates the HTML for one of the three copies (Patient, Clinic, Lab)
-function generateCopyHtml(type, invoice) {
+function generateCopyHtml(type, invoice, logoBase64) {
   const isLab = type === "Laboratory Copy";
   const hasRx = type !== "Patient Copy";
   const lensItem = invoice.items.find((item) => item.isLens);
@@ -129,11 +129,7 @@ function generateCopyHtml(type, invoice) {
         <div class="copy-container">
             <div class="header">
                 <div class="header-left">
-                    <img src="data:image/png;base64,${Buffer.from(
-                      fs.readFileSync(
-                        path.join(__dirname, "../assets/clinic-logo.png")
-                      )
-                    ).toString("base64")}" class="logo" />
+                  <img src="${logoBase64}" class="logo" />
                 </div>
                 <div class="header-center">
                     <h2>Candelaria Eye Care Clinic</h2>
@@ -308,9 +304,9 @@ export function getInvoiceHtml(invoice) {
         </head>
         <body>
             <div class="page">
-                ${generateCopyHtml("Patient Copy", invoice)}
-                ${generateCopyHtml("Clinic Copy", invoice)}
-                ${generateCopyHtml("Laboratory Copy", invoice)}
+                ${generateCopyHtml("Patient Copy", invoice, logoBase64)}
+                ${generateCopyHtml("Clinic Copy", invoice, logoBase64)}
+                ${generateCopyHtml("Laboratory Copy", invoice, logoBase64)}
             </div>
         </body>
         </html>
