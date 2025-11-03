@@ -30,9 +30,9 @@ const generateInvoicePDF = async (invoiceData) => {
 
     const page = await browser.newPage();
 
-    const logoBase64 = getImageAsBase64(
-      path.join(__dirname, "../../assets/clinic-logo.png")
-    );
+    const logoPath = path.join(__dirname, "../assets/clinic-logo.png");
+
+    const logoBase64 = getImageAsBase64(logoPath);
     const htmlContent = getInvoiceHtml(invoiceData, logoBase64);
 
     await page.setContent(htmlContent, { waitUntil: "networkidle0" });
