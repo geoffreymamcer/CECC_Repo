@@ -270,81 +270,77 @@ export const createInvoice = async (req, res) => {
   }
 };
 
-async function generateAndSendInvoicePDF(res, invoice, disposition) {
-  // --- NEW --- Fetch the creator's profile to get their name
-  let creatorName = "N/A";
-  if (invoice.createdBy) {
-    try {
-      const creatorProfile = await Profile.findById(invoice.createdBy).lean();
-      if (creatorProfile) {
-        creatorName = `${creatorProfile.firstName} ${creatorProfile.lastName}`;
-      }
-    } catch (e) {
-      console.error("Could not fetch creator's name for PDF:", e);
-    }
-  }
-
-  // Add the creator's name to the invoice object before sending it to the template
-  const invoiceWithCreator = { ...invoice.toObject(), creatorName };
-
-  const pdfBuffer = await pdfService.generateInvoicePDF(invoiceWithCreator);
-
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader(
-    "Content-Disposition",
-    `${disposition}; filename="invoice-${invoice.invoiceNumber}.pdf"`
-  );
-  res.send(pdfBuffer);
-}
-
-// --- PDF DOWNLOAD (ON-DEMAND) ---
-export const downloadInvoicePDF = async (req, res) => {
+async function generateAndSendInvoicePDF(req, res, disposition) {
   try {
     const { id } = req.params;
-    const invoice = await Invoice.findById(id);
+    // Use `req.user.id` and `req.user.role` from the `auth` middleware for consistency.
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // Use .lean() for better performance and to get a plain JavaScript object.
+    const invoice = await Invoice.findById(id).lean();
+
     if (!invoice) {
       return res.status(404).json({ message: "Invoice not found" });
     }
 
-    // Security check can be added here if needed
-    // if (req.user.role !== 'admin' && invoice.patientId !== req.user.id) {
-    //   return res.status(403).json({ message: "Forbidden" });
-    // }
+    // CRITICAL: Add a security check to ensure the user is an admin or owns the invoice.
+    const isOwner = String(invoice.patientId) === String(userId);
+    const isAdmin = userRole === "admin";
 
-    const pdfBuffer = await pdfService.generateInvoicePDF(invoice);
+    if (!isOwner && !isAdmin) {
+      return res
+        .status(403)
+        .json({
+          message:
+            "Forbidden: You do not have permission to access this invoice.",
+        });
+    }
+
+    // Fetch the creator's name to display it on the PDF, making it more complete.
+    let creatorName = "N/A";
+    if (invoice.createdBy) {
+      try {
+        const creatorProfile = await Profile.findById(invoice.createdBy).lean();
+        if (creatorProfile) {
+          creatorName = `${creatorProfile.firstName} ${creatorProfile.lastName}`;
+        }
+      } catch (e) {
+        console.error("Could not fetch creator's name for PDF:", e);
+      }
+    }
+
+    // Pass the complete data object to the PDF service.
+    const invoiceWithCreator = { ...invoice, creatorName };
+    const pdfBuffer = await pdfService.generateInvoicePDF(invoiceWithCreator);
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`
+      `${disposition}; filename="invoice-${invoice.invoiceNumber}.pdf"`
     );
     res.send(pdfBuffer);
   } catch (error) {
-    console.error("Error downloading invoice PDF:", error);
-    res.status(500).json({ message: "Error downloading invoice PDF" });
+    console.error(
+      `Error ${
+        disposition === "inline" ? "viewing" : "downloading"
+      } invoice PDF:`,
+      error
+    );
+    res.status(500).json({ message: `Error generating invoice PDF.` });
   }
+}
+
+// --- NEW PDF VIEW (ON-DEMAND) ---
+// This now simply calls our secure helper function with 'inline' disposition.
+export const viewInvoicePDF = async (req, res) => {
+  await generateAndSendInvoicePDF(req, res, "inline");
 };
 
-// --- PDF VIEW (ON-DEMAND) ---
-export const viewInvoicePDF = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const invoice = await Invoice.findById(id);
-    if (!invoice) {
-      return res.status(404).json({ message: "Invoice not found" });
-    }
-
-    // Security check can be added here if needed
-
-    const pdfBuffer = await pdfService.generateInvoicePDF(invoice);
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "inline");
-    res.send(pdfBuffer);
-  } catch (error) {
-    console.error("Error viewing invoice PDF:", error);
-    res.status(500).json({ message: "Error viewing invoice PDF" });
-  }
+// --- NEW PDF DOWNLOAD (ON-DEMAND) ---
+// This now simply calls our secure helper function with 'attachment' disposition.
+export const downloadInvoicePDF = async (req, res) => {
+  await generateAndSendInvoicePDF(req, res, "attachment");
 };
 
 // Helper

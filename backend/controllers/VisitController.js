@@ -328,7 +328,7 @@ export const adminViewVisitPDF = async (req, res) => {
 export const viewMyVisitPDF = async (req, res) => {
   try {
     const { visitId } = req.params;
-    const patientId = req.user.id;
+    const patientId = req.user.id; // Get ID from the logged-in user's token
 
     const visit = await Visit.findById(visitId)
       .populate(
@@ -339,6 +339,7 @@ export const viewMyVisitPDF = async (req, res) => {
       return res.status(404).json({ message: "Visit report not found." });
     }
 
+    // Security Check: Does this visit belong to the logged-in user?
     if (visit.patientId !== patientId) {
       return res.status(403).json({
         message: "Forbidden: You do not have permission to view this report.",
@@ -352,10 +353,8 @@ export const viewMyVisitPDF = async (req, res) => {
         .json({ message: "Associated patient profile not found." });
     }
 
-    // --- THE FIX ---
-    // Directly call the correct service and pass the correct objects
+    // Use a helper or directly call the PDF generation
     const pdfBuffer = await generateVisitReport(visit, patient);
-
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", "inline");
     res.send(pdfBuffer);
@@ -365,6 +364,7 @@ export const viewMyVisitPDF = async (req, res) => {
   }
 };
 
+// PATIENT-facing function to DOWNLOAD a PDF
 export const downloadMyVisitPDF = async (req, res) => {
   try {
     const { visitId } = req.params;
@@ -379,13 +379,12 @@ export const downloadMyVisitPDF = async (req, res) => {
       return res.status(404).json({ message: "Visit report not found." });
     }
 
+    // Security Check: Does this visit belong to the logged-in user?
     if (visit.patientId !== patientId) {
-      return res
-        .status(403)
-        .json({
-          message:
-            "Forbidden: You do not have permission to download this report.",
-        });
+      return res.status(403).json({
+        message:
+          "Forbidden: You do not have permission to download this report.",
+      });
     }
 
     const patient = await Profile.findById(patientId).lean();
@@ -393,10 +392,7 @@ export const downloadMyVisitPDF = async (req, res) => {
       return res.status(404).json({ message: "Patient profile not found." });
     }
 
-    // --- THE FIX ---
-    // Directly call the correct service and pass the correct objects
     const pdfBuffer = await generateVisitReport(visit, patient);
-
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
