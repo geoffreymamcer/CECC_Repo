@@ -1,7 +1,7 @@
-import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer-core"; // --- 1. IMPORT from 'puppeteer-core' ---
+import chromium from "@sparticuz/chromium"; // --- 2. IMPORT the chromium package ---
 import { getInvoiceHtml } from "./invoiceTemplate.js";
-import fs from "fs"; // --- NEW ---
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -21,20 +21,19 @@ function getImageAsBase64(filePath) {
 const generateInvoicePDF = async (invoiceData) => {
   let browser = null;
   try {
-    // --- THE FIX ---
-    const logoBase64 = getImageAsBase64(
-      path.join(__dirname, "../../assets/clinic-logo.png")
-    );
-
-    // Pass the base64 logo to the template
-    const htmlContent = getInvoiceHtml(invoiceData, logoBase64);
-
+    // --- 3. THE FIX: Configure Puppeteer for a serverless environment ---
     browser = await puppeteer.launch({
       args: chromium.args,
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
     });
+
     const page = await browser.newPage();
+
+    const logoBase64 = getImageAsBase64(
+      path.join(__dirname, "../../assets/clinic-logo.png")
+    );
+    const htmlContent = getInvoiceHtml(invoiceData, logoBase64);
 
     await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
@@ -42,15 +41,23 @@ const generateInvoicePDF = async (invoiceData) => {
       width: "8.5in",
       height: "13in",
       printBackground: true,
-      margin: { top: "8mm", bottom: "8mm", left: "10mm", right: "10mm" },
+      margin: {
+        top: "8mm",
+        bottom: "8mm",
+        left: "10mm",
+        right: "10mm",
+      },
     });
 
-    await browser.close();
     return pdfBuffer;
   } catch (error) {
     console.error("Error generating Invoice PDF with Puppeteer:", error);
-    if (browser) await browser.close();
+    // Propagate the error so the controller can handle it
     throw new Error("Could not generate Invoice PDF.");
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
   }
 };
 
