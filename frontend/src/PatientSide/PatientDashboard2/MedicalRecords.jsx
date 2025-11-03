@@ -76,14 +76,14 @@ const MedicalRecords = () => {
     fetchAllRecords();
   }, []);
 
-  const handlePdfAction = async (type, visitId) => {
+  // --- REPLACE WITH THIS VERSION ---
+  const handlePdfAction = async (type, fullEndpoint, fileName) => {
     if (downloadingId) return;
-    setDownloadingId(visitId); // Use visitId as the loading key
+    setDownloadingId(fullEndpoint); // Use the unique endpoint as the loading key
     try {
-      // --- MODIFIED --- Construct the correct, secure patient-facing URL
-      const endpoint = `/visits/my-visits/${visitId}/pdf/${type}`;
-
-      const response = await instance.get(endpoint, { responseType: "blob" });
+      const response = await instance.get(fullEndpoint, {
+        responseType: "blob",
+      });
       const file = new Blob([response.data], { type: "application/pdf" });
       const fileURL = URL.createObjectURL(file);
 
@@ -93,7 +93,7 @@ const MedicalRecords = () => {
         // download
         const link = document.createElement("a");
         link.href = fileURL;
-        link.setAttribute("download", `clinic-report-${visitId}.pdf`);
+        link.setAttribute("download", fileName);
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -175,48 +175,62 @@ const MedicalRecords = () => {
               </p>
             ) : (
               <div className="space-y-4">
-                {visits.map((visit) => (
-                  <div
-                    key={visit._id}
-                    className="border p-4 rounded bg-white hover:shadow-md"
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-semibold text-dark-red">
-                          Clinical Report
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Visit Date: {formatDate(visit.visitDate)}
-                        </p>
-                      </div>
-                      <div className="flex space-x-2">
-                        {/* --- MODIFIED --- Pass only the visit._id to the handler */}
-                        <button
-                          onClick={() => handlePdfAction("view", visit._id)}
-                          disabled={downloadingId === visit._id}
-                          className="px-3 py-1 text-sm border border-dark-red text-dark-red rounded hover:bg-red-50 flex items-center disabled:opacity-50"
-                        >
-                          {downloadingId === visit._id ? (
-                            <FaSpinner className="animate-spin" />
-                          ) : (
-                            <FaEye />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => handlePdfAction("download", visit._id)}
-                          disabled={downloadingId === visit._id}
-                          className="px-3 py-1 text-sm bg-dark-red text-white rounded hover:bg-deep-red flex items-center disabled:opacity-50"
-                        >
-                          {downloadingId === visit._id ? (
-                            <FaSpinner className="animate-spin" />
-                          ) : (
-                            <FaDownload />
-                          )}
-                        </button>
+                {visits.map((visit) => {
+                  const viewEndpoint = `/visits/my-visits/${visit._id}/pdf/view`;
+                  const downloadEndpoint = `/visits/my-visits/${visit._id}/pdf/download`;
+                  const fileName = `clinic-report-${
+                    new Date(visit.visitDate).toISOString().split("T")[0]
+                  }.pdf`;
+                  return (
+                    <div
+                      key={visit._id}
+                      className="border p-4 rounded bg-white hover:shadow-md"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-semibold text-dark-red">
+                            Clinical Report
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Visit Date: {formatDate(visit.visitDate)}
+                          </p>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() =>
+                              handlePdfAction("view", viewEndpoint)
+                            }
+                            disabled={downloadingId === viewEndpoint}
+                            className="..."
+                          >
+                            {downloadingId === viewEndpoint ? (
+                              <FaSpinner className="animate-spin" />
+                            ) : (
+                              <FaEye />
+                            )}
+                          </button>
+                          <button
+                            onClick={() =>
+                              handlePdfAction(
+                                "download",
+                                downloadEndpoint,
+                                fileName
+                              )
+                            }
+                            disabled={downloadingId === downloadEndpoint}
+                            className="..."
+                          >
+                            {downloadingId === downloadEndpoint ? (
+                              <FaSpinner className="animate-spin" />
+                            ) : (
+                              <FaDownload />
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -307,53 +321,39 @@ const MedicalRecords = () => {
               </p>
             ) : (
               <ul className="space-y-3">
-                {invoices.map((invoice) => (
-                  <li
-                    key={invoice._id}
-                    className="border p-4 rounded bg-white hover:shadow"
-                  >
-                    <div className="flex justify-between">
-                      <div>
-                        <p className="font-medium">
-                          Invoice #{invoice.invoiceNumber}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {new Date(invoice.invoiceDate).toLocaleDateString()}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Job Order: {invoice.jobOrderNumber}
-                        </p>
+                {invoices.map((invoice) => {
+                  const viewEndpoint = `/invoices/${invoice._id}/pdf/view`;
+                  const downloadEndpoint = `/invoices/${invoice._id}/pdf/download`;
+                  const fileName = `invoice-${invoice.invoiceNumber}.pdf`;
+                  return (
+                    <li
+                      key={invoice._id}
+                      className="border p-4 rounded bg-white hover:shadow"
+                    >
+                      {/* ... invoice info display ... */}
+                      <div className="mt-3 flex space-x-2">
+                        <button
+                          onClick={() => handlePdfAction("view", viewEndpoint)}
+                          className="..."
+                        >
+                          View PDF
+                        </button>
+                        <button
+                          onClick={() =>
+                            handlePdfAction(
+                              "download",
+                              downloadEndpoint,
+                              fileName
+                            )
+                          }
+                          className="..."
+                        >
+                          Download PDF
+                        </button>
                       </div>
-                      <span className="text-sm text-gray-700 font-medium">
-                        PHP {invoice.totalAmount.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex space-x-2">
-                      <button
-                        onClick={() =>
-                          handlePdfAction(
-                            "view",
-                            `/invoices/${invoice._id}/pdf/view`
-                          )
-                        }
-                        className="px-3 py-1 text-sm bg-dark-red text-white rounded hover:bg-deep-red"
-                      >
-                        View PDF
-                      </button>
-                      <button
-                        onClick={() =>
-                          handlePdfAction(
-                            "download",
-                            `/invoices/${invoice._id}/pdf/download`
-                          )
-                        }
-                        className="px-3 py-1 text-sm border border-dark-red text-dark-red rounded hover:bg-red-50"
-                      >
-                        Download PDF
-                      </button>
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
