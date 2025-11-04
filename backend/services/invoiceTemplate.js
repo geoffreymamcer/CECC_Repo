@@ -243,7 +243,7 @@ function generateCopyHtml(type, invoice, logoBase64) {
 }
 
 // Main function to assemble the full HTML document
-export function getInvoiceHtml(invoice) {
+export function getInvoiceHtml(invoice, logoBase64) {
   return `
            <!DOCTYPE html>
         <html>
