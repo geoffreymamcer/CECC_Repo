@@ -27,9 +27,10 @@ const PatientPortalPatientList = () => {
 
   const fetchPatients = useCallback(async () => {
     setLoading(true);
+    setError(null); // Clear previous errors
     try {
       const response = await instance.get("/profiles");
-      setError(null);
+      setPatients(response.data || []);
     } catch (err) {
       console.error("Error fetching patients:", err);
       setError("Failed to load patient data. Please try again.");
