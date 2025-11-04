@@ -51,6 +51,32 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const adminLogin = async (email, password) => {
+    setIsAuthLoading(true);
+    try {
+      // Call the dedicated admin login endpoint
+      const response = await api.post("/users/admin-login", {
+        email,
+        password,
+      });
+      const { token, user: userData } = response.data;
+      localStorage.setItem("token", token);
+      setUser(userData);
+      return { success: true };
+    } catch (error) {
+      console.error(
+        "Admin Login failed:",
+        error.response?.data?.message || error.message
+      );
+      return {
+        success: false,
+        message: error.response?.data?.message || "Admin login failed",
+      };
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem("token");
     // No need to delete axios defaults here anymore.
@@ -58,7 +84,14 @@ export const AuthProvider = ({ children }) => {
     window.location.href = "/";
   };
 
-  const authContextValue = { user, isLoading, isAuthLoading, login, logout };
+  const authContextValue = {
+    user,
+    isLoading,
+    isAuthLoading,
+    login,
+    adminLogin,
+    logout,
+  };
 
   return (
     <AuthContext.Provider value={authContextValue}>

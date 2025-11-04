@@ -12,13 +12,13 @@ const LoginForm = () => {
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { login, isAuthLoading } = useAuth();
+  const { adminLogin, isAuthLoading } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(""); // Clear previous errors
 
-    const result = await login(email, password);
+    const result = await adminLogin(email, password);
 
     if (result.success) {
       navigate("/cecc-admin-dashboard");
@@ -30,7 +30,6 @@ const LoginForm = () => {
   return (
     <div className="w-full md:w-1/2 flex justify-center items-center p-8 md:p-12">
       <div className="w-full max-w-md">
-        {/* ... your existing JSX for the form header ... */}
         <div className="text-center mb-8">
           <div className="avatar mx-auto w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-lg">
             <i className="fas fa-user-shield text-primary-500 text-4xl"></i>
@@ -44,8 +43,6 @@ const LoginForm = () => {
         </div>
 
         <form className="space-y-6" onSubmit={handleSubmit}>
-          {/* ... Your InputField components and the rest of the form ... */}
-          {/* This part does not need to change. */}
           <InputField
             type="email"
             name="email"
