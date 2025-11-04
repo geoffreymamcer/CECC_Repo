@@ -5,7 +5,6 @@ import SideBar from "./SideBar";
 import PatientListLayout from "./PatientListLayout";
 import PatientInformationModal from "./PatientInformationModal";
 import instance from "../../api/axios";
-
 import AddPatientModal from "./AddPatientModal";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Dashboard from "./Dashboard";

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import instance from "../../api/axios"; // <-- ADD THIS LINE (adjust path if needed)
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -128,34 +128,22 @@ const PatientAnalytics = () => {
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem("token");
+        // 👇 START OF CHANGE 🚀
         const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const headers = {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "X-User-Timezone": userTimezone,
-          },
-        };
 
-        // --- MODIFIED --- Fetch all analytics data points in parallel
+        // The 'headers' object is no longer needed here.
+        // The 'api' instance handles the Authorization token automatically.
+        // We only need to pass the custom timezone header where required.
+
         const [eyeConditionRes, visitGrowthRes, ageGroupRes, geoLocationRes] =
           await Promise.all([
-            axios.get(
-              "http://localhost:5000/api/analytics/eye-conditions",
-              headers
+            instance.get("/analytics/eye-conditions"), // Use 'api', no headers needed
+            instance.get(
+              `/analytics/visit-growth?timeFrame=${timeFrame}`,
+              { headers: { "X-User-Timezone": userTimezone } } // Pass custom header only where needed
             ),
-            axios.get(
-              `http://localhost:5000/api/analytics/visit-growth?timeFrame=${timeFrame}`,
-              headers
-            ),
-            axios.get(
-              "http://localhost:5000/api/analytics/age-group-distribution",
-              headers
-            ),
-            axios.get(
-              "http://localhost:5000/api/analytics/geographic-distribution",
-              headers
-            ),
+            instance.get("/analytics/age-group-distribution"), // Use 'api', no headers needed
+            instance.get("/analytics/geographic-distribution"), // Use 'api', no headers needed
           ]);
 
         // Handle eye condition data
