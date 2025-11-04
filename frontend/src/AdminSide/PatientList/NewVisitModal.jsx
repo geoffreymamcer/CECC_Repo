@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FaTimes, FaSave } from "react-icons/fa";
-import axios from "axios";
+import instance from "../../api/axios";
 
 // Import all the form components you'll be using
 import CaseHistoryTakingForm from "./CaseHistoryTakingForm";
@@ -184,62 +184,47 @@ const NewVisitModal = ({ isOpen, onClose, onSave, patientId }) => {
     setIsSaving(true);
 
     try {
-      const token = localStorage.getItem("token");
-      const headers = { headers: { Authorization: `Bearer ${token}` } };
+      // The 'api' instance will handle the token automatically. No need for headers.
 
       // STEP 1: Create a new Visit document for the existing patient.
-      // The backend will automatically create all the associated empty clinical records.
-      const visitResponse = await axios.post(
-        "http://localhost:5000/api/visits",
-        { patientId }, // Just need to send the patientId
-        headers
-      );
+      const visitResponse = await instance.post("/visits", { patientId });
       const newVisit = visitResponse.data;
 
       if (!newVisit?._id) {
         throw new Error("Failed to create new visit record.");
       }
 
-      // STEP 2: Update the newly created (but empty) clinical records with the form data.
+      // STEP 2: Update the newly created records with the form data.
       const updatePromises = [
-        axios.put(
-          `http://localhost:5000/api/casehistory/visit/${newVisit.caseHistory}`,
-          caseHistory,
-          headers
+        instance.put(`/casehistory/visit/${newVisit.caseHistory}`, caseHistory),
+        instance.put(
+          `/clinical-examination/visit/${newVisit.clinicalExamination}`,
+          clinicalExam
         ),
-        axios.put(
-          `http://localhost:5000/api/clinical-examination/visit/${newVisit.clinicalExamination}`,
-          clinicalExam,
-          headers
+        instance.put(
+          `/binocular-tests/visit/${newVisit.basicBinocularVisionTests}`,
+          binocularTests
         ),
-        axios.put(
-          `http://localhost:5000/api/binocular-tests/visit/${newVisit.basicBinocularVisionTests}`,
-          binocularTests,
-          headers
+        instance.put(
+          `/slit-lamp-funduscopy/visit/${newVisit.slitLampFunduscopy}`,
+          slitLampFunduscopy
         ),
-        axios.put(
-          `http://localhost:5000/api/slit-lamp-funduscopy/visit/${newVisit.slitLampFunduscopy}`,
-          slitLampFunduscopy,
-          headers
+        instance.put(
+          `/diagnostic-assessment-plan/visit/${newVisit.diagnosticAssessmentPlan}`,
+          diagnosticPlan
         ),
-        axios.put(
-          `http://localhost:5000/api/diagnostic-assessment-plan/visit/${newVisit.diagnosticAssessmentPlan}`,
-          diagnosticPlan,
-          headers
-        ),
-        axios.put(
-          `http://localhost:5000/api/plan-of-management/visit/${newVisit.planOfManagement}`,
-          planOfManagement,
-          headers
+        instance.put(
+          `/plan-of-management/visit/${newVisit.planOfManagement}`,
+          planOfManagement
         ),
       ];
 
       await Promise.all(updatePromises);
 
-      // STEP 3: If everything is successful, call the parent component's handlers.
+      // STEP 3: Call parent component's handlers.
       alert("New visit added successfully!");
-      onSave(); // This tells PatientInformationModal to refresh its data
-      onClose(); // This closes the modal
+      onSave();
+      onClose();
     } catch (error) {
       console.error("Failed to add new visit:", error);
       const errorMessage =

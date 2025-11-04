@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import axios from "axios";
+import instance from "../../api/axios";
 import {
   FaUserMd,
   FaTimes,
@@ -285,19 +285,11 @@ const PatientInformationModal = ({
     const headers = { headers: { Authorization: `Bearer ${token}` } };
 
     try {
+      // The 'api' instance handles the Authorization header automatically
       const [profileRes, visitsRes, invoicesRes] = await Promise.all([
-        axios.get(
-          `http://localhost:5000/api/profiles/id/${patientId}`,
-          headers
-        ),
-        axios.get(
-          `http://localhost:5000/api/visits/patient/${patientId}`,
-          headers
-        ),
-        axios.get(
-          `http://localhost:5000/api/invoices/patient/${patientId}`,
-          headers
-        ),
+        instance.get(`/profiles/id/${patientId}`),
+        instance.get(`/visits/patient/${patientId}`),
+        instance.get(`/invoices/patient/${patientId}`),
       ]);
 
       const profileData = profileRes.data;
@@ -389,42 +381,34 @@ const PatientInformationModal = ({
     const headers = { headers: { Authorization: `Bearer ${token}` } };
 
     try {
-      // Create promises only for the record IDs that actually exist on the visit object.
+      // Use the 'api' instance for all clinical data requests
       const promises = [
         selectedVisit.caseHistory
-          ? axios.get(
-              `http://localhost:5000/api/casehistory/visit/${selectedVisit.caseHistory}`,
-              headers
-            )
+          ? instance.get(`/casehistory/visit/${selectedVisit.caseHistory}`)
           : Promise.resolve({ data: {} }),
         selectedVisit.clinicalExamination
-          ? axios.get(
-              `http://localhost:5000/api/clinical-examination/visit/${selectedVisit.clinicalExamination}`,
-              headers
+          ? instance.get(
+              `/clinical-examination/visit/${selectedVisit.clinicalExamination}`
             )
           : Promise.resolve({ data: {} }),
         selectedVisit.basicBinocularVisionTests
-          ? axios.get(
-              `http://localhost:5000/api/binocular-tests/visit/${selectedVisit.basicBinocularVisionTests}`,
-              headers
+          ? instance.get(
+              `/binocular-tests/visit/${selectedVisit.basicBinocularVisionTests}`
             )
           : Promise.resolve({ data: {} }),
         selectedVisit.slitLampFunduscopy
-          ? axios.get(
-              `http://localhost:5000/api/slit-lamp-funduscopy/visit/${selectedVisit.slitLampFunduscopy}`,
-              headers
+          ? instance.get(
+              `/slit-lamp-funduscopy/visit/${selectedVisit.slitLampFunduscopy}`
             )
           : Promise.resolve({ data: {} }),
         selectedVisit.diagnosticAssessmentPlan
-          ? axios.get(
-              `http://localhost:5000/api/diagnostic-assessment-plan/visit/${selectedVisit.diagnosticAssessmentPlan}`,
-              headers
+          ? instance.get(
+              `/diagnostic-assessment-plan/visit/${selectedVisit.diagnosticAssessmentPlan}`
             )
           : Promise.resolve({ data: {} }),
         selectedVisit.planOfManagement
-          ? axios.get(
-              `http://localhost:5000/api/plan-of-management/visit/${selectedVisit.planOfManagement}`,
-              headers
+          ? instance.get(
+              `/plan-of-management/visit/${selectedVisit.planOfManagement}`
             )
           : Promise.resolve({ data: {} }),
       ];
@@ -619,16 +603,10 @@ const PatientInformationModal = ({
   // PDF handlers (kept)
   const handleViewPDF = async (invoiceId) => {
     try {
-      const token = localStorage.getItem("token");
-      // --- MODIFIED --- Use the correct '/pdf/view' endpoint
-      const response = await axios.get(
-        `http://localhost:5000/api/invoices/${invoiceId}/pdf/view`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: "blob",
-        }
-      );
-
+      // Use the admin-specific route for viewing PDFs from this modal
+      const response = await instance.get(`/invoices/${invoiceId}/pdf/view`, {
+        responseType: "blob",
+      });
       const file = new Blob([response.data], { type: "application/pdf" });
       const fileURL = URL.createObjectURL(file);
       window.open(fileURL, "_blank");
@@ -640,23 +618,19 @@ const PatientInformationModal = ({
 
   const handleDownloadPDF = async (invoiceId, invoiceNumber) => {
     try {
-      const token = localStorage.getItem("token");
-      // --- MODIFIED --- Use the correct '/pdf/download' endpoint
-      const response = await axios.get(
-        `http://localhost:5000/api/invoices/${invoiceId}/pdf/download`,
+      const response = await instance.get(
+        `/invoices/${invoiceId}/pdf/download`,
         {
-          headers: { Authorization: `Bearer ${token}` },
           responseType: "blob",
         }
       );
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
       link.download = `invoice-${invoiceNumber}.pdf`;
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error downloading PDF:", error);
@@ -762,45 +736,37 @@ const PatientInformationModal = ({
           "",
       };
 
-      // --- Step 2: Create all promises for updating the profile and clinical records ---
-      const profileUpdatePromise = axios.put(
-        `http://localhost:5000/api/profiles/${patientId}`,
-        profilePayload,
-        headers
+      const profileUpdatePromise = instance.put(
+        `/profiles/${patientId}`,
+        profilePayload
       );
 
       // Create promises to update each clinical record using its specific ID from the visit object.
       // This logic is now correct and has no fallbacks.
       const clinicalPromises = [
-        axios.put(
-          `http://localhost:5000/api/casehistory/visit/${selectedVisit.caseHistory}`,
-          caseHistoryData,
-          headers
+        instance.put(
+          `/casehistory/visit/${selectedVisit.caseHistory}`,
+          caseHistoryData
         ),
-        axios.put(
-          `http://localhost:5000/api/clinical-examination/visit/${selectedVisit.clinicalExamination}`,
-          clinicalExaminationData,
-          headers
+        instance.put(
+          `/clinical-examination/visit/${selectedVisit.clinicalExamination}`,
+          clinicalExaminationData
         ),
-        axios.put(
-          `http://localhost:5000/api/binocular-tests/visit/${selectedVisit.basicBinocularVisionTests}`,
-          basicBinocularTestsData,
-          headers
+        instance.put(
+          `/binocular-tests/visit/${selectedVisit.basicBinocularVisionTests}`,
+          basicBinocularTestsData
         ),
-        axios.put(
-          `http://localhost:5000/api/slit-lamp-funduscopy/visit/${selectedVisit.slitLampFunduscopy}`,
-          slitLampData,
-          headers
+        instance.put(
+          `/slit-lamp-funduscopy/visit/${selectedVisit.slitLampFunduscopy}`,
+          slitLampData
         ),
-        axios.put(
-          `http://localhost:5000/api/diagnostic-assessment-plan/visit/${selectedVisit.diagnosticAssessmentPlan}`,
-          diagnosticPlanData,
-          headers
+        instance.put(
+          `/diagnostic-assessment-plan/visit/${selectedVisit.diagnosticAssessmentPlan}`,
+          diagnosticPlanData
         ),
-        axios.put(
-          `http://localhost:5000/api/plan-of-management/visit/${selectedVisit.planOfManagement}`,
-          planOfManagementData,
-          headers
+        instance.put(
+          `/plan-of-management/visit/${selectedVisit.planOfManagement}`,
+          planOfManagementData
         ),
       ];
 

@@ -1,4 +1,3 @@
-// src/components/PatientListLayout.jsx
 import React, { useState } from "react"; // --- REMOVED useEffect and axios ---
 // We keep PatientCard and the icons
 import PatientCard from "./PatientCard";

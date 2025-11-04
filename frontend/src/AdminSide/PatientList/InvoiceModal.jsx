@@ -1,6 +1,6 @@
 // src/components/InvoiceModal.jsx
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import instance from "../../api/axios";
 import {
   FaChevronDown,
   FaChevronUp,
@@ -76,14 +76,14 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
   useEffect(() => {
     const fetchPreview = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          `http://localhost:5000/api/invoices/preview/next?date=${invoiceData.invoiceDate}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+        // Use the 'api' instance, the token is handled automatically
+        const res = await instance.get(
+          `/invoices/preview/next?date=${invoiceData.invoiceDate}`
         );
         setPreviewNumbers(res.data);
       } catch (e) {
-        setPreviewNumbers({ invoiceNumber: "", jobOrderNumber: "" });
+        console.error("Failed to fetch preview numbers:", e);
+        setPreviewNumbers({ invoiceNumber: "Error", jobOrderNumber: "Error" });
       }
     };
     if (invoiceData.invoiceDate) fetchPreview();
@@ -96,22 +96,12 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          "http://localhost:5000/api/inventory",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        // Get the products array, handling both paginated and non-paginated responses
+        const response = await instance.get("/inventory");
         const productsArray = response.data.products || response.data;
-
         if (!Array.isArray(productsArray)) {
           console.error("Products data is not an array:", productsArray);
           return;
         }
-
         const inventoryProducts = productsArray
           .filter((product) => product && product.availableStocks > 0)
           .map((product) => ({
@@ -129,7 +119,6 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
         alert("Failed to load product list. Please try again.");
       }
     };
-
     fetchProducts();
   }, []);
 
@@ -143,15 +132,10 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
 
   // Handle patient search
   useEffect(() => {
-    // Auto-load patient details from backend Profile
     const loadProfile = async () => {
       try {
         if (!patientId) return;
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          `http://localhost:5000/api/profiles/id/${patientId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const res = await instance.get(`/profiles/id/${patientId}`);
         const p = res.data;
         const name = [p.firstName, p.middleName, p.lastName]
           .filter(Boolean)
@@ -160,12 +144,11 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
           ...prev,
           patientId: patientId,
           patientName: name,
-          patientAddress: p.address?.display || p.address || "",
+          patientAddress: p.address || "",
           patientTelephone: p.contact || p.phone_number || "",
         }));
-        setSearchTerm(patientId);
       } catch (e) {
-        // silent fail; fields stay empty
+        console.error("Failed to load patient profile for invoice:", e);
       }
     };
     loadProfile();
@@ -300,7 +283,6 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem("token");
       const payload = {
         patientId: invoiceData.patientId,
         invoiceDate: invoiceData.invoiceDate
@@ -321,17 +303,13 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
         })),
         notes: invoiceData.notes,
       };
-      const res = await axios.post(
-        "http://localhost:5000/api/invoices",
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+
+      const res = await instance.post("/invoices", payload); // Use api instance
       const created = res.data;
       console.log("Invoice created successfully:", created);
 
       // Update inventory stocks
       try {
-        // Create an array of updates for each item
         const stockUpdates = invoiceData.items
           .map((item) => {
             const product = products.find((p) => p.name === item.description);
@@ -341,40 +319,24 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
               quantity: parseInt(item.quantity) || 0,
             };
           })
-          .filter((update) => update !== null);
+          .filter(Boolean);
 
-        // Make the update request
         if (stockUpdates.length > 0) {
           await Promise.all(
             stockUpdates.map((update) =>
-              axios.put(
-                `http://localhost:5000/api/inventory/${update.productId}/reduce-stock`,
-                { quantity: update.quantity },
-                { headers: { Authorization: `Bearer ${token}` } }
-              )
+              instance.put(`/inventory/${update.productId}/reduce-stock`, {
+                quantity: update.quantity,
+              })
             )
           );
           console.log("Inventory stocks updated successfully");
         }
       } catch (stockError) {
         console.error("Error updating inventory stocks:", stockError);
-        alert(
-          "Invoice created but failed to update inventory stocks. Please update stocks manually."
-        );
-      }
-
-      // Check if PDF was generated
-      if (created.pdfData) {
-        console.log(
-          "PDF data found in response, size:",
-          created.pdfData.length
-        );
-      } else {
-        console.log("No PDF data in response");
+        alert("Invoice created but failed to update inventory stocks.");
       }
 
       setCreatedInvoice(created);
-      // Don't close modal yet - show success with download option
     } catch (err) {
       console.error("Invoice creation error:", err);
       if (err.response) {
@@ -404,15 +366,10 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
   const handleDownloadPDF = async () => {
     if (!createdInvoice?._id) return;
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:5000/api/invoices/${createdInvoice._id}/pdf/download`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: "blob",
-        }
+      const response = await instance.get(
+        `/invoices/${createdInvoice._id}/pdf/download`,
+        { responseType: "blob" }
       );
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -426,34 +383,23 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("PDF download error:", error);
-      // --- MODIFIED --- More specific error message
-      alert(
-        "Failed to generate or download PDF. Please check server logs for details."
-      );
+      alert("Failed to generate or download PDF.");
     }
   };
 
   const handleViewPDF = async () => {
     if (!createdInvoice?._id) return;
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://localhost:5000/api/invoices/${createdInvoice._id}/pdf/view`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: "blob",
-        }
+      const response = await instance.get(
+        `/invoices/${createdInvoice._id}/pdf/view`,
+        { responseType: "blob" }
       );
-
       const file = new Blob([response.data], { type: "application/pdf" });
       const fileURL = URL.createObjectURL(file);
       window.open(fileURL, "_blank");
     } catch (error) {
       console.error("PDF view error:", error);
-      // --- MODIFIED --- More specific error message
-      alert(
-        "Failed to generate or view PDF. Please check server logs for details."
-      );
+      alert("Failed to generate or view PDF.");
     }
   };
   return (

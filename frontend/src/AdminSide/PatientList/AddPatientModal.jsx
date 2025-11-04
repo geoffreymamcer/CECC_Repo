@@ -7,7 +7,7 @@ import {
   FaArrowRight,
   FaSave,
 } from "react-icons/fa";
-import axios from "axios";
+import instance from "../../api/axios";
 
 // Import all required JSON data and form components
 import regions from "../../services/phAddress/region.json";
@@ -275,9 +275,7 @@ const AddPatientModal = ({ handleCloseModal, handleAddPatient }) => {
   useEffect(() => {
     const generateNextPatientId = async () => {
       try {
-        const response = await axios.get(
-          "http://localhost:5000/api/profiles/latest-id"
-        );
+        const response = await instance.get("/profiles/latest-id");
         const latestId = response.data.latestId || "CECC25B-0000";
         const numericPart = parseInt(latestId.split("-")[1]);
         const newId = `CECC25B-${(numericPart + 1)
@@ -344,53 +342,35 @@ const AddPatientModal = ({ handleCloseModal, handleAddPatient }) => {
         street_subdivision: streetAddress,
       };
 
-      const token = localStorage.getItem("token");
-      const headers = { headers: { Authorization: `Bearer ${token}` } };
-
-      const profileResponse = await axios.post(
-        "http://localhost:5000/api/profiles",
-        profileData,
-        headers
-      );
+      const profileResponse = await instance.post("/profiles", profileData);
       const createdProfile = profileResponse.data;
 
-      const visitResponse = await axios.post(
-        "http://localhost:5000/api/visits",
-        { patientId: createdProfile._id },
-        headers
-      );
+      const visitResponse = await instance.post("/visits", {
+        patientId: createdProfile._id,
+      });
       const newVisit = visitResponse.data;
 
       const updatePromises = [
-        axios.put(
-          `http://localhost:5000/api/casehistory/visit/${newVisit.caseHistory}`,
-          caseHistory,
-          headers
+        instance.put(`/casehistory/visit/${newVisit.caseHistory}`, caseHistory),
+        instance.put(
+          `/clinical-examination/visit/${newVisit.clinicalExamination}`,
+          clinicalExam
         ),
-        axios.put(
-          `http://localhost:5000/api/clinical-examination/visit/${newVisit.clinicalExamination}`,
-          clinicalExam,
-          headers
+        instance.put(
+          `/binocular-tests/visit/${newVisit.basicBinocularVisionTests}`,
+          binocularTests
         ),
-        axios.put(
-          `http://localhost:5000/api/binocular-tests/visit/${newVisit.basicBinocularVisionTests}`,
-          binocularTests,
-          headers
+        instance.put(
+          `/slit-lamp-funduscopy/visit/${newVisit.slitLampFunduscopy}`,
+          slitLampFunduscopy
         ),
-        axios.put(
-          `http://localhost:5000/api/slit-lamp-funduscopy/visit/${newVisit.slitLampFunduscopy}`,
-          slitLampFunduscopy,
-          headers
+        instance.put(
+          `/diagnostic-assessment-plan/visit/${newVisit.diagnosticAssessmentPlan}`,
+          diagnosticPlan
         ),
-        axios.put(
-          `http://localhost:5000/api/diagnostic-assessment-plan/visit/${newVisit.diagnosticAssessmentPlan}`,
-          diagnosticPlan,
-          headers
-        ),
-        axios.put(
-          `http://localhost:5000/api/plan-of-management/visit/${newVisit.planOfManagement}`,
-          planOfManagement,
-          headers
+        instance.put(
+          `/plan-of-management/visit/${newVisit.planOfManagement}`,
+          planOfManagement
         ),
       ];
       await Promise.all(updatePromises);
