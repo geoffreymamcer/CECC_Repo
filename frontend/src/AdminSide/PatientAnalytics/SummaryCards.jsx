@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import instance from "../../api/axios";
 import {
   FaUsers,
   FaCalendarCheck,
@@ -13,17 +13,12 @@ const SummaryCards = ({ loading: parentLoading }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Don't fetch if the parent component is still loading
     if (parentLoading) return;
 
     const fetchSummaryData = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          "http://localhost:5000/api/analytics/summary-cards",
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const response = await instance.get("/analytics/summary-cards");
         setStats(response.data);
       } catch (err) {
         console.error("Error fetching summary card stats:", err);
@@ -34,7 +29,7 @@ const SummaryCards = ({ loading: parentLoading }) => {
     };
 
     fetchSummaryData();
-  }, [parentLoading]); // Re-fetch if the parent loading state changes
+  }, [parentLoading]);
 
   if (loading || parentLoading) {
     return (
