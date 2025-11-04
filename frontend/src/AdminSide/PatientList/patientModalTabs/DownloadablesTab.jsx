@@ -1,62 +1,43 @@
 import React, { useState } from "react";
 import { FaFilePdf, FaDownload, FaEye, FaSpinner } from "react-icons/fa";
-import axios from "axios";
+import instance from "../../../api/axios";
 
 const DownloadablesTab = ({ patient, visitList }) => {
   const [loadingVisitId, setLoadingVisitId] = useState(null);
 
-  const handleView = async (visit) => {
+  const handlePdfAction = async (type, visit) => {
     if (loadingVisitId) return;
     setLoadingVisitId(visit._id);
     try {
-      const token = localStorage.getItem("token");
-      // --- MODIFIED --- Call the new ADMIN endpoint
-      const response = await axios.get(
-        `http://localhost:5000/api/visits/admin/${visit._id}/pdf/view`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: "blob",
-        }
-      );
+      // Construct the correct ADMIN endpoint
+      const endpoint = `/visits/admin/${visit._id}/pdf/${type}`;
+
+      const response = await api.get(endpoint, {
+        responseType: "blob",
+      });
+
       const file = new Blob([response.data], { type: "application/pdf" });
       const fileURL = URL.createObjectURL(file);
-      window.open(fileURL, "_blank");
-    } catch (error) {
-      console.error("Error viewing PDF:", error);
-      alert("Failed to view PDF. You may not have the required permissions.");
-    } finally {
-      setLoadingVisitId(null);
-    }
-  };
 
-  const handleDownload = async (visit) => {
-    if (loadingVisitId) return;
-    setLoadingVisitId(visit._id);
-    try {
-      const token = localStorage.getItem("token");
-      // --- MODIFIED --- Call the new ADMIN endpoint
-      const response = await axios.get(
-        `http://localhost:5000/api/visits/admin/${visit._id}/pdf/download`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: "blob",
-        }
-      );
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      const fileName = `clinic-report-${patient.patientId}-${
-        new Date(visit.visitDate).toISOString().split("T")[0]
-      }.pdf`;
-      link.setAttribute("download", fileName);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error downloading PDF:", error);
+      if (type === "view") {
+        window.open(fileURL, "_blank");
+      } else {
+        // download
+        const link = document.createElement("a");
+        link.href = fileURL;
+        const fileName = `clinic-report-${patient.patientId}-${
+          new Date(visit.visitDate).toISOString().split("T")[0]
+        }.pdf`;
+        link.setAttribute("download", fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(fileURL);
+      }
+    } catch (err) {
+      console.error(`Error ${type}ing PDF:`, err);
       alert(
-        "Failed to download PDF. You may not have the required permissions."
+        `Failed to ${type} PDF. You may not have the required permissions.`
       );
     } finally {
       setLoadingVisitId(null);
@@ -103,13 +84,13 @@ const DownloadablesTab = ({ patient, visitList }) => {
                 {loadingVisitId !== visit._id && (
                   <>
                     <button
-                      onClick={() => handleView(visit)}
+                      onClick={() => handlePdfAction("view", visit)}
                       className="px-4 py-2 bg-white text-dark-red border border-dark-red text-sm rounded-lg hover:bg-red-50 transition-colors flex items-center"
                     >
                       <FaEye className="mr-2" /> View
                     </button>
                     <button
-                      onClick={() => handleDownload(visit)}
+                      onClick={() => handlePdfAction("download", visit)}
                       className="px-4 py-2 bg-dark-red text-white text-sm rounded-lg hover:bg-deep-red transition-colors flex items-center"
                     >
                       <FaDownload className="mr-2" /> Download
