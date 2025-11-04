@@ -1,5 +1,5 @@
 // src/pages/ColorVisionTest.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import ColorVisionTestCard from "./ColorVisionTestCard";
 import ColorVisionTestDetailsModal from "./ColorVisionTestDetailsModal";
 import instance from "../../api/axios";
@@ -20,7 +20,7 @@ const ColorVisionTest = () => {
   const fetchTestResults = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await api.get("/colorvisiontest/admin/all");
+      const response = await instance.get("/colorvisiontest/admin/all");
       setTestResults(response.data);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to fetch test results");
@@ -44,7 +44,7 @@ const ColorVisionTest = () => {
   const handleSaveFollowUp = async (updatedTest) => {
     try {
       // Use the 'api' instance for the PATCH request.
-      await api.patch(`/colorvisiontest/${updatedTest._id}/followup`, {
+      await instance.patch(`/colorvisiontest/${updatedTest._id}/followup`, {
         followUpTests: updatedTest.followUpTests,
       });
       fetchTestResults(); // Re-fetch data to show the update
