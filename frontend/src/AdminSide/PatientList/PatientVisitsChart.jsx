@@ -60,7 +60,7 @@ const PatientVisitsChart = () => {
         const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
         // Use the central 'api' instance. It handles the base URL and auth token automatically.
-        const response = await api.get(
+        const response = await instance.get(
           `/analytics/visit-growth?timeFrame=day`,
           {
             headers: {
