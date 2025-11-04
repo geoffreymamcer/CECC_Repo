@@ -12,7 +12,7 @@ const DownloadablesTab = ({ patient, visitList }) => {
       // Construct the correct ADMIN endpoint
       const endpoint = `/visits/admin/${visit._id}/pdf/${type}`;
 
-      const response = await api.get(endpoint, {
+      const response = await instance.get(endpoint, {
         responseType: "blob",
       });
 
