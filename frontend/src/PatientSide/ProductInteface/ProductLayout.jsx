@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { Eye } from "lucide-react";
 // ...existing static placeholder import removed; we'll fetch from backend
 import ProductCard from "./ProductCard";
 import SearchFilterBar from "./SearchFilterBar";
+import instance from "../../api/axios";
 
 const ProductInterface = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,13 +40,8 @@ const ProductInterface = () => {
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem("token");
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await axios.get("http://localhost:5000/api/inventory", {
-          headers,
-        });
+        const res = await instance.get("/inventory");
 
-        // Backend returns { products, totalPages, currentPage, totalProducts }
         const docs =
           res.data && res.data.products ? res.data.products : res.data;
 
