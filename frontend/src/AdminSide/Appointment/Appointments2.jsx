@@ -1,5 +1,5 @@
 // src/pages/Appointments.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   FaPlus,
   FaCalendarAlt,
@@ -25,6 +25,10 @@ const Appointments = () => {
     tomorrow: [],
   });
   const [error, setError] = useState("");
+
+  const allAppointmentsForCalendar = useMemo(() => {
+    return [...appointments.today, ...appointments.tomorrow];
+  }, [appointments]);
 
   const fetchAppointments = async () => {
     setLoading(true);
@@ -100,6 +104,7 @@ const Appointments = () => {
     const daysInMonth = getDaysInMonth();
     const firstDay = getFirstDayOfMonth();
     const today = new Date().getDate();
+    const currentMonth = new Date().getMonth();
 
     const days = [];
     // Add empty cells for days before the first day of month
@@ -107,14 +112,12 @@ const Appointments = () => {
       days.push(<div key={`empty-${i}`} className="h-12" />);
     }
 
-    // Add the actual days
     for (let i = 1; i <= daysInMonth; i++) {
       const isToday = i === today;
-      const hasAppointment = appointments.some((app) => {
-        const appDay = new Date(app.date).getDate(); // Extract day from appointment date
-        const appMonth = new Date(app.date).getMonth(); // Extract month
-        const currentMonth = new Date().getMonth(); // Current month
-        return appDay === i && appMonth === currentMonth;
+
+      const hasAppointment = allAppointmentsForCalendar.some((app) => {
+        const appDate = new Date(app.date);
+        return appDate.getDate() === i && appDate.getMonth() === currentMonth;
       });
 
       days.push(
