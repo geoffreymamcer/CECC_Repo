@@ -12,7 +12,10 @@ export const getAllAppointments = async (req, res) => {
       dayEnd.setHours(23, 59, 59, 999);
       filter.appointmentDate = { $gte: dayStart, $lte: dayEnd };
     }
-    const appointments = await Appointment.find(filter).sort({ appointmentDate: 1, appointmentTime: 1 });
+    const appointments = await Appointment.find(filter).sort({
+      appointmentDate: 1,
+      appointmentTime: 1,
+    });
     res.status(200).json(appointments);
   } catch (error) {
     console.error("Error fetching all appointments:", error);
@@ -26,7 +29,14 @@ export const getAllAppointments = async (req, res) => {
 // Create new appointment
 export const createAppointment = async (req, res) => {
   try {
-    const { appointmentDate, appointmentTime, serviceType, notes, visitStatus, additionalNotes } = req.body;
+    const {
+      appointmentDate,
+      appointmentTime,
+      serviceType,
+      notes,
+      visitStatus,
+      additionalNotes,
+    } = req.body;
 
     // Get user data from the authenticated user
     const user = await User.findById(req.user.id);
@@ -38,13 +48,15 @@ export const createAppointment = async (req, res) => {
     }
 
     // Create appointment with user info
-    const fullName = `${user.firstName} ${user.middleName ? user.middleName + ' ' : ''}${user.lastName}`.trim();
-    
+    const fullName = `${user.firstName} ${
+      user.middleName ? user.middleName + " " : ""
+    }${user.lastName}`.trim();
+
     // Use patientId if available, otherwise use _id (which should be the custom ID for patients)
     const patientIdToUse = user.patientId || user._id;
-    
+
     console.log(`Creating appointment for patient ID: ${patientIdToUse}`);
-    
+
     const appointment = await Appointment.create({
       patientId: patientIdToUse,
       fullName,
@@ -73,29 +85,28 @@ export const createAppointment = async (req, res) => {
 export const getPatientAppointments = async (req, res) => {
   try {
     const { patientId } = req.params;
-    
+
     console.log(`Fetching appointments for patient ID: ${patientId}`);
-    
+
     // First, try to find a user with this ID to determine if it's a custom ID or patientId
     const user = await User.findOne({
-      $or: [
-        { _id: patientId },
-        { patientId: patientId }
-      ]
+      $or: [{ _id: patientId }, { patientId: patientId }],
     });
-    
+
     // If we found a user, use their patientId (which should match _id for new users)
     const queryPatientId = user?.patientId || patientId;
-    
+
     console.log(`Using query patientId: ${queryPatientId}`);
-    
-    const appointments = await Appointment.find({ patientId: queryPatientId }).sort({
+
+    const appointments = await Appointment.find({
+      patientId: queryPatientId,
+    }).sort({
       appointmentDate: 1,
       appointmentTime: 1,
     });
-    
+
     console.log(`Found ${appointments.length} appointments`);
-    
+
     res.status(200).json(appointments);
   } catch (error) {
     console.error("Error fetching appointments:", error);
@@ -120,12 +131,19 @@ export const updateAppointment = async (req, res) => {
       { new: true }
     );
     if (!appointment) {
-      return res.status(404).json({ status: "error", message: "Appointment not found" });
+      return res
+        .status(404)
+        .json({ status: "error", message: "Appointment not found" });
     }
     res.status(200).json({ status: "success", appointment });
   } catch (error) {
     console.error("Error updating appointment:", error);
-    res.status(500).json({ status: "error", message: error.message || "Error updating appointment" });
+    res
+      .status(500)
+      .json({
+        status: "error",
+        message: error.message || "Error updating appointment",
+      });
   }
 };
 
@@ -157,6 +175,25 @@ export const updateAppointmentStatus = async (req, res) => {
     res.status(500).json({
       status: "error",
       message: error.message || "Error updating appointment",
+    });
+  }
+};
+export const getUpcomingAppointments = async (req, res) => {
+  try {
+    const now = new Date();
+
+    // Find all appointments that are scheduled for the future and are not cancelled
+    const upcomingAppointments = await Appointment.find({
+      appointmentDate: { $gte: now },
+      status: { $nin: ["cancelled", "completed"] }, // Exclude cancelled and completed
+    }).sort({ appointmentDate: 1, appointmentTime: 1 }); // Sort by soonest first
+
+    res.status(200).json(upcomingAppointments);
+  } catch (error) {
+    console.error("Error fetching upcoming appointments:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Error fetching upcoming appointments",
     });
   }
 };

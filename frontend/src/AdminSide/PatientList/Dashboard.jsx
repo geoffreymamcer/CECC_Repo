@@ -28,73 +28,81 @@ const Dashboard = () => {
 
   const [appointments, setAppointments] = useState([]);
   const [appointmentsLoading, setAppointmentsLoading] = useState(false);
-  const [appointmentsError, setAppointmentsError] = useState(null);
   const [payments, setPayments] = useState([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
-  const [paymentsError, setPaymentsError] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchKpiData = async () => {
+    const fetchDashboardData = async () => {
       setKpiLoading(true);
+      setAppointmentsLoading(true);
+      setError(null);
+
       try {
         const today = new Date().toISOString().split("T")[0];
 
+        // --- MODIFIED --- Fetch all data points in parallel
         const apiCalls = [
           instance.get("/profiles/count"),
-          instance.get(`/appointments?date=${today}`), // Use 'api' instance
+          instance.get(`/appointments?date=${today}`), // For "Today's Appointments" KPI
+          instance.get("/appointments/upcoming"), // --- NEW --- For the upcoming appointments table
         ];
 
-        // Conditionally add the revenue API call ONLY for the owner
         if (isOwner) {
-          apiCalls.push(
-            instance.get("/invoices/revenue/today") // Use 'api' instance
-          );
+          apiCalls.push(instance.get("/invoices/revenue/today"));
+          apiCalls.push(instance.get("/invoices/recent"));
         }
 
-        const responses = await Promise.all(apiCalls);
-        const [patientsRes, appointmentsRes, revenueRes] = responses;
+        const [
+          patientsRes,
+          todaysAppointmentsRes,
+          upcomingAppointmentsRes,
+          revenueRes,
+          paymentsRes,
+        ] = await Promise.all(apiCalls.map((p) => p.catch((e) => e)));
 
+        // Check for errors after all promises have settled
+        if (patientsRes.isAxiosError)
+          throw new Error("Failed to load patient count.");
+        if (todaysAppointmentsRes.isAxiosError)
+          throw new Error("Failed to load today's appointments.");
+        if (upcomingAppointmentsRes.isAxiosError)
+          throw new Error("Failed to load upcoming appointments.");
+        if (isOwner && revenueRes.isAxiosError)
+          throw new Error("Failed to load revenue.");
+        if (isOwner && paymentsRes.isAxiosError)
+          throw new Error("Failed to load payments.");
+
+        // --- UPDATE KPI DATA ---
         setKpiData((prevData) => ({
           ...prevData,
           totalPatients: patientsRes.data.count || 0,
-          todaysAppointments: appointmentsRes.data.length || 0,
+          todaysAppointments: todaysAppointmentsRes.data.length || 0,
           revenueToday: revenueRes ? revenueRes.data.totalRevenue || 0 : 0,
         }));
 
-        setAppointments(appointmentsRes.data);
+        // --- UPDATE APPOINTMENTS TABLE DATA ---
+        setAppointments(upcomingAppointmentsRes.data || []);
+
+        // --- UPDATE PAYMENTS TABLE DATA ---
+        if (isOwner) {
+          setPayments(paymentsRes.data || []);
+        }
       } catch (err) {
-        console.error("Error fetching KPI data:", err);
+        console.error("Error fetching dashboard data:", err);
+        // You might want a specific error state for the whole dashboard
+        setError("Failed to load some dashboard data.");
       } finally {
         setKpiLoading(false);
-      }
-    };
-    fetchKpiData();
-  }, [isOwner]);
-
-  useEffect(() => {
-    // Don't fetch payments if the user is not an owner
-    if (!isOwner) {
-      setPayments([]);
-      setPaymentsLoading(false);
-      return;
-    }
-
-    const fetchPayments = async () => {
-      setPaymentsLoading(true);
-      try {
-        // 👇 START OF CHANGE 🚀
-        // Use the 'api' instance. It handles the auth token automatically.
-        const res = await instance.get("/invoices/recent");
-        // 👆 END OF CHANGE
-        setPayments(res.data || []);
-      } catch (err) {
-        console.error("Error fetching payments:", err);
-      } finally {
+        setAppointmentsLoading(false);
         setPaymentsLoading(false);
       }
     };
-    fetchPayments();
-  }, [isOwner]);
+
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [isOwner, user]);
 
   const [messages] = useState([
     {
