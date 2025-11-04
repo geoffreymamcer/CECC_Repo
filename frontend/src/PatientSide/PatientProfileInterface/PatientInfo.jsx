@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import "./PatientProfileInterface.css";
 import ChangePasswordModal from "./ChangePasswordModal ";
 import instance from "../../api/axios";
 
-// Helper function to calculate age from DOB
 const calculateAge = (dob) => {
   if (!dob) return "";
   const birthDate = new Date(dob);
@@ -19,7 +18,6 @@ const calculateAge = (dob) => {
   return age;
 };
 
-// Helper function to determine age category
 const getAgeCategory = (age) => {
   if (!age && age !== 0) return "";
   if (age < 13) return "Child";
@@ -28,12 +26,11 @@ const getAgeCategory = (age) => {
   return "Senior";
 };
 
-const PatientInfo = ({ profileData }) => {
+const PatientInfo = ({ profileData, onProfileUpdate }) => {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [patientData, setPatientData] = useState(profileData);
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [tempData, setTempData] = useState({ ...patientData });
 
@@ -49,19 +46,16 @@ const PatientInfo = ({ profileData }) => {
 
   // Save profile to backend
   const handleSaveProfile = async () => {
-    setLoading(true);
-    setError(null);
+    setIsSaving(true);
+    setSaveError(null);
     try {
       const patientId = patientData.patientId;
-      if (!patientId) {
+      if (!patientId)
         throw new Error("Cannot update profile: Patient ID is missing.");
-      }
 
-      // Calculate age and ageCategory from the temporary data before sending
       const age = calculateAge(tempData.dob);
       const ageCategory = getAgeCategory(age);
 
-      // Construct the payload to send to the backend
       const updatedProfile = {
         firstName: tempData.firstName,
         middleName: tempData.middleName,
@@ -72,65 +66,35 @@ const PatientInfo = ({ profileData }) => {
         age: age,
         ageCategory: ageCategory,
         gender: tempData.gender,
-        civilStatus: tempData.civiStatus, // Note: your state uses 'civiStatus', the model uses 'civilStatus'
+        civilStatus: tempData.civiStatus,
         occupation: tempData.occupation,
         address: tempData.address,
       };
 
-      // Use the central api instance to send the PUT request
       const response = await instance.put(
         `/profiles/${patientId}`,
         updatedProfile
       );
 
-      // Get the final, saved data back from the server
-      const data = response.data;
+      // Call the parent's update function with the new data from the server.
+      onProfileUpdate(response.data);
 
-      const dob = data.dob
-        ? new Date(data.dob).toISOString().split("T")[0]
-        : "";
-      const savedAge = calculateAge(dob);
-
-      // Update the main component state with the confirmed data from the server
-      setPatientData({
-        ...patientData, // Keep non-editable fields like patientId
-        firstName: data.firstName || "",
-        middleName: data.middleName || "",
-        lastName: data.lastName || "",
-        phone: data.phone_number || data.contact || "",
-        email: data.email || "",
-        dob: dob,
-        age: savedAge,
-        ageCategory: getAgeCategory(savedAge),
-        gender: data.gender || "",
-        civiStatus: data.civilStatus || "",
-        occupation: data.occupation || "",
-        address: data.address || "",
-      });
-
-      // Exit editing mode
       setIsEditing(false);
     } catch (err) {
       console.error("Failed to update profile:", err);
-      setError(err.response?.data?.message || "Failed to update profile.");
+      setSaveError(err.response?.data?.message || "Failed to update profile.");
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
   const handleInputChange = (field, value) => {
-    const newData = {
-      ...tempData,
-      [field]: value,
-    };
-
-    // If DOB is changed, update age and ageCategory
+    const newData = { ...tempData, [field]: value };
     if (field === "dob") {
       const age = calculateAge(value);
       newData.age = age;
       newData.ageCategory = getAgeCategory(age);
     }
-
     setTempData(newData);
   };
 
@@ -142,7 +106,7 @@ const PatientInfo = ({ profileData }) => {
           isMultiline ? (
             <textarea
               className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#7F0000]"
-              value={tempData[field]}
+              value={tempData[field] || ""}
               onChange={(e) => handleInputChange(field, e.target.value)}
               rows={3}
             />
@@ -150,28 +114,18 @@ const PatientInfo = ({ profileData }) => {
             <input
               type={type || "text"}
               className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#7F0000]"
-              value={tempData[field]}
+              value={tempData[field] || ""}
               onChange={(e) => handleInputChange(field, e.target.value)}
             />
           )
         ) : (
           <p className="font-medium whitespace-pre-line">
-            {patientData[field]}
+            {profileData[field]}
           </p>
         )}
       </div>
     );
   };
-
-  if (loading) {
-    return (
-      <div className="profile-page-container">Loading patient data...</div>
-    );
-  }
-
-  if (error) {
-    return <div className="profile-page-container text-red-600">{error}</div>;
-  }
 
   // Logout function (same logic as reference)
   const handleLogout = () => {
@@ -204,6 +158,12 @@ const PatientInfo = ({ profileData }) => {
         </span>
       </div>
 
+      {saveError && (
+        <div className="text-red-600 text-center mb-4 p-2 bg-red-50 rounded-lg">
+          {saveError}
+        </div>
+      )}
+
       <div className="space-y-3 mb-8">
         {renderInfoItem("First Name", "firstName")}
         {renderInfoItem("Middle Name", "middleName")}
@@ -231,6 +191,8 @@ const PatientInfo = ({ profileData }) => {
           onClick={handleEditClick}
           className="edit-btn bg-gradient-to-r from-[#7F0000] to-[#8B0000] py-3 px-6 rounded-xl text-white font-semibold flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-lg hover:from-[#8B0000] hover:to-[#6d0000]"
         >
+          {isSaving ? "Saving..." : isEditing ? "Save Changes" : "Edit Profile"}
+
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-5 w-5"

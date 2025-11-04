@@ -74,8 +74,21 @@ const ProfileCard = () => {
     fetchProfile();
   }, []);
 
-  const updateProfile = (newProfileData) => {
-    setProfile((prev) => ({ ...prev, ...newProfileData }));
+  const handleProfileUpdate = (updatedData) => {
+    const formattedDob = updatedData.dob
+      ? new Date(updatedData.dob).toISOString().split("T")[0]
+      : "";
+    const age = calculateAge(formattedDob);
+
+    setProfile((prev) => ({
+      ...prev,
+      ...updatedData,
+      dob: formattedDob,
+      age: age,
+      ageCategory: getAgeCategory(age),
+      phone: updatedData.phone_number || updatedData.contact || "",
+      civiStatus: updatedData.civilStatus || "", // Make sure this matches the child state key
+    }));
   };
 
   if (loading) {
@@ -97,7 +110,10 @@ const ProfileCard = () => {
     <div className="profile-card bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
       <div className="flex flex-col md:flex-row">
         <div className="md:w-1/3 bg-gradient-to-b from-[#7F0000] to-[#8B0000] p-6 md:p-8 text-white">
-          <ProfilePicture profile={profile} updateProfile={updateProfile} />
+          <ProfilePicture
+            profile={profile}
+            updateProfile={handleProfileUpdate}
+          />
 
           <div className="mt-8">
             <h3 className="font-semibold text-lg mb-2">Health Status</h3>
@@ -120,7 +136,10 @@ const ProfileCard = () => {
         </div>
 
         <div className="md:w-2/3 p-6 md:p-8">
-          <PatientInfo profileData={profile} />
+          <PatientInfo
+            profileData={profile}
+            onProfileUpdate={handleProfileUpdate}
+          />
         </div>
       </div>
     </div>
