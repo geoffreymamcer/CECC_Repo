@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import ColorVisionTestCard from "./ColorVisionTestCard";
 import ColorVisionTestDetailsModal from "./ColorVisionTestDetailsModal";
-import axios from "axios";
+import instance from "../../api/axios";
 import { FaEye, FaFileMedical, FaSearch } from "react-icons/fa";
 
 const ColorVisionTest = () => {
@@ -17,24 +17,21 @@ const ColorVisionTest = () => {
     // eslint-disable-next-line
   }, []);
 
-  const fetchTestResults = async () => {
+  const fetchTestResults = useCallback(async () => {
+    setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        "http://localhost:5000/api/colorvisiontest/admin/all",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await api.get("/colorvisiontest/admin/all");
       setTestResults(response.data);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to fetch test results");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchTestResults();
+  }, [fetchTestResults]);
 
   const handleViewDetails = (test) => {
     setSelectedTest(test);
@@ -46,18 +43,12 @@ const ColorVisionTest = () => {
 
   const handleSaveFollowUp = async (updatedTest) => {
     try {
-      const token = localStorage.getItem("token");
-      await axios.patch(
-        `http://localhost:5000/api/colorvisiontest/${updatedTest._id}/followup`,
-        { followUpTests: updatedTest.followUpTests },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      fetchTestResults();
-      setSelectedTest(null);
+      // Use the 'api' instance for the PATCH request.
+      await api.patch(`/colorvisiontest/${updatedTest._id}/followup`, {
+        followUpTests: updatedTest.followUpTests,
+      });
+      fetchTestResults(); // Re-fetch data to show the update
+      setSelectedTest(null); // Close the modal on success
     } catch (err) {
       setError(
         err.response?.data?.message || "Failed to update follow-up tests"
