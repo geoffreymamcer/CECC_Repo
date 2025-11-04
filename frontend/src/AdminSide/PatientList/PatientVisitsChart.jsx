@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import instance from "../../api/axios";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -56,13 +56,14 @@ const PatientVisitsChart = () => {
   useEffect(() => {
     const fetchVisitData = async () => {
       try {
-        const token = localStorage.getItem("token");
+        // 👇 START OF CHANGE 🚀
         const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const response = await axios.get(
-          `http://localhost:5000/api/analytics/visit-growth?timeFrame=day`,
+
+        // Use the central 'api' instance. It handles the base URL and auth token automatically.
+        const response = await api.get(
+          `/analytics/visit-growth?timeFrame=day`,
           {
             headers: {
-              Authorization: `Bearer ${token}`,
               "X-User-Timezone": userTimezone,
             },
           }
