@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import instance from "../../api/axios";
 import {
   Users,
   Calendar,
@@ -37,25 +37,17 @@ const Dashboard = () => {
     const fetchKpiData = async () => {
       setKpiLoading(true);
       try {
-        const token = localStorage.getItem("token"); // Token is still needed for headers
-        const config = { headers: { Authorization: `Bearer ${token}` } };
         const today = new Date().toISOString().split("T")[0];
 
         const apiCalls = [
-          axios.get("http://localhost:5000/api/profiles/count", config),
-          axios.get(
-            `http://localhost:5000/api/appointments?date=${today}`,
-            config
-          ),
+          instance.get("/profiles/count"),
+          instance.get(`/appointments?date=${today}`), // Use 'api' instance
         ];
 
         // Conditionally add the revenue API call ONLY for the owner
         if (isOwner) {
           apiCalls.push(
-            axios.get(
-              "http://localhost:5000/api/invoices/revenue/today",
-              config
-            )
+            instance.get("/invoices/revenue/today") // Use 'api' instance
           );
         }
 
@@ -90,13 +82,10 @@ const Dashboard = () => {
     const fetchPayments = async () => {
       setPaymentsLoading(true);
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          "http://localhost:5000/api/invoices/recent",
-          {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          }
-        );
+        // 👇 START OF CHANGE 🚀
+        // Use the 'api' instance. It handles the auth token automatically.
+        const res = await instance.get("/invoices/recent");
+        // 👆 END OF CHANGE
         setPayments(res.data || []);
       } catch (err) {
         console.error("Error fetching payments:", err);
