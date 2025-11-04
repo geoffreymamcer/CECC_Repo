@@ -268,7 +268,7 @@ export const deleteProfile = async (req, res) => {
 export const getMyProfile = async (req, res) => {
   try {
     // The user ID is now directly the custom ID for patients
-    const profile = await Profile.findById(req.user.id);
+    const profile = await Profile.findOne({ patientId: req.user.id });
     if (!profile) {
       return res
         .status(404)
