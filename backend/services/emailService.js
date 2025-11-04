@@ -17,7 +17,9 @@ if (!EMAIL_USER || !EMAIL_PASSWORD) {
 
 // Create a transporter using Gmail
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp-relay.brevo.com",
+  port: 587,
+  secure: false,
   auth: {
     user: EMAIL_USER,
     pass: EMAIL_PASSWORD,
@@ -60,7 +62,7 @@ export const sendVerificationEmail = async (
     console.log("Sending verification email to:", email);
 
     const mailOptions = {
-      from: `CECC Eye Care <${EMAIL_USER}>`,
+      from: `Candelaria Eye Care Clinic <${EMAIL_USER}>`,
       to: email,
       subject: "Email Verification - CECC Eye Care",
       html: `
