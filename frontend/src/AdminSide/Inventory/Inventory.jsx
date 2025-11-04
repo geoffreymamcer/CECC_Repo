@@ -6,7 +6,7 @@ import SearchBar from "./SearchBar";
 import ProductCard from "./ProductCard";
 import InventoryModal from "./InventoryModal";
 import AddProductModal from "./AddProductModal";
-import axios from "axios";
+import instance from "../../api/axios";
 
 const Inventory = () => {
   const [products, setProducts] = useState([]);
@@ -36,21 +36,10 @@ const Inventory = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const api = axios.create({
-    baseURL: "http://localhost:5000/api",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-    validateStatus: function (status) {
-      return status >= 200 && status < 500; // Resolve only if the status code is less than 500
-    },
-  });
-
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const response = await api.get("/inventory", {
+      const response = await instance.get("/inventory", {
         params: {
           page,
           limit: 12, // Items per page
@@ -69,7 +58,7 @@ const Inventory = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get("/inventory/stats");
+      const response = await instance.get("/inventory/stats");
       setStats(response.data);
     } catch (error) {
       console.error("Failed to fetch stats:", error);
@@ -134,7 +123,7 @@ const Inventory = () => {
       };
 
       console.log("Sending new product data:", newProduct);
-      const response = await api.post("/inventory", newProduct);
+      const response = await instance.post("/inventory", newProduct);
       if (response.status === 201) {
         console.log("Product added successfully:", response.data);
         setProducts((prev) => [...prev, response.data]);
@@ -156,7 +145,7 @@ const Inventory = () => {
   const handleConfirm = async () => {
     try {
       if (modalAction === "delete") {
-        await api.delete(`/inventory/${currentProduct._id}`);
+        await instance.delete(`/inventory/${currentProduct._id}`);
         setProducts(products.filter((p) => p._id !== currentProduct._id));
       } else {
         const updatedData = {
@@ -166,7 +155,7 @@ const Inventory = () => {
               : Math.max(0, currentProduct.availableStocks - quantity),
           productPrice: parseFloat(price),
         };
-        const response = await api.put(
+        const response = await instance.put(
           `/inventory/${currentProduct._id}`,
           updatedData
         );
