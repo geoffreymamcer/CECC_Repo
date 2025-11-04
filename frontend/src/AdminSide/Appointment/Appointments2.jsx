@@ -9,6 +9,7 @@ import {
   FaCheck,
   FaTimes,
 } from "react-icons/fa";
+import instance from "../../api/axios";
 
 const Appointments = () => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -18,80 +19,43 @@ const Appointments = () => {
     time: "",
     reason: "",
   });
-  const [appointments, setAppointments] = useState([]); // Initialize as empty array
   const [loading, setLoading] = useState(true); // Add loading state
-  const [error, setError] = useState(""); // Add error state
-
-  // New state to hold today's and tomorrow's filtered appointments directly
-  const [todayAppointments, setTodayAppointments] = useState([]);
-  const [tomorrowAppointments, setTomorrowAppointments] = useState([]);
-
-  useEffect(() => {
-    fetchAppointments();
-  }, []); // Run once on component mount
+  const [appointments, setAppointments] = useState({
+    today: [],
+    tomorrow: [],
+  });
+  const [error, setError] = useState("");
 
   const fetchAppointments = async () => {
     setLoading(true);
     setError("");
     try {
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth() + 1).padStart(2, "0");
-      const dd = String(today.getDate()).padStart(2, "0");
-      const todayStr = `${yyyy}-${mm}-${dd}`;
+      // Get today's and tomorrow's dates in YYYY-MM-DD format
+      const today = new Date().toISOString().split("T")[0];
+      const tomorrow = new Date(new Date().setDate(new Date().getDate() + 1))
+        .toISOString()
+        .split("T")[0];
 
-      const tomorrowDate = new Date(today);
-      tomorrowDate.setDate(today.getDate() + 1);
-      const tyyyy = tomorrowDate.getFullYear();
-      const tmm = String(tomorrowDate.getMonth() + 1).padStart(2, "0");
-      const tdd = String(tomorrowDate.getDate()).padStart(2, "0");
-      const tomorrowStr = `${tyyyy}-${tmm}-${tdd}`;
+      // Fetch today's and tomorrow's appointments in parallel using the backend's filtering
+      const [todayRes, tomorrowRes] = await Promise.all([
+        instance.get(`/appointments?date=${today}`),
+        instance.get(`/appointments?date=${tomorrow}`),
+      ]);
 
-      // Fetch all appointments (or filter by date on backend if possible)
-      const res = await fetch(`http://localhost:5000/api/appointments`); // Fetch all or by a date range
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      const allAppointments = await res.json();
+      // Map the data to the desired structure for rendering
+      const mapAppointmentData = (app) => ({
+        id: app._id,
+        name: app.fullName,
+        date: app.appointmentDate,
+        time: app.appointmentTime,
+        reason: app.serviceType,
+        status: app.status || "scheduled",
+      });
 
-      // Filter appointments on the client-side for today and tomorrow
-      const filteredToday = allAppointments
-        .filter((app) => {
-          const appDate = new Date(app.appointmentDate)
-            .toISOString()
-            .split("T")[0];
-          return appDate === todayStr;
-        })
-        .map((app) => ({
-          // Map to the desired structure for rendering
-          id: app._id,
-          name: app.fullName,
-          date: app.appointmentDate,
-          time: app.appointmentTime,
-          reason: app.serviceType,
-          status: app.status, // Assuming status is returned by backend
-        }));
-
-      const filteredTomorrow = allAppointments
-        .filter((app) => {
-          const appDate = new Date(app.appointmentDate)
-            .toISOString()
-            .split("T")[0];
-          return appDate === tomorrowStr;
-        })
-        .map((app) => ({
-          // Map to the desired structure for rendering
-          id: app._id,
-          name: app.fullName,
-          date: app.appointmentDate,
-          time: app.appointmentTime,
-          reason: app.serviceType,
-          status: app.status, // Assuming status is returned by backend
-        }));
-
-      setTodayAppointments(filteredToday);
-      setTomorrowAppointments(filteredTomorrow);
-      setAppointments([...filteredToday, ...filteredTomorrow]); // Keep a combined list if needed elsewhere
+      setAppointments({
+        today: (todayRes.data || []).map(mapAppointmentData),
+        tomorrow: (tomorrowRes.data || []).map(mapAppointmentData),
+      });
     } catch (err) {
       console.error("Failed to fetch appointments:", err);
       setError("Failed to fetch appointments. Please try again.");
@@ -99,6 +63,10 @@ const Appointments = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
 
   const getCurrentMonth = () => {
     const months = [
@@ -183,54 +151,31 @@ const Appointments = () => {
   const handleAddAppointment = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:5000/api/appointments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fullName: appointmentData.name,
-          appointmentDate: appointmentData.date,
-          appointmentTime: appointmentData.time,
-          serviceType: appointmentData.reason,
-          status: "scheduled", // Default status for new appointments
-        }),
-      });
+      const payload = {
+        fullName: appointmentData.name,
+        appointmentDate: appointmentData.date,
+        appointmentTime: appointmentData.time,
+        serviceType: appointmentData.reason,
+        status: "scheduled",
+      };
 
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
+      await instance.post("/appointments", payload);
 
-      const newApp = await res.json(); // Get the newly created appointment from the backend
-
-      // Refresh all appointments after adding
       fetchAppointments();
       setShowAddModal(false);
       setAppointmentData({ name: "", date: "", time: "", reason: "" });
     } catch (err) {
       console.error("Failed to add appointment:", err);
-      setError("Failed to add appointment. Please try again.");
+      setError(
+        "Failed to add appointment. Ensure patient name is correct or backend is adapted."
+      );
     }
   };
 
   const updateAppointmentStatus = async (id, status) => {
     try {
-      const res = await fetch(
-        `http://localhost:5000/api/appointments/${id}/status`,
-        {
-          method: "PATCH", // Assuming your backend has a PATCH endpoint for status
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ status }),
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      // Refresh all appointments after updating status
-      fetchAppointments();
+      await instance.patch(`/appointments/${id}/status`, { status });
+      fetchAppointments(); // Refresh the list
     } catch (err) {
       console.error("Failed to update appointment status:", err);
       setError("Failed to update appointment status. Please try again.");
@@ -273,7 +218,6 @@ const Appointments = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendar View */}
         <div className="bg-white rounded-2xl shadow-lg p-6 lg:col-span-1 animate-fadeIn">
           <h2 className="text-xl font-bold text-gray-800 mb-4">
             {getCurrentMonth()}
@@ -332,9 +276,9 @@ const Appointments = () => {
                   })}
                 </h3>
 
-                {todayAppointments.length > 0 ? (
+                {appointments.today.length > 0 ? (
                   <div className="space-y-4">
-                    {todayAppointments.map((appointment) => (
+                    {appointments.today.map((appointment) => (
                       <div
                         key={appointment.id}
                         className="border border-gray-200 rounded-xl p-4 transition-all duration-300 hover:shadow-md"
@@ -449,9 +393,9 @@ const Appointments = () => {
                   })}
                 </h3>
 
-                {tomorrowAppointments.length > 0 ? (
+                {appointments.tomorrow.length > 0 ? (
                   <div className="space-y-4">
-                    {tomorrowAppointments.map((appointment) => (
+                    {appointments.tomorrow.map((appointment) => (
                       <div
                         key={appointment.id}
                         className="border border-gray-200 rounded-xl p-4 transition-all duration-300 hover:shadow-md"
