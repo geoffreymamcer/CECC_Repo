@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import instance from "../../api/axios";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Pie } from "react-chartjs-2";
 
@@ -28,10 +28,8 @@ const ItemSalesDistribution = () => {
   useEffect(() => {
     const fetchSalesData = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          "http://localhost:5000/api/invoices/analytics/item-distribution",
-          { headers: { Authorization: `Bearer ${token}` } }
+        const response = await instance.get(
+          "/invoices/analytics/item-distribution"
         );
 
         const salesData = response.data;

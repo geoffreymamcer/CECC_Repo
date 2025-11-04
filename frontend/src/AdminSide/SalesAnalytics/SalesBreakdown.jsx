@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios"; // Import axios
+import instance from "../../api/axios";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -29,10 +29,11 @@ const SalesBreakdown = () => {
   useEffect(() => {
     const fetchBreakdownData = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          "http://localhost:5000/api/invoices/analytics/sales-breakdown",
-          { headers: { Authorization: `Bearer ${token}` } }
+        // 👇 START OF CHANGE 🚀
+        // Use the central 'api' instance.
+        // It handles the base URL and auth token automatically.
+        const response = await instance.get(
+          "/invoices/analytics/sales-breakdown"
         );
 
         if (!response.data || response.data.length === 0) {

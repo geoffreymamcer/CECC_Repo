@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios"; // Make sure axios is imported
+import instance from "../../api/axios";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -29,11 +29,10 @@ const SalesByAgeGroup = () => {
   useEffect(() => {
     const fetchAgeGroupData = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          "http://localhost:5000/api/invoices/analytics/by-age-group",
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        // 👇 START OF CHANGE 🚀
+        // Use the central 'api' instance.
+        // It handles the base URL and auth token automatically.
+        const response = await instance.get("/invoices/analytics/by-age-group");
 
         const data = response.data;
         if (!data || data.length === 0) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios"; // Make sure axios is imported
+import instance from "../../api/axios";
 import { FaCalendarAlt } from "react-icons/fa";
 import {
   Chart as ChartJS,
@@ -121,14 +121,12 @@ const SalesOverTimeChart = () => {
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem("token");
         const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-        const response = await axios.get(
-          `http://localhost:5000/api/invoices/analytics/sales-over-time?timeFrame=${timeFrame}`,
+        const response = await instance.get(
+          `/invoices/analytics/sales-over-time?timeFrame=${timeFrame}`,
           {
             headers: {
-              Authorization: `Bearer ${token}`,
               "X-User-Timezone": userTimezone,
             },
           }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios"; // Import axios
+import instance from "../../api/axios";
 import {
   FaArrowUp,
   FaArrowDown,
@@ -25,11 +25,10 @@ const SalesSummaryCards = () => {
 
   useEffect(() => {
     const fetchSummaryData = async () => {
+      setLoading(true);
       try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-          "http://localhost:5000/api/invoices/analytics/summary-cards",
-          { headers: { Authorization: `Bearer ${token}` } }
+        const response = await instance.get(
+          "/invoices/analytics/summary-cards"
         );
         setStats(response.data);
       } catch (err) {
