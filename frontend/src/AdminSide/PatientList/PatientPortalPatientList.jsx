@@ -4,7 +4,8 @@ import TopBar from "./TopBar";
 import SideBar from "./SideBar";
 import PatientListLayout from "./PatientListLayout";
 import PatientInformationModal from "./PatientInformationModal";
-import axios from "axios";
+import instance from "../../api/axios";
+
 import AddPatientModal from "./AddPatientModal";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Dashboard from "./Dashboard";
@@ -28,11 +29,7 @@ const PatientPortalPatientList = () => {
   const fetchPatients = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:5000/api/profiles", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setPatients(response.data);
+      const response = await instance.get("/profiles");
       setError(null);
     } catch (err) {
       console.error("Error fetching patients:", err);
@@ -95,17 +92,10 @@ const PatientPortalPatientList = () => {
   // --- REPLACE the old handleAddPatient function with this new one ---
   const handleAddPatient = async (newPatientData) => {
     try {
-      const token = localStorage.getItem("token");
-
-      // ✅ We only need ONE API call now.
-      // We send the entire newPatientData object, which includes the
-      // nested caseHistory object, directly to the profiles endpoint.
-      // The backend controller will handle creating both the profile and the case history.
-      await axios.post(
-        "http://localhost:5000/api/profiles",
-        newPatientData, // ✅ Send the complete object from the modal
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      // 👇 START OF CHANGE 🚀
+      // Use the 'api' instance for the POST request.
+      await instance.post("/profiles", newPatientData);
+      // 👆 END OF CHANGE
 
       // If the API call is successful, close the modal
       setIsAddModalOpen(false);
@@ -125,10 +115,9 @@ const PatientPortalPatientList = () => {
   const handleDeletePatient = async (id) => {
     if (window.confirm("Are you sure you want to delete this patient?")) {
       try {
-        const token = localStorage.getItem("token");
-        await axios.delete(`http://localhost:5000/api/profiles/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // 👇 START OF CHANGE 🚀
+        // Use the 'api' instance for the DELETE request.
+        await instance.delete(`/profiles/${id}`);
 
         // Close the details modal
         setSelectedPatient(null);
