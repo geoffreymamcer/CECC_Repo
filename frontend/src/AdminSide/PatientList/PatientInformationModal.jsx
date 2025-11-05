@@ -1,24 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import instance from "../../api/axios";
-import {
-  FaUserMd,
-  FaTimes,
-  FaEdit,
-  FaTrash,
-  FaEye,
-  FaDownload,
-  FaLowVision,
-  FaLightbulb,
-  FaVial,
-  FaClipboardList,
-} from "react-icons/fa";
-import {
-  IoMdPerson,
-  IoMdCall,
-  IoMdMail,
-  IoMdHome,
-  IoMdClipboard,
-} from "react-icons/io";
+import { FaUserMd, FaTimes, FaEdit, FaTrash } from "react-icons/fa";
+import { IoMdPerson, IoMdCall, IoMdMail, IoMdHome } from "react-icons/io";
 
 import NewVisitModal from "./NewVisitModal";
 import InvoiceInputModal from "./InvoiceModal";
@@ -281,8 +264,6 @@ const PatientInformationModal = ({
     if (!patientId) return;
     setLoading(true);
     setError(null);
-    const token = localStorage.getItem("token");
-    const headers = { headers: { Authorization: `Bearer ${token}` } };
 
     try {
       // The 'api' instance handles the Authorization header automatically
@@ -377,8 +358,6 @@ const PatientInformationModal = ({
     }
 
     setIsClinicalDataLoading(true);
-    const token = localStorage.getItem("token");
-    const headers = { headers: { Authorization: `Bearer ${token}` } };
 
     try {
       // Use the 'api' instance for all clinical data requests
@@ -638,10 +617,6 @@ const PatientInformationModal = ({
     }
   };
 
-  const handleCreateInvoice = () => {
-    setShowInvoiceModal(true);
-  };
-
   const handleEdit = () => setIsEditing(true);
 
   // --- MODIFIED: save per-visit clinical records and update profile ---
@@ -654,9 +629,6 @@ const PatientInformationModal = ({
       alert("No visit selected. Cannot save clinical data.");
       return;
     }
-
-    const token = localStorage.getItem("token");
-    const headers = { headers: { Authorization: `Bearer ${token}` } };
 
     try {
       // --- Step 1: Construct the payload for the Profile update ---

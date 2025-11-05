@@ -19,15 +19,24 @@ const PatientDemographicsChart = () => {
         );
 
         const ageGroups = response.data;
-        if (ageGroups && ageGroups.length > 0) {
+        // --- MODIFICATION START ---
+        // Filter out any groups where the age is null or undefined
+        const validAgeGroups = ageGroups.filter(
+          (g) => g && typeof g.age === "string"
+        );
+        // --- MODIFICATION END ---
+
+        if (validAgeGroups && validAgeGroups.length > 0) {
+          // <-- Use the filtered array
           setChartData({
-            labels: ageGroups.map((g) =>
+            // Use the filtered array for labels and data
+            labels: validAgeGroups.map((g) =>
               g.age.replace(/:\s\d+-\d+/, "").replace(" & up", "+")
             ),
             datasets: [
               {
-                data: ageGroups.map((g) => g.patients),
-                backgroundColor: ageGroups.map(
+                data: validAgeGroups.map((g) => g.patients), // <-- Use the filtered array here too
+                backgroundColor: validAgeGroups.map(
                   (_, index) => CHART_COLORS[index % CHART_COLORS.length]
                 ),
                 borderColor: "#FFFFFF",
