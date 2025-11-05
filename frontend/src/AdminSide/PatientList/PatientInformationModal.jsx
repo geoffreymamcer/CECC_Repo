@@ -741,38 +741,39 @@ const PatientInformationModal = ({
         profilePayload
       );
 
-      // Create promises to update each clinical record using its specific ID from the visit object.
-      // This logic is now correct and has no fallbacks.
-      const clinicalPromises = [
-        instance.put(
-          `/casehistory/visit/${selectedVisit.caseHistory}`,
-          caseHistoryData
-        ),
-        instance.put(
-          `/clinical-examination/visit/${selectedVisit.clinicalExamination}`,
-          clinicalExaminationData
-        ),
-        instance.put(
-          `/binocular-tests/visit/${selectedVisit.basicBinocularVisionTests}`,
-          basicBinocularTestsData
-        ),
-        instance.put(
-          `/slit-lamp-funduscopy/visit/${selectedVisit.slitLampFunduscopy}`,
-          slitLampData
-        ),
-        instance.put(
-          `/diagnostic-assessment-plan/visit/${selectedVisit.diagnosticAssessmentPlan}`,
-          diagnosticPlanData
-        ),
-        instance.put(
-          `/plan-of-management/visit/${selectedVisit.planOfManagement}`,
-          planOfManagementData
-        ),
-      ];
+      const allPromises = [profileUpdatePromise];
 
-      // --- Step 3: Execute all promises concurrently ---
-      await Promise.all([profileUpdatePromise, ...clinicalPromises]);
+      if (selectedVisit?._id) {
+        const clinicalPromises = [
+          instance.put(
+            `/casehistory/visit/${selectedVisit.caseHistory}`,
+            caseHistoryData
+          ),
+          instance.put(
+            `/clinical-examination/visit/${selectedVisit.clinicalExamination}`,
+            clinicalExaminationData
+          ),
+          instance.put(
+            `/binocular-tests/visit/${selectedVisit.basicBinocularVisionTests}`,
+            basicBinocularTestsData
+          ),
+          instance.put(
+            `/slit-lamp-funduscopy/visit/${selectedVisit.slitLampFunduscopy}`,
+            slitLampData
+          ),
+          instance.put(
+            `/diagnostic-assessment-plan/visit/${selectedVisit.diagnosticAssessmentPlan}`,
+            diagnosticPlanData
+          ),
+          instance.put(
+            `/plan-of-management/visit/${selectedVisit.planOfManagement}`,
+            planOfManagementData
+          ),
+        ];
+        allPromises.push(...clinicalPromises);
+      }
 
+      await Promise.all(allPromises);
       alert("Changes saved successfully!");
       setIsEditing(false);
       if (typeof onDataUpdate === "function") {
