@@ -306,9 +306,9 @@ async function generateAndSendInvoicePDF(req, res, disposition) {
 
     // CRITICAL: Add a security check to ensure the user is an admin or owns the invoice.
     const isOwner = String(invoice.patientId) === String(userId);
-    const isAdmin = userRole === "admin";
+    const isAdminOrOwner = userRole === "admin" || userRole === "owner";
 
-    if (!isOwner && !isAdmin) {
+    if (!isOwner && !isAdminOrOwner) {
       return res.status(403).json({
         message:
           "Forbidden: You do not have permission to access this invoice.",
