@@ -10,8 +10,12 @@ import {
   forgotPassword,
   verifyResetCode,
   resetPassword,
+  createAdmin,
+  getAdmins,
+  updateAdminRole,
+  deleteAdmin,
 } from "../controllers/UserController.js";
-import { auth } from "../middleware/auth.js";
+import { auth, isOwner } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -23,6 +27,12 @@ router.post("/admin-login", adminLogin);
 router.post("/forgot-password", forgotPassword);
 router.post("/verify-reset-code", verifyResetCode);
 router.post("/reset-password", resetPassword);
+
+router.post("/admin/create", auth, isOwner, createAdmin);
+router.get("/admins", auth, isOwner, getAdmins);
+
+router.patch("/admin/role/:id", auth, isOwner, updateAdminRole);
+router.delete("/admin/:id", auth, isOwner, deleteAdmin);
 
 router.get("/me", auth, getMe);
 router.delete("/:id", auth, deleteUser);

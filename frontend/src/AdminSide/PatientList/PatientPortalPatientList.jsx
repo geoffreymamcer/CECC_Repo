@@ -13,6 +13,7 @@ import Inventory from "../Inventory/Inventory";
 import ColorVisionTest from "../ColorVisionTest2/ColorVisionTest";
 import Appointments from "../Appointment/Appointments2";
 import SalesAnalytics from "../SalesAnalytics/SalesAnalytics";
+import AccountControl from "../AccountControlTab/AccountControl";
 
 const PatientPortalPatientList = () => {
   const [activeTab, setActiveTab] = useState("Dashboard");
@@ -159,6 +160,7 @@ const PatientPortalPatientList = () => {
         {activeTab === "Inventory" && <Inventory />}
         {activeTab === "Color Vision Test" && <ColorVisionTest />}
         {activeTab === "Financial Reports" && <SalesAnalytics />}
+        {activeTab === "Account Control" && <AccountControl />}
       </div>
 
       {selectedPatient && (

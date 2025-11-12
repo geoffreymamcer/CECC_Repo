@@ -15,10 +15,10 @@ const SideBar = ({ activeTab, setActiveTab, sidebarOpen, setSidebarOpen }) => {
     { name: "Patient List", icon: <MdPeople className="text-xl" /> },
     { name: "Patient Analytics", icon: <FaChartLine className="text-xl" /> },
     { name: "Financial Reports", icon: <FaChartLine className="text-xl" /> },
-
     { name: "Appointments", icon: <FaCalendarAlt className="text-xl" /> },
     { name: "Inventory", icon: <FaBox className="text-xl" /> },
     { name: "Color Vision Test", icon: <FaEye className="text-xl" /> },
+    { name: "Account Control", icon: <MdPeople className="text-xl" /> },
   ];
 
   return (

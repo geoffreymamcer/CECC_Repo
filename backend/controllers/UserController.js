@@ -6,6 +6,7 @@ import {
   sendVerificationEmail,
   sendPasswordResetEmail,
 } from "../services/emailService.js";
+import mongoose from "mongoose";
 
 const pendingVerifications = {};
 const passwordResetTokens = {};
@@ -552,6 +553,226 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({
       status: "error",
       message: "An error occurred while resetting your password.",
+    });
+  }
+};
+
+export const createAdmin = async (req, res) => {
+  try {
+    // 6️⃣ ✨ START: DESTRUCTURE phone_number AND UPDATE VALIDATION
+    const { name, email, password, role, phone_number } = req.body;
+
+    // Validate input
+    if (!name || !email || !password || !role || !phone_number) {
+      return res.status(400).json({
+        status: "error",
+        message:
+          "Please provide all required fields: name, email, phone number, password, and role.",
+      });
+    }
+    // 6️⃣ ✨ END: DESTRUCTURE phone_number AND UPDATE VALIDATION
+
+    const nameParts = name.trim().split(" ");
+    if (nameParts.length < 2) {
+      return res.status(400).json({
+        status: "error",
+        message: "Please provide both a first and last name.",
+      });
+    }
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(" ");
+
+    if (role !== "Admin" && role !== "Owner") {
+      return res.status(400).json({
+        status: "error",
+        message: "Role must be either 'Admin' or 'Owner'.",
+      });
+    }
+
+    // 7️⃣ ✨ START: CHECK FOR EXISTING EMAIL OR PHONE NUMBER
+    const existingUser = await User.findOne({
+      $or: [{ email }, { phone_number }],
+    });
+    if (existingUser) {
+      let message = "User with this ";
+      if (existingUser.email === email) {
+        message += "email";
+      } else {
+        message += "phone number";
+      }
+      message += " already exists";
+      return res.status(400).json({
+        status: "error",
+        message,
+      });
+    }
+    // 7️⃣ ✨ END: CHECK FOR EXISTING EMAIL OR PHONE NUMBER
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // 8️⃣ ✨ START: ADD phone_number TO THE NEW USER OBJECT
+    const newAdmin = await User.create({
+      _id: new mongoose.Types.ObjectId().toString(),
+      firstName,
+      lastName,
+      email,
+      phone_number,
+      password: hashedPassword,
+      role: role.toLowerCase(),
+    });
+    // 8️⃣ ✨ END: ADD phone_number TO THE NEW USER OBJECT
+
+    res.status(201).json({
+      status: "success",
+      message: "Admin account created successfully",
+      data: {
+        id: newAdmin._id,
+        name: `${newAdmin.firstName} ${newAdmin.lastName}`,
+        email: newAdmin.email,
+        role: newAdmin.role.charAt(0).toUpperCase() + newAdmin.role.slice(1),
+        createdAt: newAdmin.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("Create Admin error:", error);
+    res.status(500).json({
+      status: "error",
+      message: error.message || "An error occurred during admin creation",
+    });
+  }
+};
+
+export const getAdmins = async (req, res) => {
+  try {
+    const admins = await User.find({ role: { $in: ["admin", "owner"] } }).sort({
+      createdAt: -1,
+    });
+
+    const formattedAdmins = admins.map((admin) => ({
+      id: admin._id,
+      name: `${admin.firstName} ${admin.lastName}`,
+      email: admin.email,
+      role: admin.role.charAt(0).toUpperCase() + admin.role.slice(1),
+      createdAt: admin.createdAt,
+    }));
+
+    res.status(200).json({
+      status: "success",
+      data: formattedAdmins,
+    });
+  } catch (error) {
+    console.error("Get Admins error:", error);
+    res.status(500).json({
+      status: "error",
+      message: error.message || "An error occurred while fetching admins",
+    });
+  }
+};
+export const updateAdminRole = async (req, res) => {
+  try {
+    const targetUserId = req.params.id; // The ID of the user to update
+    const { role: newRole } = req.body; // The new role ("Admin" or "Owner")
+    const requestingUserId = req.user.id; // The ID of the logged-in user making the request
+
+    // Security Rule: Prevent users from changing their own role.
+    if (targetUserId === requestingUserId) {
+      return res.status(403).json({
+        status: "error",
+        message: "You cannot change your own role.",
+      });
+    }
+
+    // Find the user to be updated
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found." });
+    }
+
+    // Security Rule: Prevent changing the role of an Owner.
+    // This is a safeguard; you might decide only a specific super-user can do this.
+    if (targetUser.role === "owner") {
+      return res.status(403).json({
+        status: "error",
+        message: "The role of an Owner cannot be changed.",
+      });
+    }
+
+    // Validate the new role and update the user
+    const newRoleLower = newRole.toLowerCase();
+    if (newRoleLower !== "admin" && newRoleLower !== "owner") {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Invalid role specified." });
+    }
+
+    targetUser.role = newRoleLower;
+    await targetUser.save();
+
+    // Send back the updated user data so the frontend can update its state
+    const updatedAdminData = {
+      id: targetUser._id,
+      name: `${targetUser.firstName} ${targetUser.lastName}`,
+      email: targetUser.email,
+      role: newRole, // Send back the capitalized version
+      createdAt: targetUser.createdAt,
+    };
+
+    res.status(200).json({
+      status: "success",
+      message: `User role successfully updated to ${newRole}.`,
+      data: updatedAdminData,
+    });
+  } catch (error) {
+    console.error("Update Admin Role error:", error);
+    res.status(500).json({
+      status: "error",
+      message: "An error occurred while updating the user role.",
+    });
+  }
+};
+
+export const deleteAdmin = async (req, res) => {
+  try {
+    const targetUserId = req.params.id;
+    const requestingUserId = req.user.id;
+
+    // Security Rule: Prevent users from deleting themselves.
+    if (targetUserId === requestingUserId) {
+      return res.status(403).json({
+        status: "error",
+        message: "You cannot delete your own account here.",
+      });
+    }
+
+    const userToDelete = await User.findById(targetUserId);
+    if (!userToDelete) {
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found." });
+    }
+
+    // Security Rule: Prevent Owner accounts from being deleted.
+    if (userToDelete.role === "owner") {
+      return res.status(403).json({
+        status: "error",
+        message: "Owner accounts cannot be deleted.",
+      });
+    }
+
+    await User.findByIdAndDelete(targetUserId);
+
+    res.status(200).json({
+      status: "success",
+      message: "Admin account deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Delete Admin error:", error);
+    res.status(500).json({
+      status: "error",
+      message: "An error occurred while deleting the account.",
     });
   }
 };

@@ -99,3 +99,16 @@ export const requireAdmin = async (req, res, next) => {
     res.status(500).json({ message: "Server error checking admin privileges" });
   }
 };
+
+export const isOwner = (req, res, next) => {
+  // This middleware should run AFTER the `auth` middleware
+  if (req.user && req.user.role === "owner") {
+    next(); // User is an owner, proceed to the next middleware/controller
+  } else {
+    res.status(403).json({
+      // 403 Forbidden is the correct status code
+      status: "error",
+      message: "Access denied. You do not have sufficient permissions.",
+    });
+  }
+};
