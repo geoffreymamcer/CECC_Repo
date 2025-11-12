@@ -12,12 +12,6 @@ const EyeCareRecordsViewer = () => {
   const [selectedVisit, setSelectedVisit] = useState(0);
 
   // Mock data
-  const patient = {
-    name: "Sarah Johnson",
-    id: "EC-2023-0456",
-    dob: "1985-06-15",
-    lastVisit: "2023-05-10",
-  };
 
   const visits = [
     {
@@ -73,7 +67,6 @@ const EyeCareRecordsViewer = () => {
       <header className="eyecare-records-viewer__header">
         <h1>Candelaria Eye Care Clinic</h1>
       </header>
-
 
       <RecordsTabs
         activeTab={activeTab}
