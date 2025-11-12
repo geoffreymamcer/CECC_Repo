@@ -13,6 +13,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import PatientVisitsChart from "./PatientVisitsChart";
 import PatientDemographicsChart from "./PatientDemographicsChart";
+import MessageModal from "./MessageModal";
 
 const Dashboard = () => {
   const { user } = useAuth(); // <-- 2. GET THE LOGGED-IN USER
@@ -32,6 +33,11 @@ const Dashboard = () => {
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const [messages, setMessages] = useState([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       setKpiLoading(true);
@@ -46,6 +52,7 @@ const Dashboard = () => {
           instance.get("/profiles/count"),
           instance.get(`/appointments?date=${today}`), // For "Today's Appointments" KPI
           instance.get("/appointments/upcoming"), // --- NEW --- For the upcoming appointments table
+          instance.get("/messages/recent"),
         ];
 
         if (isOwner) {
@@ -57,6 +64,7 @@ const Dashboard = () => {
           patientsRes,
           todaysAppointmentsRes,
           upcomingAppointmentsRes,
+          messagesRes,
           revenueRes,
           paymentsRes,
         ] = await Promise.all(apiCalls.map((p) => p.catch((e) => e)));
@@ -84,6 +92,8 @@ const Dashboard = () => {
         // --- UPDATE APPOINTMENTS TABLE DATA ---
         setAppointments(upcomingAppointmentsRes.data || []);
 
+        setMessages(messagesRes.data || []);
+
         // --- UPDATE PAYMENTS TABLE DATA ---
         if (isOwner) {
           setPayments(paymentsRes.data || []);
@@ -96,6 +106,7 @@ const Dashboard = () => {
         setKpiLoading(false);
         setAppointmentsLoading(false);
         setPaymentsLoading(false);
+        setMessagesLoading(false);
       }
     };
 
@@ -104,32 +115,11 @@ const Dashboard = () => {
     }
   }, [isOwner, user]);
 
-  const [messages] = useState([
-    {
-      id: 1,
-      patient: "Lisa Garcia",
-      preview: "I have a question about my prescription...",
-      time: "2 hours ago",
-    },
-    {
-      id: 2,
-      patient: "Kevin Moore",
-      preview: "When will my test results be available?",
-      time: "5 hours ago",
-    },
-    {
-      id: 3,
-      patient: "Amanda White",
-      preview: "I need to reschedule my appointment.",
-      time: "Yesterday",
-    },
-    {
-      id: 4,
-      patient: "Paul Robinson",
-      preview: "Is the doctor available next week?",
-      time: "Yesterday",
-    },
-  ]);
+  // --- 6. HANDLER TO OPEN THE MODAL ---
+  const handleViewMessage = (message) => {
+    setSelectedMessage(message);
+    setIsModalOpen(true);
+  };
 
   const getStatusBadge = (status) => {
     const statusClasses = {
@@ -385,7 +375,6 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Messages Section */}
       <div className="bg-white rounded-2xl shadow-md overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-[#7F0000]">
@@ -396,20 +385,46 @@ const Dashboard = () => {
           </button>
         </div>
         <div className="max-h-80 overflow-y-auto">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className="p-4 border-b border-gray-100 hover:bg-gray-50"
-            >
-              <div className="flex justify-between items-start">
-                <h3 className="font-medium text-gray-800">{message.patient}</h3>
-                <span className="text-xs text-gray-500">{message.time}</span>
+          {messagesLoading ? (
+            <p className="py-6 text-center text-sm text-gray-500">
+              Loading messages...
+            </p>
+          ) : messages.length === 0 ? (
+            <p className="py-6 text-center text-sm text-gray-500">
+              No recent messages.
+            </p>
+          ) : (
+            messages.map((message) => (
+              <div
+                key={message._id}
+                className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+                onClick={() => handleViewMessage(message)}
+              >
+                <div className="flex justify-between items-start">
+                  <h3 className="font-medium text-gray-800">
+                    {/* --- THIS PART REMAINS THE SAME --- */}
+                    {message.sender.firstName} {message.sender.lastName}
+                  </h3>
+                  <span className="text-xs text-gray-500">
+                    {new Date(message.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                {/* --- START OF CHANGE --- */}
+                {/* The subject is now nested inside the conversation object */}
+                <p className="text-sm text-gray-600 mt-1 truncate">
+                  {message.conversation.subject}
+                </p>
+                {/* --- END OF CHANGE --- */}
               </div>
-              <p className="text-sm text-gray-600 mt-1">{message.preview}</p>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
+      <MessageModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        message={selectedMessage}
+      />
     </div>
   );
 };

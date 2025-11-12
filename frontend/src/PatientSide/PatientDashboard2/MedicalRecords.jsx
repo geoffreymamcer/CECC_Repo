@@ -16,9 +16,6 @@ const MedicalRecords = () => {
   const [visits, setVisits] = useState([]);
   const [visitsLoading, setVisitsLoading] = useState(false);
   const [visitsError, setVisitsError] = useState(null);
-  const [medicalHistory, setMedicalHistory] = useState(null);
-  const [medicalHistoryLoading, setMedicalHistoryLoading] = useState(false);
-  const [medicalHistoryError, setMedicalHistoryError] = useState(null);
   const [visitReports, setVisitReports] = useState([]);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [reportsError, setReportsError] = useState(null);
@@ -26,11 +23,14 @@ const MedicalRecords = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const [appointments, setAppointments] = useState([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
+  const [appointmentsError, setAppointmentsError] = useState(null);
+
   const tabs = [
     { id: "visit-history", label: "Visit History" },
     { id: "test-results", label: "Test Results" },
     { id: "prescriptions", label: "Prescriptions" },
-    { id: "health-history", label: "Health History" },
     { id: "receipts", label: "Receipts" },
   ];
 
@@ -41,21 +41,14 @@ const MedicalRecords = () => {
       setError(null);
       try {
         // Fetch all necessary data in parallel
-        const [invoicesRes, visitsRes, medicalHistoryRes] = await Promise.all([
+        const [invoicesRes, visitsRes] = await Promise.all([
           instance.get("/invoices/patient").catch((err) => ({ error: err })), // Fetches invoices for logged-in user
           instance.get("/visits/my-visits").catch((err) => ({ error: err })), // Fetches visits for logged-in user
-          instance.get("/medicalhistory/me").catch((err) => ({ error: err })), // Fetches medical history for logged-in user
         ]);
 
         // Check for errors in each response
         if (invoicesRes.error) throw new Error("Could not load receipts.");
         if (visitsRes.error) throw new Error("Could not load visit history.");
-        if (
-          medicalHistoryRes.error &&
-          medicalHistoryRes.error.response?.status !== 404
-        ) {
-          throw new Error("Could not load health history.");
-        }
 
         setInvoices(invoicesRes.data || []);
 
@@ -63,8 +56,6 @@ const MedicalRecords = () => {
         const allVisits = visitsRes.data || [];
         allVisits.sort((a, b) => new Date(b.visitDate) - new Date(a.visitDate));
         setVisits(allVisits);
-
-        setMedicalHistory(medicalHistoryRes.data || null);
       } catch (err) {
         console.error("Error fetching medical records:", err);
         setError(err.message || "Failed to load records. Please try again.");
@@ -75,6 +66,39 @@ const MedicalRecords = () => {
 
     fetchAllRecords();
   }, []);
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      // No need to fetch if data is already there or if tab is not active
+      if (activeTab !== "visit-history" || appointments.length > 0) return;
+
+      setAppointmentsLoading(true);
+      setAppointmentsError(null);
+      try {
+        // The endpoint should get the appointments for the currently logged-in user.
+        // We assume the backend has a route like `/appointments/my-appointments`
+        // or can derive the user from the auth token.
+        // Based on your routes, we need a patientId. Let's assume there's a generic endpoint.
+        // If not, you might need to adjust the backend to have a route like `/appointments/me`.
+        // For now, let's use a placeholder endpoint that needs the patient's ID.
+        // A common practice is to have a `/profile/me` endpoint to get user details including ID.
+        // Let's assume we have a way to get the patient's ID. A placeholder for now:
+        const userId = "current-user-id"; // In a real app, you'd get this from auth context or a profile fetch.
+        const response = await instance.get("/appointments/my-appointments");
+        const sortedAppointments = (response.data || []).sort(
+          (a, b) => new Date(b.appointmentDate) - new Date(a.appointmentDate)
+        );
+        setAppointments(sortedAppointments);
+      } catch (err) {
+        console.error("Error fetching appointment history:", err);
+        setAppointmentsError("Failed to load visit history. Please try again.");
+      } finally {
+        setAppointmentsLoading(false);
+      }
+    };
+
+    fetchAppointments();
+  }, [activeTab, appointments.length]);
 
   // --- REPLACE WITH THIS VERSION ---
   const handlePdfAction = async (type, fullEndpoint, fileName) => {
@@ -234,78 +258,6 @@ const MedicalRecords = () => {
             )}
           </div>
         )}
-        {activeTab === "health-history" && (
-          <div className="p-4 rounded-lg bg-gray-50 animate-fadeIn">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="font-medium text-gray-800">Health History</h4>
-              <button className="px-3 py-1 bg-dark-red text-white text-sm rounded hover:bg-deep-red transition-all duration-200 transform hover:scale-[1.02]">
-                Download PDF
-              </button>
-            </div>
-
-            {medicalHistoryLoading ? (
-              <div className="text-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-dark-red mx-auto"></div>
-                <p className="mt-2 text-gray-600">Loading medical history...</p>
-              </div>
-            ) : medicalHistoryError ? (
-              <div className="text-red-600 p-4 text-center">
-                {medicalHistoryError}
-              </div>
-            ) : !medicalHistory ? (
-              <div className="text-gray-600 text-center py-4">
-                No medical history found. You can add one in your profile.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <h5 className="font-medium mb-2">
-                    Conditions / Ocular History
-                  </h5>
-                  <p className="text-gray-700">
-                    {medicalHistory.ocularHistory || "-"}
-                  </p>
-                </div>
-                <div>
-                  <h5 className="font-medium mb-2">Health History</h5>
-                  <p className="text-gray-700">
-                    {medicalHistory.healthHistory || "-"}
-                  </p>
-                </div>
-                <div>
-                  <h5 className="font-medium mb-2">Family Medical History</h5>
-                  <p className="text-gray-700">
-                    {medicalHistory.familyMedicalHistory || "-"}
-                  </p>
-                </div>
-                <div>
-                  <h5 className="font-medium mb-2">Medications</h5>
-                  <p className="text-gray-700">
-                    {medicalHistory.medications || "-"}
-                  </p>
-                </div>
-                <div>
-                  <h5 className="font-medium mb-2">Allergies</h5>
-                  <p className="text-gray-700">
-                    {medicalHistory.allergies || "-"}
-                  </p>
-                </div>
-                <div>
-                  <h5 className="font-medium mb-2">Occupational History</h5>
-                  <p className="text-gray-700">
-                    {medicalHistory.occupationalHistory || "-"}
-                  </p>
-                </div>
-                <div>
-                  <h5 className="font-medium mb-2">Digital History</h5>
-                  <p className="text-gray-700">
-                    {medicalHistory.digitalHistory || "-"}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
         {activeTab === "receipts" && (
           <div className="p-4 rounded-lg bg-gray-50">
             <h4 className="font-medium text-gray-800 mb-4">
@@ -401,67 +353,59 @@ const MedicalRecords = () => {
           <div className="p-4 rounded-lg bg-gray-50 animate-fadeIn">
             <div className="flex justify-between items-center mb-4">
               <h4 className="font-medium text-gray-800">Visit History</h4>
-              <button className="px-3 py-1 bg-dark-red text-white text-sm rounded hover:bg-deep-red transition-all duration-200 transform hover:scale-[1.02]">
-                Export
-              </button>
             </div>
 
-            {visitsLoading ? (
+            {appointmentsLoading ? (
               <div className="text-center py-4">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-dark-red mx-auto"></div>
                 <p className="mt-2 text-gray-600">Loading visit history...</p>
               </div>
-            ) : visitsError ? (
-              <div className="text-red-600 p-4 text-center">{visitsError}</div>
-            ) : visits.length === 0 ? (
+            ) : appointmentsError ? (
+              <div className="text-red-600 p-4 text-center">
+                {appointmentsError}
+              </div>
+            ) : appointments.length === 0 ? (
               <div className="text-gray-600 text-center py-4">
                 No past visits found.
               </div>
             ) : (
               <ul className="space-y-3">
-                {visits.map((visit) => {
-                  const apptDate = new Date(visit.appointmentDate);
-                  // If appointmentTime was parsed earlier, prefer the combined date-time; otherwise just show date
-                  let displayDate = apptDate.toLocaleDateString();
-                  if (visit.appointmentTime) {
-                    const timeParts = visit.appointmentTime.split(":");
-                    if (timeParts.length === 2) {
-                      const hours = parseInt(timeParts[0], 10);
-                      const minutes = parseInt(timeParts[1], 10);
-                      if (!isNaN(hours) && !isNaN(minutes)) {
-                        const dt = new Date(apptDate);
-                        dt.setHours(hours, minutes, 0, 0);
-                        displayDate = dt.toLocaleString();
-                      }
-                    } else {
-                      // fallback: show date and the raw time string
-                      displayDate = `${apptDate.toLocaleDateString()} ${
-                        visit.appointmentTime
-                      }`;
-                    }
+                {appointments.map((appointment) => {
+                  const apptDate = new Date(appointment.appointmentDate);
+                  let displayDate = apptDate.toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  });
+
+                  if (appointment.appointmentTime) {
+                    // A simple way to format time without full date-time objects
+                    displayDate += ` at ${appointment.appointmentTime}`;
                   }
 
                   const statusColor =
-                    visit.status === "completed"
+                    appointment.status === "completed"
                       ? "green"
-                      : visit.status === "cancelled"
+                      : appointment.status === "cancelled"
                       ? "red"
                       : "yellow";
 
                   return (
                     <li
-                      key={visit._id}
-                      className="border p-4 rounded hover:shadow transition"
+                      key={appointment._id}
+                      className="border p-4 rounded bg-white hover:shadow transition"
                     >
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="font-medium">{visit.serviceType}</p>
+                          <p className="font-medium">
+                            {appointment.serviceType}
+                          </p>
                           <p className="text-sm text-gray-600">{displayDate}</p>
                         </div>
                         <span
-                          className={`bg-${statusColor}-100 text-${statusColor}-800 text-xs px-2.5 py-0.5 rounded`}
+                          className={`bg-${statusColor}-100 text-${statusColor}-800 text-xs font-medium px-2.5 py-0.5 rounded-full capitalize`}
                         >
-                          {visit.status}
+                          {appointment.status}
                         </span>
                       </div>
                     </li>

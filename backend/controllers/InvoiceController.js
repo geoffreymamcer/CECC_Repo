@@ -3,6 +3,7 @@ import Profile from "../models/Profile.js";
 import SequenceCounter from "../models/SequenceCounter.js";
 import pdfService from "../services/pdfService.js";
 import Product from "../models/Inventory.js";
+import Notification from "../models/Notification.js";
 
 export const getTodaysRevenue = async (req, res) => {
   try {
@@ -261,6 +262,25 @@ export const createInvoice = async (req, res) => {
     // Create the invoice. We will NOT generate the PDF here.
     const invoice = await Invoice.create(invoiceData);
 
+    const notificationPayload = {
+      recipient: invoice.patientId,
+      title: "New Invoice Created",
+      message: `Your invoice #${
+        invoice.invoiceNumber
+      } for ₱${invoice.totalAmount.toFixed(2)} is ready.`,
+      type: "invoice",
+      link: "/user-dashboard?tab=receipts",
+    };
+    // Save to database
+    await Notification.create(notificationPayload);
+    // Emit real-time event if user is online
+    const recipientSocketId = req.onlineUsers.get(invoice.patientId);
+    if (recipientSocketId) {
+      req.io
+        .to(recipientSocketId)
+        .emit("new_notification", notificationPayload);
+    }
+
     res.status(201).json(invoice);
   } catch (error) {
     console.error("Error creating invoice:", error);
@@ -289,12 +309,10 @@ async function generateAndSendInvoicePDF(req, res, disposition) {
     const isAdmin = userRole === "admin";
 
     if (!isOwner && !isAdmin) {
-      return res
-        .status(403)
-        .json({
-          message:
-            "Forbidden: You do not have permission to access this invoice.",
-        });
+      return res.status(403).json({
+        message:
+          "Forbidden: You do not have permission to access this invoice.",
+      });
     }
 
     // Fetch the creator's name to display it on the PDF, making it more complete.

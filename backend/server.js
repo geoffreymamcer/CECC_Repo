@@ -5,8 +5,8 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import apiRoutes from "./routes/api.js";
-import path from "path";
-import { fileURLToPath } from "url";
+import { Server } from "socket.io"; // 👈 EMOJI: Import Server from socket.io
+import http from "http"; // 👈 EMOJI: Import http
 
 // Load environment variables first
 dotenv.config();
@@ -26,38 +26,67 @@ if (missingVars.length > 0) {
 }
 
 const app = express();
+const server = http.createServer(app);
 
-// Middleware
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
-
-// ✨ --- FIX START --- ✨
-// Refactored CORS configuration for better flexibility and standard practice.
 const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "https://cecc-test.vercel.app",
 ];
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, Postman, or server-to-server)
-    if (!origin) return callback(null, true);
-    // Allow the request if the origin is in our whitelist
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      return callback(null, true);
-    } else {
-      // Otherwise, block the request
-      return callback(new Error("Not allowed by CORS"));
-    }
+// --- SETUP SOCKET.IO ---
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins, // Use the shared array
+    methods: ["GET", "POST"],
   },
+});
+
+// --- SETUP EXPRESS CORS MIDDLEWARE ---
+const corsOptions = {
+  origin: allowedOrigins, // Use the shared array
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-User-Timezone"],
   credentials: true,
 };
 
 app.use(cors(corsOptions));
-// ✨ --- FIX END --- ✨
+
+const onlineUsers = new Map();
+
+io.on("connection", (socket) => {
+  console.log("A user connected:", socket.id);
+
+  // When a user connects, they should send an 'addUser' event with their ID
+  socket.on("addUser", (userId) => {
+    onlineUsers.set(userId, socket.id);
+    console.log(`User ${userId} registered with socket ${socket.id}`);
+  });
+
+  socket.on("disconnect", () => {
+    // Remove user from the map on disconnect
+    for (let [userId, socketId] of onlineUsers.entries()) {
+      if (socketId === socket.id) {
+        onlineUsers.delete(userId);
+        break;
+      }
+    }
+    console.log("A user disconnected:", socket.id);
+  });
+});
+
+// Middleware to make 'io' and 'onlineUsers' accessible in your controllers
+app.use((req, res, next) => {
+  req.io = io;
+  req.onlineUsers = onlineUsers;
+  next();
+});
+
+// Middleware
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+app.use(cors(corsOptions));
 
 // Serve static files from the uploads directory
 app.use("/uploads", express.static("uploads"));
@@ -75,7 +104,7 @@ try {
 }
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log("Environment variables loaded:", {
     mongodbConnected: !!process.env.MONGODB_URI,

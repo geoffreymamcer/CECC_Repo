@@ -7,6 +7,7 @@ import SlitLampFunduscopy from "../models/SlitLampFunduscopy.js";
 import DiagnosticAssessmentPlan from "../models/DiagnosticAssessmentPlan.js";
 import PlanOfManagement from "../models/PlanOfManagement.js";
 import { generateVisitReport } from "../services/pdfGenerator.js";
+import Notification from "../models/Notification.js";
 
 export const getMyVisits = async (req, res) => {
   try {
@@ -112,6 +113,28 @@ export const createVisit = async (req, res) => {
     await Profile.findByIdAndUpdate(patientId, {
       $push: { visits: newVisit._id },
     });
+    const notificationPayload = {
+      recipient: patientId,
+      title: "New Visit Record Added",
+      message: `A new clinical record for your visit on ${new Date(
+        newVisit.visitDate
+      ).toLocaleDateString()} is available.`,
+      type: "test_result", // Use 'test_result' to match your other clinical notifications
+      link: "/user-dashboard?tab=test-results", // Directs user to the right tab
+    };
+
+    // Save the notification to the database for persistence
+    await Notification.create(notificationPayload);
+
+    // Emit the real-time event to the patient if they are currently online
+    const recipientSocketId = req.onlineUsers.get(patientId);
+    if (recipientSocketId) {
+      req.io
+        .to(recipientSocketId)
+        .emit("new_notification", notificationPayload);
+      console.log(`Sent new visit notification to patient ${patientId}`);
+    }
+    //
 
     res.status(201).json(newVisit);
   } catch (error) {

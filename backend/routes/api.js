@@ -17,6 +17,8 @@ import slitLampFunduscopyRoutes from "./slitLampFunduscopyRoutes.js";
 import diagnosticAssessmentPlanRoutes from "./diagnosticAssessmentPlanRoutes.js";
 import planOfManagementRoutes from "./planOfManagementRoutes.js";
 import analyticsRoutes from "./analyticsRoutes.js";
+import notificationRoutes from "./notificationRoutes.js";
+import messageRoutes from "./messageRoutes.js";
 
 const router = express.Router();
 
@@ -58,6 +60,10 @@ router.use("/diagnostic-assessment-plan", diagnosticAssessmentPlanRoutes);
 
 router.use("/plan-of-management", planOfManagementRoutes);
 router.use("/analytics", analyticsRoutes);
+
+router.use("/notifications", notificationRoutes);
+
+router.use("/messages", messageRoutes);
 
 // Plan of Management routes
 // Visit routes

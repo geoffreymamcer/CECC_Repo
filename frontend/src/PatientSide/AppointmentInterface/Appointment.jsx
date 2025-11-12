@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiCalendar, FiClock, FiEdit2, FiInfo } from "react-icons/fi";
 import "../PatientDashboard2/PatientDashboard2.css";
-import axios from "axios";
 import instance from "../../api/axios";
 
 import { useRef } from "react";

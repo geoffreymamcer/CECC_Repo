@@ -2,9 +2,13 @@ import User from "../models/User.js";
 import Profile from "../models/Profile.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { sendVerificationEmail } from "../services/emailService.js";
+import {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} from "../services/emailService.js";
 
 const pendingVerifications = {};
+const passwordResetTokens = {};
 
 export const signup = async (req, res) => {
   try {
@@ -415,6 +419,139 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({
       status: "error",
       message: error.message || "An error occurred while deleting the account",
+    });
+  }
+};
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    // SECURITY: Always send a generic success message to prevent user enumeration.
+    // This stops attackers from discovering which emails are registered.
+    if (!user) {
+      return res.status(200).json({
+        status: "success",
+        message:
+          "If an account with that email exists, a password reset code has been sent.",
+      });
+    }
+
+    // Generate a 6-digit verification code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store the reset code and its expiry (e.g., 10 minutes)
+    passwordResetTokens[email] = {
+      code: resetCode,
+      expiresAt: Date.now() + 600000, // 10 minutes from now
+    };
+
+    // Send the code to the user's email
+    await sendPasswordResetEmail(email, resetCode, user.firstName);
+
+    res.status(200).json({
+      status: "success",
+      message:
+        "If an account with that email exists, a password reset code has been sent.",
+    });
+  } catch (error) {
+    console.error("Forgot Password error:", error);
+    res.status(500).json({
+      status: "error",
+      message: "An error occurred while initiating the password reset.",
+    });
+  }
+};
+
+export const verifyResetCode = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    const storedToken = passwordResetTokens[email];
+
+    if (!storedToken) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Invalid or expired reset code." });
+    }
+
+    // Check for expiration
+    if (Date.now() > storedToken.expiresAt) {
+      delete passwordResetTokens[email]; // Clean up expired token
+      return res
+        .status(400)
+        .json({ status: "error", message: "Invalid or expired reset code." });
+    }
+
+    // Check if codes match
+    if (storedToken.code !== code) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Invalid reset code." });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: "Code verified successfully.",
+    });
+  } catch (error) {
+    console.error("Verify Reset Code error:", error);
+    res.status(500).json({
+      status: "error",
+      message: "An error occurred while verifying the code.",
+    });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { email, code, newPassword, confirmPassword } = req.body;
+
+    // --- SECURITY: Re-verify the token one last time ---
+    const storedToken = passwordResetTokens[email];
+    if (
+      !storedToken ||
+      storedToken.code !== code ||
+      Date.now() > storedToken.expiresAt
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid or expired reset code. Please start over.",
+      });
+    }
+
+    // Validate passwords
+    if (newPassword !== confirmPassword) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Passwords do not match." });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      // This should theoretically not happen if the first step was followed, but it's a good safeguard.
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found." });
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    // --- SECURITY: Invalidate the token immediately after use ---
+    delete passwordResetTokens[email];
+
+    res.status(200).json({
+      status: "success",
+      message: "Password has been reset successfully. You can now log in.",
+    });
+  } catch (error) {
+    console.error("Reset Password error:", error);
+    res.status(500).json({
+      status: "error",
+      message: "An error occurred while resetting your password.",
     });
   }
 };

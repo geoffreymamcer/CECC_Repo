@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react";
 import instance from "../../api/axios"; // Adjust path if necessary
+// --- 1. Import the custom hook for navigation ---
+import { useDashboardNav } from "./DashboardLayout";
 
 const ProductPreview = () => {
+  // --- 2. Get the navigation setter function from the context ---
+  const { setActiveNav } = useDashboardNav();
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,14 +36,12 @@ const ProductPreview = () => {
       setError(null);
       try {
         const res = await instance.get("/inventory");
-
         const docs = res.data?.products || res.data;
 
         if (!Array.isArray(docs) || docs.length === 0) {
           throw new Error("No products available");
         }
 
-        // Seeding logic is unchanged
         const today = new Date();
         const seed =
           today.getFullYear() * 10000 +
@@ -86,27 +89,25 @@ const ProductPreview = () => {
     };
   }, []);
 
-  // --- 3. REMOVED PLACEHOLDERS ---
-  // The 'placeholders' array has been completely removed.
-
   return (
     <div className="bg-white rounded-lg shadow-md p-6 transition-all duration-300 hover:shadow-lg">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-semibold text-gray-800">
           Recommended Products
         </h3>
-        <a
-          href="#"
+        {/* --- 3. Changed from an `<a>` tag to a `<button>` --- */}
+        <button
+          // --- 4. Added the onClick handler to navigate to the products page ---
+          onClick={() => setActiveNav("products")}
           className="text-sm text-dark-red hover:underline transition-colors"
         >
           View all
-        </a>
+        </button>
       </div>
 
-      {/* --- MODIFIED --- Simplified Render Logic */}
+      {/* --- RENDER LOGIC REMAINS UNCHANGED --- */}
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 animate-pulse">
-          {/* Skeleton loaders for a better UX */}
           {[...Array(4)].map((_, index) => (
             <div key={index} className="border rounded-lg overflow-hidden">
               <div className="bg-gray-200 h-40"></div>

@@ -1,4 +1,15 @@
-const Sidebar = ({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) => {
+// Sidebar.jsx
+
+import React, { useState } from "react"; // --- 1. IMPORT useState ---
+import { useDashboardNav } from "./PatientDashboard2/DashboardLayout";
+import ContactSupportModal from "./ContactSupportModal"; // --- 2. IMPORT THE NEW MODAL ---
+
+const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
+  const { activeNav, setActiveNav } = useDashboardNav();
+
+  // --- 3. ADD STATE TO MANAGE MODAL VISIBILITY ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const navItems = [
     {
       name: "Home",
@@ -23,69 +34,84 @@ const Sidebar = ({ activeNav, setActiveNav, sidebarOpen, setSidebarOpen }) => {
   ];
 
   return (
-    <div
-      className={`bg-deep-red text-white w-full md:w-64 flex-shrink-0 transform transition-transform duration-300 ease-in-out fixed md:fixed h-full z-20 ${
-        sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-      }`}
-    >
-      <div className="p-4 h-full flex flex-col">
-        <div>
-          <h2 className="text-2xl font-bold mb-8 mt-4 text-center">
-            My Portal
-          </h2>
-          <nav>
-            <ul className="space-y-2">
-              {navItems.map((item) => (
-                <li key={item.key}>
-                  <button
-                    onClick={() => {
-                      setActiveNav(item.key);
-                      // Automatically close sidebar on mobile after selection
-                      if (typeof window !== "undefined" && window.innerWidth < 768) {
-                        setSidebarOpen(false);
-                      }
-                    }}
-                    className={`flex items-center w-full p-3 rounded transition-colors duration-200 text-left ${
-                      activeNav === item.key ? "bg-dark-red" : "hover:bg-dark-red"
-                    }`}
-                  >
-                    <svg
-                      className="w-5 h-5 mr-3"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
+    <>
+      <div
+        className={`bg-deep-red text-white w-full md:w-64 flex-shrink-0 transform transition-transform duration-300 ease-in-out fixed md:fixed h-full z-20 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        }`}
+      >
+        <div className="p-4 h-full flex flex-col">
+          <div>
+            <h2 className="text-2xl font-bold mb-8 mt-4 text-center">
+              My Portal
+            </h2>
+            <nav>
+              <ul className="space-y-2">
+                {navItems.map((item) => (
+                  <li key={item.key}>
+                    <button
+                      onClick={() => {
+                        setActiveNav(item.key);
+                        if (
+                          typeof window !== "undefined" &&
+                          window.innerWidth < 768
+                        ) {
+                          setSidebarOpen(false);
+                        }
+                      }}
+                      className={`flex items-center w-full p-3 rounded transition-colors duration-200 text-left ${
+                        activeNav === item.key
+                          ? "bg-dark-red"
+                          : "hover:bg-dark-red"
+                      }`}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d={item.icon}
-                      ></path>
-                    </svg>
-                    {item.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-
-        <div className="mt-auto pb-6">
-          <div className="p-4 bg-dark-red rounded-lg mb-4 animate-pulse">
-            <h4 className="font-medium mb-2">Need Help?</h4>
-            <p className="text-sm mb-3">Contact our support team 24/7</p>
-            <button className="w-full px-3 py-1 bg-white text-dark-red text-sm rounded hover:bg-gray-100 transition-all duration-200 transform hover:scale-[1.02]">
-              Contact
-            </button>
+                      <svg
+                        className="w-5 h-5 mr-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d={item.icon}
+                        ></path>
+                      </svg>
+                      {item.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
           </div>
-          <div className="text-center text-sm text-gray-300">
-            <p>© 2023 VisionCare</p>
-            <p>v2.4.1</p>
+
+          <div className="mt-auto pb-6">
+            <div className="p-4 bg-dark-red rounded-lg mb-4 animate-pulse">
+              <h4 className="font-medium mb-2">Need Help?</h4>
+              <p className="text-sm mb-3">Contact our support</p>
+              {/* --- 4. ATTACH ONCLICK TO OPEN THE MODAL --- */}
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="w-full px-3 py-1 bg-white text-dark-red text-sm rounded hover:bg-gray-100 transition-all duration-200 transform hover:scale-[1.02]"
+              >
+                Contact
+              </button>
+            </div>
+            <div className="text-center text-sm text-gray-300">
+              <p>Candelaira Eye Care Clinic</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* --- 5. RENDER THE MODAL --- */}
+      <ContactSupportModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </>
   );
 };
 

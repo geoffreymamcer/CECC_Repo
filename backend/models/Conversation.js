@@ -1,0 +1,28 @@
+// models/Conversation.js
+
+import mongoose from "mongoose";
+
+const conversationSchema = new mongoose.Schema(
+  {
+    participants: [
+      {
+        type: String, // Storing custom User IDs
+        ref: "User",
+        required: true,
+      },
+    ],
+    subject: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    lastMessage: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message",
+    },
+  },
+  { timestamps: true }
+);
+
+const Conversation = mongoose.model("Conversation", conversationSchema);
+export default Conversation;
