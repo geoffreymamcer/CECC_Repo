@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FiDownload, FiCheckCircle, FiXCircle } from "react-icons/fi";
+import { FiDownload, FiCheckCircle } from "react-icons/fi";
 import "./PatientManagement.css";
 import ColorVisionTestHistory from "../PatientProfile/ColorVisionTestHistory";
 
@@ -13,16 +13,19 @@ const ColorVisionTest = ({ handleDownloadPDF }) => {
       try {
         setLoading(true);
         const token = localStorage.getItem("token");
-        
+
         if (!token) {
           throw new Error("Authentication required");
         }
 
-        const response = await fetch("http://localhost:5000/api/colorvisiontest", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await fetch(
+          "http://localhost:5000/api/colorvisiontest",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         if (!response.ok) {
           throw new Error("Failed to fetch color vision test records");
@@ -42,7 +45,11 @@ const ColorVisionTest = ({ handleDownloadPDF }) => {
   }, []);
 
   if (loading) {
-    return <div className="loading-message">Loading color vision test records...</div>;
+    return (
+      <div className="loading-message">
+        Loading color vision test records...
+      </div>
+    );
   }
 
   if (error) {
@@ -70,12 +77,12 @@ const ColorVisionTest = ({ handleDownloadPDF }) => {
 
   // Format date
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -84,7 +91,7 @@ const ColorVisionTest = ({ handleDownloadPDF }) => {
   // Get recommended follow-up tests
   const getRecommendedTests = () => {
     if (!latestTest.followUpTests) return [];
-    
+
     return Object.entries(latestTest.followUpTests)
       .filter(([_, isRecommended]) => isRecommended)
       .map(([testName, _]) => {
@@ -94,7 +101,7 @@ const ColorVisionTest = ({ handleDownloadPDF }) => {
           farnsworth: "Farnsworth D-15",
           anomaloscope: "Anomaloscope Test",
           lantern: "Lantern Test",
-          colorimetry: "Colorimetry Analysis"
+          colorimetry: "Colorimetry Analysis",
         };
         return testLabels[testName] || testName;
       });
@@ -117,9 +124,7 @@ const ColorVisionTest = ({ handleDownloadPDF }) => {
       <div className="test-details">
         <div className="detail-row">
           <span className="detail-label">Test Date:</span>
-          <span>
-            {formatDate(latestTest.testDate)}
-          </span>
+          <span>{formatDate(latestTest.testDate)}</span>
         </div>
         <div className="detail-row">
           <span className="detail-label">Result:</span>
@@ -130,15 +135,11 @@ const ColorVisionTest = ({ handleDownloadPDF }) => {
 
         <div className="test-metrics">
           <div className="metric">
-            <span className="metric-value">
-              {latestTest.correctPlates}
-            </span>
+            <span className="metric-value">{latestTest.correctPlates}</span>
             <span className="metric-label">Plates Correct</span>
           </div>
           <div className="metric">
-            <span className="metric-value">
-              {latestTest.totalPlates}
-            </span>
+            <span className="metric-value">{latestTest.totalPlates}</span>
             <span className="metric-label">Total Plates</span>
           </div>
           <div className="metric">
@@ -176,9 +177,7 @@ const ColorVisionTest = ({ handleDownloadPDF }) => {
           )}
         </div>
 
-        {testRecords.length > 1 && (
-          <ColorVisionTestHistory />
-        )}
+        {testRecords.length > 1 && <ColorVisionTestHistory />}
       </div>
     </div>
   );

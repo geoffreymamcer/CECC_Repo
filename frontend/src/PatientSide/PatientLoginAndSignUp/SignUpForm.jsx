@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import FormGroup from "./FormGroup";
 import "./PatientLogin.css";
-import axios from "axios";
 import instance from "../../api/axios";
 
 export default function SignupForm({ toggleForm }) {
