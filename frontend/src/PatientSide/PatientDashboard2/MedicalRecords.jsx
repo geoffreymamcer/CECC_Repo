@@ -14,11 +14,6 @@ const MedicalRecords = () => {
   const [activeTab, setActiveTab] = useState("visit-history");
   const [invoices, setInvoices] = useState([]);
   const [visits, setVisits] = useState([]);
-  const [visitsLoading, setVisitsLoading] = useState(false);
-  const [visitsError, setVisitsError] = useState(null);
-  const [visitReports, setVisitReports] = useState([]);
-  const [reportsLoading, setReportsLoading] = useState(false);
-  const [reportsError, setReportsError] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -75,15 +70,6 @@ const MedicalRecords = () => {
       setAppointmentsLoading(true);
       setAppointmentsError(null);
       try {
-        // The endpoint should get the appointments for the currently logged-in user.
-        // We assume the backend has a route like `/appointments/my-appointments`
-        // or can derive the user from the auth token.
-        // Based on your routes, we need a patientId. Let's assume there's a generic endpoint.
-        // If not, you might need to adjust the backend to have a route like `/appointments/me`.
-        // For now, let's use a placeholder endpoint that needs the patient's ID.
-        // A common practice is to have a `/profile/me` endpoint to get user details including ID.
-        // Let's assume we have a way to get the patient's ID. A placeholder for now:
-        const userId = "current-user-id"; // In a real app, you'd get this from auth context or a profile fetch.
         const response = await instance.get("/appointments/my-appointments");
         const sortedAppointments = (response.data || []).sort(
           (a, b) => new Date(b.appointmentDate) - new Date(a.appointmentDate)
@@ -132,11 +118,11 @@ const MedicalRecords = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6 transition-all duration-300 hover:shadow-lg">
-      <h3 className="text-xl font-semibold text-gray-800 mb-4">
+    <div className="bg-white rounded-lg shadow-md p-6 mb-6 transition-all duration-300 hover:shadow-lg flex flex-col h-[600px]">
+      <h3 className="text-xl font-semibold text-gray-800 mb-4 flex-shrink-0">
         Medical Records
       </h3>
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 flex-shrink-0">
         <ul className="flex flex-wrap -mb-px">
           {tabs.map((tab) => (
             <li key={tab.id} className="mr-2">
@@ -154,7 +140,7 @@ const MedicalRecords = () => {
           ))}
         </ul>
       </div>
-      <div className="mt-4">
+      <div className="mt-4 flex-1 overflow-y-auto pr-2">
         {activeTab === "prescriptions" && (
           <div className="p-4 rounded-lg bg-gray-50 animate-fadeIn">
             <div className="flex justify-between items-center mb-4">

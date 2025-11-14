@@ -114,25 +114,6 @@ const ProfileCard = () => {
             profile={profile}
             updateProfile={handleProfileUpdate}
           />
-
-          <div className="mt-8">
-            <h3 className="font-semibold text-lg mb-2">Health Status</h3>
-            <div className="flex items-center">
-              <div className="h-2 flex-grow bg-red-200 rounded-full mr-2">
-                <div
-                  className="h-2 bg-white rounded-full"
-                  style={{ width: "75%" }}
-                ></div>
-              </div>
-              <span className="text-sm font-medium">Good</span>
-            </div>
-          </div>
-
-          <div className="mt-6 bg-white/20 backdrop-blur-sm rounded-xl p-4">
-            <h3 className="font-semibold text-lg mb-2">Last Visit</h3>
-            <p className="text-sm">June 15, 2023</p>
-            <p className="text-sm opacity-80">Dr. Michael Chen</p>
-          </div>
         </div>
 
         <div className="md:w-2/3 p-6 md:p-8">

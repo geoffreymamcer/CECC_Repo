@@ -14,6 +14,8 @@ import { useSocket } from "../../context/SocketContext";
 import { useAuth } from "../../context/AuthContext";
 import PatientMessageModal from "./PatientMessageModal";
 
+const DASHBOARD_LOADING_DURATION = 500; // 1.5 seconds
+
 // --- 1. Create a Navigation Context ---
 // This will be our new centralized control system for navigation.
 const DashboardNavContext = createContext();
@@ -40,6 +42,7 @@ const DashboardHome = ({ unreadNotifications }) => (
 const DashboardLayout = () => {
   const [activeNav, setActiveNav] = useState("home");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const providerValue = { activeNav, setActiveNav };
   const { user } = useAuth();
   const socket = useSocket();
@@ -107,6 +110,17 @@ const DashboardLayout = () => {
       };
     }
   }, [socket]);
+
+  // Handle loading state when navigating to home tab
+  useEffect(() => {
+    if (activeNav === "home") {
+      setIsLoading(true);
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, DASHBOARD_LOADING_DURATION);
+      return () => clearTimeout(timer);
+    }
+  }, [activeNav]);
 
   const handleNotificationRead = async (notificationId) => {
     // First, optimistically update the UI to feel instant
@@ -184,9 +198,18 @@ const DashboardLayout = () => {
           />
           {/* The rendering logic remains the same, but it's now controlled
               by a state that is accessible everywhere. */}
-          {activeNav === "home" && (
+          {activeNav === "home" && isLoading ? (
+            <main className="flex-1 flex items-center justify-center p-4 md:p-6">
+              <div className="flex flex-col items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-dark-red"></div>
+                <p className="mt-4 text-gray-600 font-medium">
+                  Loading dashboard...
+                </p>
+              </div>
+            </main>
+          ) : activeNav === "home" ? (
             <DashboardHome unreadNotifications={unreadNotifications} />
-          )}
+          ) : null}
           {activeNav === "appointments" && <Appointments />}
           {activeNav === "products" && <ProductInterface />}
           {activeNav === "profile" && <ProfilePage />}
