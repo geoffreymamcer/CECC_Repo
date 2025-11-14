@@ -1,11 +1,12 @@
 // components/AccountControl.jsx
 import { useState, useEffect } from "react";
-import { UserPlus, Users } from "lucide-react";
+import { UserPlus, Users, Lock } from "lucide-react";
 import AdminTable from "./AdminTable";
 import AdminFormModal from "./AdminFormModal";
 import ConfirmActionModal from "./ConfirmActionModal";
 import ToastNotification from "./ToastNotification";
 import axios from "../../api/axios";
+import { useAuth } from "../../context/AuthContext";
 
 const AccountControl = () => {
   const [admins, setAdmins] = useState([]);
@@ -14,6 +15,8 @@ const AccountControl = () => {
   const [confirmModalConfig, setConfirmModalConfig] = useState(null);
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const { user } = useAuth();
 
   // Mock initial data - replace with actual API calls
   const fetchAdmins = async () => {
@@ -162,6 +165,23 @@ const AccountControl = () => {
         return "perform this action";
     }
   };
+
+  if (user.role !== "owner") {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen p-6 text-center bg-gray-50">
+        <div className="bg-white p-10 rounded-2xl shadow-md border border-gray-200">
+          <Lock className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-800">Access Denied</h1>
+          <p className="text-gray-600 mt-2">
+            You do not have the required permissions to view this page.
+          </p>
+          <p className="text-sm text-gray-500 mt-4">
+            Please contact the clinic owner if you believe this is an error.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 animate-fadeIn">
