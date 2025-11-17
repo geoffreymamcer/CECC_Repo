@@ -11,6 +11,10 @@ import {
 } from "react-icons/fa";
 import instance from "../../api/axios";
 
+// --- Loading Configuration (in milliseconds) ---
+// Adjust this value to control the loading state duration across all environments
+const APPOINTMENTS_LOADING_DURATION = 1500; // 1.5 seconds
+
 const Appointments = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [appointmentData, setAppointmentData] = useState({
@@ -20,6 +24,7 @@ const Appointments = () => {
     reason: "",
   });
   const [loading, setLoading] = useState(true); // Add loading state
+  const [isInitialLoad, setIsInitialLoad] = useState(true); // Track initial load phase
   const [appointments, setAppointments] = useState({
     today: [],
     tomorrow: [],
@@ -71,6 +76,17 @@ const Appointments = () => {
   useEffect(() => {
     fetchAppointments();
   }, []);
+
+  // --- Loading State Timer ---
+  // Show loading spinner for configured duration, then hide it
+  useEffect(() => {
+    if (isInitialLoad && loading) {
+      const timer = setTimeout(() => {
+        setIsInitialLoad(false);
+      }, APPOINTMENTS_LOADING_DURATION);
+      return () => clearTimeout(timer);
+    }
+  }, [isInitialLoad, loading]);
 
   const getCurrentMonth = () => {
     const months = [
@@ -263,8 +279,15 @@ const Appointments = () => {
             </button>
           </div>
 
-          {loading ? (
-            <div className="text-center py-8">Loading appointments...</div>
+          {isInitialLoad && loading ? (
+            <div className="flex justify-center items-center h-96">
+              <div className="flex flex-col items-center justify-center">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-deep-red"></div>
+                <p className="mt-4 text-gray-600 font-medium">
+                  Loading appointments...
+                </p>
+              </div>
+            </div>
           ) : error ? (
             <div className="text-center py-8 text-red-500">{error}</div>
           ) : (

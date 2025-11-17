@@ -38,7 +38,7 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
         unitPrice: 0,
         discount: 0,
         total: 0,
-        isLens: false,
+        requiresPrescription: false, // Renamed from isLens for clarity
         prescription: { rightEye: {}, leftEye: {} },
         tint: "",
       },
@@ -109,9 +109,8 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
             name: product.productName,
             price: product.productPrice,
             description: product.productDescription || "",
-            isLens: (product.productDescription?.toLowerCase() || "").includes(
-              "lens"
-            ),
+            // Store the actual boolean value from the backend
+            requiresPrescription: product.isPrescriptionTableRequired,
           }));
         setProducts(inventoryProducts);
       } catch (error) {
@@ -177,7 +176,7 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
       unitPrice: 0,
       discount: 0,
       total: 0,
-      isLens: false,
+      requiresPrescription: false, // Match the new structure
       prescription: { rightEye: {}, leftEye: {} },
       tint: "",
     };
@@ -205,16 +204,18 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
           const updatedItem = { ...item };
 
           if (field === "description") {
-            // Find the selected product and set its price
             const selectedProduct = products.find((p) => p.name === value);
             if (selectedProduct) {
               updatedItem.description = value;
               updatedItem.unitPrice = selectedProduct.price;
-              updatedItem.isLens = selectedProduct.isLens;
+              // Set the flag based on the product data from the API
+              updatedItem.requiresPrescription =
+                selectedProduct.requiresPrescription;
             } else {
               updatedItem.description = value;
               updatedItem.unitPrice = 0;
-              updatedItem.isLens = false;
+              // Default to false if no product is selected
+              updatedItem.requiresPrescription = false;
             }
           } else {
             updatedItem[field] = value;
@@ -296,7 +297,8 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
           qty: Number(it.quantity) || 0,
           unitPrice: Number(it.unitPrice) || 0,
           discount: Number(it.discount) || 0,
-          isLens: !!it.isLens,
+          // Use requiresPrescription to set the isLens flag for the backend
+          isLens: !!it.requiresPrescription,
           tint: it.tint || "",
           rightEye: it.prescription?.rightEye || {},
           leftEye: it.prescription?.leftEye || {},
@@ -670,7 +672,7 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
                                 <option value="">Select an item</option>
                                 {products.map((product) => (
                                   <option key={product.id} value={product.name}>
-                                    {product.name} (${product.price})
+                                    {product.name} (₱{product.price})
                                   </option>
                                 ))}
                               </select>
@@ -735,8 +737,7 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
                             </td>
                           </tr>
 
-                          {/* Prescription Details (only for lenses) */}
-                          {item.isLens && (
+                          {item.requiresPrescription && (
                             <tr>
                               <td colSpan="6" className="px-4 py-3 bg-gray-50">
                                 <div className="ml-4">
@@ -821,7 +822,6 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
                                         ))}
                                       </div>
                                     </div>
-
                                     {/* Tint */}
                                     <div className="col-span-full">
                                       <label className="block text-sm font-medium text-gray-700 mb-1">

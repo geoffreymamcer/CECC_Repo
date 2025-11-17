@@ -1,8 +1,12 @@
-import React, { useState } from "react"; // --- REMOVED useEffect and axios ---
+import React, { useState, useEffect } from "react"; // --- ADDED useEffect for loading timer ---
 // We keep PatientCard and the icons
 import PatientCard from "./PatientCard";
 import { FaPlus, FaSearch } from "react-icons/fa";
 import { MdPeople } from "react-icons/md";
+
+// --- Loading Configuration (in milliseconds) ---
+// Adjust this value to control the loading state duration across all environments
+const PATIENT_LIST_LOADING_DURATION = 500; // 1.5 seconds
 
 // --- ADDED `patients`, `loading`, and `error` to the props it receives ---
 const PatientListLayout = ({
@@ -15,8 +19,22 @@ const PatientListLayout = ({
   // --- REMOVED the internal useState for patients, loading, and error ---
   // --- REMOVED the entire useEffect hook that was fetching data ---
 
+  // Add isInitialLoad state for displaying the loading spinner on mount
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
   // We keep the searchTerm state as it's specific to this layout
   const [searchTerm, setSearchTerm] = useState("");
+
+  // --- Loading State Timer ---
+  // Show loading spinner for configured duration, then hide it
+  useEffect(() => {
+    if (isInitialLoad && loading) {
+      const timer = setTimeout(() => {
+        setIsInitialLoad(false);
+      }, PATIENT_LIST_LOADING_DURATION);
+      return () => clearTimeout(timer);
+    }
+  }, [isInitialLoad, loading]);
 
   // This filtering logic now works on the `patients` array passed down from the parent
   const filteredPatients = patients.filter((patient) => {
@@ -49,8 +67,15 @@ const PatientListLayout = ({
   ).length;
 
   // Now we use the `loading` prop from the parent
-  if (loading) {
-    return <div className="p-6 text-center">Loading patients...</div>;
+  if (isInitialLoad && loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-deep-red"></div>
+          <p className="mt-4 text-gray-600 font-medium">Loading patients...</p>
+        </div>
+      </div>
+    );
   }
 
   // And the `error` prop from the parent

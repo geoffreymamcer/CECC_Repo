@@ -14,7 +14,7 @@ import { useSocket } from "../../context/SocketContext";
 import { useAuth } from "../../context/AuthContext";
 import PatientMessageModal from "./PatientMessageModal";
 
-const DASHBOARD_LOADING_DURATION = 500; // 1.5 seconds
+const DASHBOARD_LOADING_DURATION = 500;
 
 // --- 1. Create a Navigation Context ---
 // This will be our new centralized control system for navigation.

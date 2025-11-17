@@ -1,26 +1,43 @@
 import React from "react";
 import { FaFileInvoice, FaEye, FaDownload } from "react-icons/fa";
 
+const Spinner = () => (
+  <svg
+    className="animate-spin h-4 w-4 text-deep-red"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+  >
+    <circle
+      className="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+    ></circle>
+    <path
+      className="opacity-75"
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+    ></path>
+  </svg>
+);
+
 const InvoiceTab = ({
   invoices,
   isLoadingInvoices,
   handleViewPDF,
   handleDownloadPDF,
   setShowInvoiceModal,
+  pdfLoadingState,
 }) => {
-  // Calculate payment summaries
   const totalInvoiced = invoices.reduce(
-    (sum, inv) => sum + (inv.subtotal || 0),
+    (sum, inv) => sum + (inv.totalAmount || 0),
     0
   );
-  const amountPaid = invoices.reduce(
-    (sum, inv) => sum + (inv.amountPaid || 0),
-    0
-  );
-  const outstandingBalance = invoices.reduce(
-    (sum, inv) => sum + ((inv.totalDue || 0) - (inv.amountPaid || 0)),
-    0
-  );
+  const amountPaid = totalInvoiced;
+  const outstandingBalance = totalInvoiced - amountPaid;
 
   return (
     <div className="bg-gray-50 rounded-xl p-5 animate-fadeIn">
@@ -38,9 +55,8 @@ const InvoiceTab = ({
       </div>
 
       <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Recent Invoices Table */}
-          <div className="bg-white p-4 rounded-lg col-span-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white p-4 rounded-lg col-span-1 md:col-span-2">
             <h5 className="font-bold text-gray-800 mb-3">Recent Invoices</h5>
             <div className="overflow-x-auto">
               <table className="min-w-full">
@@ -78,28 +94,18 @@ const InvoiceTab = ({
                         </td>
                         <td className="py-2 px-2">
                           {(invoice.items || [])
-                            .map((item) => item.description)
+                            .map((item) => item.itemName)
                             .filter(Boolean)
                             .join(", ") || "N/A"}
                         </td>
                         <td className="text-right py-2 px-2">
-                          ₱{(invoice.totalDue || 0).toFixed(2)}
+                          ₱{(invoice.totalAmount || 0).toFixed(2)}
                         </td>
                         <td className="text-center py-2 px-2">
                           <span
-                            className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                              invoice.status === "paid"
-                                ? "bg-green-100 text-green-800"
-                                : invoice.status === "partially_paid"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
+                            className={`px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800`}
                           >
-                            {invoice.status === "paid"
-                              ? "Paid"
-                              : invoice.status === "partially_paid"
-                              ? "Partially Paid"
-                              : "Unpaid"}
+                            Paid
                           </span>
                         </td>
                         <td className="text-right py-2 px-2">
@@ -107,8 +113,16 @@ const InvoiceTab = ({
                             onClick={() => handleViewPDF(invoice._id)}
                             className="text-deep-red hover:text-dark-red mr-2"
                             title="View PDF"
+                            disabled={
+                              pdfLoadingState.view === invoice._id ||
+                              pdfLoadingState.download === invoice._id
+                            }
                           >
-                            <FaEye />
+                            {pdfLoadingState.view === invoice._id ? (
+                              <Spinner />
+                            ) : (
+                              <FaEye />
+                            )}
                           </button>
                           <button
                             onClick={() =>
@@ -119,8 +133,16 @@ const InvoiceTab = ({
                             }
                             className="text-deep-red hover:text-dark-red"
                             title="Download PDF"
+                            disabled={
+                              pdfLoadingState.view === invoice._id ||
+                              pdfLoadingState.download === invoice._id
+                            }
                           >
-                            <FaDownload />
+                            {pdfLoadingState.download === invoice._id ? (
+                              <Spinner />
+                            ) : (
+                              <FaDownload />
+                            )}
                           </button>
                         </td>
                       </tr>
@@ -151,39 +173,6 @@ const InvoiceTab = ({
                   ₱{outstandingBalance.toFixed(2)}
                 </span>
               </div>
-            </div>
-          </div>
-
-          {/* Payment History */}
-          <div className="bg-white p-4 rounded-lg">
-            <h5 className="font-bold text-gray-800 mb-3">Payment History</h5>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {invoices.filter((inv) => (inv.amountPaid || 0) > 0).length >
-              0 ? (
-                invoices
-                  .filter((inv) => inv.amountPaid > 0)
-                  .map((invoice) => (
-                    <div key={invoice._id} className="text-sm">
-                      <div className="flex justify-between mb-1">
-                        <span>
-                          {invoice.updatedAt
-                            ? new Date(invoice.updatedAt).toLocaleDateString()
-                            : "N/A"}
-                        </span>
-                        <span className="text-green-600">
-                          ₱{(invoice.amountPaid || 0).toFixed(2)}
-                        </span>
-                      </div>
-                      <p className="text-gray-600">
-                        Payment for Invoice #{invoice.invoiceNumber || "N/A"}
-                      </p>
-                    </div>
-                  ))
-              ) : (
-                <p className="text-gray-500 text-center py-2">
-                  No payment history available.
-                </p>
-              )}
             </div>
           </div>
         </div>

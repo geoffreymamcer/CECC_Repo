@@ -12,6 +12,7 @@ module.exports = {
         fadeInUp: "fadeInUp 0.3s ease-in-out",
         scaleIn: "scaleIn 0.3s ease-in-out",
         fadeOut: "fadeOut 0.3s ease-in-out forwards",
+        "simple-fade-in": "simpleFadeIn 0.3s ease-out forwards",
       },
       keyframes: {
         fadeIn: {
@@ -29,6 +30,10 @@ module.exports = {
         fadeOut: {
           from: { opacity: "1", transform: "scale(1)" },
           to: { opacity: "0", transform: "scale(0.95)" },
+        },
+        simpleFadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
         },
       },
     },

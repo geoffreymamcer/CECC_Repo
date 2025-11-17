@@ -8,6 +8,10 @@ import InventoryModal from "./InventoryModal";
 import AddProductModal from "./AddProductModal";
 import instance from "../../api/axios";
 
+// --- Loading Configuration (in milliseconds) ---
+// Adjust this value to control the loading state duration across all environments
+const INVENTORY_LOADING_DURATION = 1500; // 1.5 seconds
+
 const Inventory = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -19,8 +23,7 @@ const Inventory = () => {
   const [price, setPrice] = useState("");
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [isInitialLoad, setIsInitialLoad] = useState(true); // Track initial load phase
   const [stats, setStats] = useState({
     totalProducts: 0,
     lowStockItems: 0,
@@ -41,13 +44,10 @@ const Inventory = () => {
     try {
       const response = await instance.get("/inventory", {
         params: {
-          page,
-          limit: 12, // Items per page
           search: debouncedSearchQuery,
         },
       });
       setProducts(response.data.products);
-      setTotalPages(response.data.totalPages);
       setFilteredProducts(response.data.products);
     } catch (error) {
       console.error("Failed to fetch products:", error);
@@ -68,7 +68,7 @@ const Inventory = () => {
   // Fetch products when page or search query changes
   useEffect(() => {
     fetchProducts();
-  }, [page, debouncedSearchQuery]);
+  }, [debouncedSearchQuery]);
 
   // Fetch stats periodically
   useEffect(() => {
@@ -77,6 +77,17 @@ const Inventory = () => {
     const statsInterval = setInterval(fetchStats, 300000);
     return () => clearInterval(statsInterval);
   }, []);
+
+  // --- Loading State Timer ---
+  // Show loading spinner for configured duration, then hide it
+  useEffect(() => {
+    if (isInitialLoad && isLoading) {
+      const timer = setTimeout(() => {
+        setIsInitialLoad(false);
+      }, INVENTORY_LOADING_DURATION);
+      return () => clearTimeout(timer);
+    }
+  }, [isInitialLoad, isLoading]);
 
   // Open modal
   const openModal = (action, product) => {
@@ -117,9 +128,11 @@ const Inventory = () => {
         productType: productData.productType,
         productDescription: productData.productDescription,
         productPrice: Number(productData.productPrice),
+        productCost: Number(productData.productCost),
         availableStocks: Number(productData.availableStocks),
         stocksStatus: productData.stocksStatus || "in stock",
         productImage: productData.productImage || "",
+        isPrescriptionTableRequired: productData.isPrescriptionTableRequired,
       };
 
       console.log("Sending new product data:", newProduct);
@@ -200,9 +213,14 @@ const Inventory = () => {
       </div>
 
       {/* Product Grid */}
-      {isLoading ? (
-        <div className="flex justify-center items-center min-h-[200px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-deep-red"></div>
+      {isInitialLoad && isLoading ? (
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="flex flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-deep-red"></div>
+            <p className="mt-4 text-gray-600 font-medium">
+              Loading inventory...
+            </p>
+          </div>
         </div>
       ) : (
         <>
@@ -224,29 +242,6 @@ const Inventory = () => {
                 No products found
               </h3>
               <p className="text-gray-400">Try adjusting your search query</p>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-6 gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-4 py-2 border rounded-lg disabled:opacity-50 hover:bg-gray-50"
-              >
-                Previous
-              </button>
-              <span className="px-4 py-2">
-                Page {page} of {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-4 py-2 border rounded-lg disabled:opacity-50 hover:bg-gray-50"
-              >
-                Next
-              </button>
             </div>
           )}
         </>

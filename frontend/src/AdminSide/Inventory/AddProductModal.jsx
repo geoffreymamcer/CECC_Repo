@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Upload, Image as ImageIcon } from "lucide-react";
+import instance from "../../api/axios";
 
 const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
   const initialFormState = {
@@ -12,25 +13,53 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
     sku: "", // not used in schema but kept for future use
     status: "in stock", // maps to stocksStatus
     productImage: "", // maps to productImage
+    isPrescriptionRequired: false,
+    customType: "",
   };
-
-  const PRODUCT_TYPES = [
-    { value: "prescription glasses", label: "Prescription Glasses" },
-    { value: "eye drop", label: "Eye Drop" },
-    { value: "contact lense", label: "Contact Lense" },
-    { value: "anti radiation glasses", label: "Anti Radiation Glasses" },
-    { value: "anti blue light", label: "Anti Blue Light" },
-  ];
 
   const [formData, setFormData] = useState(initialFormState);
   const [imagePreview, setImagePreview] = useState(null);
+  const [productTypes, setProductTypes] = useState([]);
+
+  useEffect(() => {
+    const fetchProductTypes = async () => {
+      try {
+        const response = await instance.get("/inventory/types");
+        setProductTypes(response.data);
+      } catch (error) {
+        console.error("Failed to fetch product types:", error);
+        // Optionally, set a default or show an error
+      }
+    };
+
+    // Only fetch types when the modal is opened to avoid unnecessary calls
+    if (isOpen) {
+      fetchProductTypes();
+    }
+  }, [isOpen]);
+
+  const formatTypeLabel = (typeValue) => {
+    return typeValue
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    const { name, value, type, checked } = e.target;
+
+    if (name === "type" && value !== "other") {
+      setFormData((prev) => ({
+        ...prev,
+        type: value,
+        customType: "",
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      }));
+    }
   };
 
   const handleImageChange = (e) => {
@@ -51,6 +80,14 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    if (formData.type === "other" && !formData.customType.trim()) {
+      alert("Please enter the product type in the 'Other' field.");
+      return;
+    }
+
+    const finalProductType =
+      formData.type === "other" ? formData.customType.trim() : formData.type;
+
     // Validate required fields
     if (
       !formData.name ||
@@ -64,30 +101,17 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
       return;
     }
 
-    // Validate product type
-    const validTypes = [
-      "prescription glasses",
-      "eye drop",
-      "contact lense",
-      "anti radiation glasses",
-      "anti blue light",
-    ];
-
-    if (!validTypes.includes(formData.type)) {
-      alert("Please select a valid product type");
-      return;
-    }
-
     // Format the data according to backend schema
     const product = {
       productName: formData.name,
-      productType: formData.type,
+      productType: finalProductType, // Send the correct type to the backend
       productDescription: formData.description,
       productPrice: Number(formData.price),
-      productCost: Number(formData.cost), // --- NEW --- Add productCost to the payload
+      productCost: Number(formData.cost),
       availableStocks: Number(formData.stock),
       stocksStatus: formData.status,
       productImage: formData.productImage || "",
+      isPrescriptionTableRequired: formData.isPrescriptionRequired,
     };
 
     // Validate the product data matches the schema
@@ -190,12 +214,47 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-deep-red focus:border-deep-red"
               >
                 <option value="">Select a product type</option>
-                {PRODUCT_TYPES.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
+                {productTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {formatTypeLabel(type)}
                   </option>
                 ))}
+                <option value="other">--- Other ---</option>
               </select>
+            </div>
+
+            {formData.type === "other" && (
+              <div className="mt-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Please specify product type *
+                </label>
+                <input
+                  type="text"
+                  name="customType"
+                  value={formData.customType}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-deep-red focus:border-deep-red"
+                  placeholder="e.g., Eyeglass Frames"
+                />
+              </div>
+            )}
+
+            <div className="flex items-center pt-1">
+              <input
+                id="isPrescriptionRequired"
+                name="isPrescriptionRequired"
+                type="checkbox"
+                checked={formData.isPrescriptionRequired}
+                onChange={handleInputChange}
+                className="h-4 w-4 rounded border-gray-300 text-deep-red focus:ring-deep-red"
+              />
+              <label
+                htmlFor="isPrescriptionRequired"
+                className="ml-2 block text-sm text-gray-800"
+              >
+                Require Prescription Field
+              </label>
             </div>
 
             <div>

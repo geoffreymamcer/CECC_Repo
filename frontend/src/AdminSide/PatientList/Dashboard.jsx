@@ -15,10 +15,15 @@ import PatientVisitsChart from "./PatientVisitsChart";
 import PatientDemographicsChart from "./PatientDemographicsChart";
 import MessageModal from "./MessageModal";
 
+// --- Loading Configuration (in milliseconds) ---
+// Adjust this value to control the loading state duration across all environments
+const DASHBOARD_LOADING_DURATION = 1500; // 1.5 seconds
+
 const Dashboard = () => {
   const { user } = useAuth(); // <-- 2. GET THE LOGGED-IN USER
   const isOwner = user?.role === "owner"; // <-- 3. HELPER TO CHECK IF USER IS OWNER
 
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [kpiData, setKpiData] = useState({
     totalPatients: 0,
     todaysAppointments: 0,
@@ -107,6 +112,15 @@ const Dashboard = () => {
         setAppointmentsLoading(false);
         setPaymentsLoading(false);
         setMessagesLoading(false);
+
+        // --- Loading State Timer ---
+        // Show loading spinner for configured duration, then hide it
+        if (isInitialLoad) {
+          const timer = setTimeout(() => {
+            setIsInitialLoad(false);
+          }, DASHBOARD_LOADING_DURATION);
+          return () => clearTimeout(timer);
+        }
       }
     };
 
@@ -138,294 +152,309 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="dashboard p-6 bg-gray-50 h-screen overflow-y-auto">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">
-        Dashboard Overview
-      </h1>
-
-      {/* KPI Cards Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Total Patients Card */}
-        <div className="bg-white rounded-2xl shadow-md transition-all hover:shadow-lg overflow-hidden">
-          <div className="h-2 bg-[#7F0000]"></div>
-          <div className="p-5 flex items-center">
-            <div className="rounded-full bg-red-50 p-3">
-              <Users className="h-6 w-6 text-[#7F0000]" />
-            </div>
-            <div className="ml-4">
-              <h2 className="text-sm font-semibold text-gray-600">
-                Total Patients
-              </h2>
-              <p className="text-2xl font-bold text-gray-800">
-                {kpiLoading ? "..." : kpiData.totalPatients}
-              </p>
-            </div>
+    <>
+      {isInitialLoad && kpiLoading ? (
+        <div className="flex justify-center items-center h-screen">
+          <div className="flex flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-deep-red"></div>
+            <p className="mt-4 text-gray-600 font-medium">
+              Loading dashboard...
+            </p>
           </div>
         </div>
+      ) : (
+        <div className="dashboard p-6 bg-gray-50 h-screen overflow-y-auto">
+          <h1 className="text-2xl font-bold text-gray-800 mb-6">
+            Dashboard Overview
+          </h1>
 
-        {/* Today's Appointments Card */}
-        <div className="bg-white rounded-2xl shadow-md transition-all hover:shadow-lg overflow-hidden">
-          <div className="h-2 bg-[#7F0000]"></div>
-          <div className="p-5 flex items-center">
-            <div className="rounded-full bg-red-50 p-3">
-              <Calendar className="h-6 w-6 text-[#7F0000]" />
-            </div>
-            <div className="ml-4">
-              <h2 className="text-sm font-semibold text-gray-600">
-                Today's Appointments
-              </h2>
-              <p className="text-2xl font-bold text-gray-800">
-                {kpiLoading ? "..." : kpiData.todaysAppointments}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Pending Lab Results Card */}
-        <div className="bg-white rounded-2xl shadow-md transition-all hover:shadow-lg overflow-hidden">
-          <div className="h-2 bg-[#7F0000]"></div>
-          <div className="p-5 flex items-center">
-            <div className="rounded-full bg-red-50 p-3">
-              <FileText className="h-6 w-6 text-[#7F0000]" />
-            </div>
-            <div className="ml-4">
-              <h2 className="text-sm font-semibold text-gray-600">
-                Pending Lab Results
-              </h2>
-              <p className="text-2xl font-bold text-gray-800">
-                {kpiData.pendingLabResults}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Revenue Today Card */}
-        {isOwner && (
-          <div className="bg-white rounded-2xl shadow-md transition-all hover:shadow-lg overflow-hidden">
-            <div className="h-2 bg-[#7F0000]"></div>
-            <div className="p-5 flex items-center">
-              <div className="rounded-full bg-red-50 p-3">
-                <DollarSign className="h-6 w-6 text-[#7F0000]" />
+          {/* KPI Cards Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {/* Total Patients Card */}
+            <div className="bg-white rounded-2xl shadow-md transition-all hover:shadow-lg overflow-hidden">
+              <div className="h-2 bg-[#7F0000]"></div>
+              <div className="p-5 flex items-center">
+                <div className="rounded-full bg-red-50 p-3">
+                  <Users className="h-6 w-6 text-[#7F0000]" />
+                </div>
+                <div className="ml-4">
+                  <h2 className="text-sm font-semibold text-gray-600">
+                    Total Patients
+                  </h2>
+                  <p className="text-2xl font-bold text-gray-800">
+                    {kpiLoading ? "..." : kpiData.totalPatients}
+                  </p>
+                </div>
               </div>
-              <div className="ml-4">
-                <h2 className="text-sm font-semibold text-gray-600">
-                  Revenue Today
+            </div>
+
+            {/* Today's Appointments Card */}
+            <div className="bg-white rounded-2xl shadow-md transition-all hover:shadow-lg overflow-hidden">
+              <div className="h-2 bg-[#7F0000]"></div>
+              <div className="p-5 flex items-center">
+                <div className="rounded-full bg-red-50 p-3">
+                  <Calendar className="h-6 w-6 text-[#7F0000]" />
+                </div>
+                <div className="ml-4">
+                  <h2 className="text-sm font-semibold text-gray-600">
+                    Today's Appointments
+                  </h2>
+                  <p className="text-2xl font-bold text-gray-800">
+                    {kpiLoading ? "..." : kpiData.todaysAppointments}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Pending Lab Results Card */}
+            <div className="bg-white rounded-2xl shadow-md transition-all hover:shadow-lg overflow-hidden">
+              <div className="h-2 bg-[#7F0000]"></div>
+              <div className="p-5 flex items-center">
+                <div className="rounded-full bg-red-50 p-3">
+                  <FileText className="h-6 w-6 text-[#7F0000]" />
+                </div>
+                <div className="ml-4">
+                  <h2 className="text-sm font-semibold text-gray-600">
+                    Pending Lab Results
+                  </h2>
+                  <p className="text-2xl font-bold text-gray-800">
+                    {kpiData.pendingLabResults}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Revenue Today Card */}
+            {isOwner && (
+              <div className="bg-white rounded-2xl shadow-md transition-all hover:shadow-lg overflow-hidden">
+                <div className="h-2 bg-[#7F0000]"></div>
+                <div className="p-5 flex items-center">
+                  <div className="rounded-full bg-red-50 p-3">
+                    <DollarSign className="h-6 w-6 text-[#7F0000]" />
+                  </div>
+                  <div className="ml-4">
+                    <h2 className="text-sm font-semibold text-gray-600">
+                      Revenue Today
+                    </h2>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {kpiLoading
+                        ? "..."
+                        : `₱${kpiData.revenueToday.toLocaleString()}`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <PatientVisitsChart />
+            <PatientDemographicsChart />
+          </div>
+
+          {/* Tables Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Appointments Table */}
+            <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+              <div className="p-6 border-b border-gray-100">
+                <h2 className="text-lg font-semibold text-[#7F0000]">
+                  Upcoming Appointments
                 </h2>
-                <p className="text-2xl font-bold text-gray-800">
-                  {kpiLoading
-                    ? "..."
-                    : `₱${kpiData.revenueToday.toLocaleString()}`}
-                </p>
               </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <PatientVisitsChart />
-        <PatientDemographicsChart />
-      </div>
-
-      {/* Tables Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Appointments Table */}
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-[#7F0000]">
-              Upcoming Appointments
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                    Patient
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                    Doctor
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                    Time
-                  </th>
-                  <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {appointmentsLoading ? (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="py-6 text-center text-sm text-gray-500"
-                    >
-                      Loading appointments...
-                    </td>
-                  </tr>
-                ) : appointments.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="py-6 text-center text-sm text-gray-500"
-                    >
-                      No upcoming appointments
-                    </td>
-                  </tr>
-                ) : (
-                  appointments.map((appointment) => {
-                    const id = appointment._id || appointment.id;
-                    const name =
-                      appointment.fullName || appointment.patient || "Unknown";
-                    const doctor = appointment.doctor || "Dr. Philip";
-                    const date = appointment.appointmentDate
-                      ? new Date(
-                          appointment.appointmentDate
-                        ).toLocaleDateString()
-                      : "";
-                    const time = appointment.appointmentTime || "";
-                    const dateTime = [date, time].filter(Boolean).join(" ");
-                    return (
-                      <tr key={id} className="hover:bg-gray-50">
-                        <td className="py-3 px-4">{name}</td>
-                        <td className="py-3 px-4">{doctor}</td>
-                        <td className="py-3 px-4">{dateTime}</td>
-                        <td className="py-3 px-4">
-                          {getStatusBadge(appointment.status)}
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
+                        Patient
+                      </th>
+                      <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
+                        Doctor
+                      </th>
+                      <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
+                        Time
+                      </th>
+                      <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {appointmentsLoading ? (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="py-6 text-center text-sm text-gray-500"
+                        >
+                          Loading appointments...
                         </td>
                       </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Payments Table */}
-        {isOwner && (
-          <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-            <div className="p-6 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-[#7F0000]">
-                Recent Payments
-              </h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                      Patient
-                    </th>
-                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                      Amount
-                    </th>
-                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                      Date
-                    </th>
-                    <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                      Method
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {paymentsLoading ? (
-                    <tr>
-                      <td
-                        colSpan={4}
-                        className="py-6 text-center text-sm text-gray-500"
-                      >
-                        Loading payments...
-                      </td>
-                    </tr>
-                  ) : payments.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={4}
-                        className="py-6 text-center text-sm text-gray-500"
-                      >
-                        No recent payments
-                      </td>
-                    </tr>
-                  ) : (
-                    payments.map((p) => {
-                      const id = p._id || p.id;
-                      const name = p.patientName || p.patient || "Unknown";
-                      const amount = p.totalAmount ?? p.amount ?? 0;
-                      const date = p.createdAt
-                        ? new Date(p.createdAt).toLocaleDateString()
-                        : "";
-                      const method = "Cash"; // static as requested
-                      return (
-                        <tr key={id} className="hover:bg-gray-50">
-                          <td className="py-3 px-4">{name}</td>
-                          <td className="py-3 px-4">₱{amount}</td>
-                          <td className="py-3 px-4">{date}</td>
-                          <td className="py-3 px-4">{method}</td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-[#7F0000]">
-            Recent Messages
-          </h2>
-          <button className="text-sm text-[#7F0000] hover:text-[#8B0000] font-medium flex items-center">
-            View all <ChevronRight className="h-4 w-4 ml-1" />
-          </button>
-        </div>
-        <div className="max-h-80 overflow-y-auto">
-          {messagesLoading ? (
-            <p className="py-6 text-center text-sm text-gray-500">
-              Loading messages...
-            </p>
-          ) : messages.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-500">
-              No recent messages.
-            </p>
-          ) : (
-            messages.map((message) => (
-              <div
-                key={message._id}
-                className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
-                onClick={() => handleViewMessage(message)}
-              >
-                <div className="flex justify-between items-start">
-                  <h3 className="font-medium text-gray-800">
-                    {/* --- THIS PART REMAINS THE SAME --- */}
-                    {message.sender.firstName} {message.sender.lastName}
-                  </h3>
-                  <span className="text-xs text-gray-500">
-                    {new Date(message.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-                {/* --- START OF CHANGE --- */}
-                {/* The subject is now nested inside the conversation object */}
-                <p className="text-sm text-gray-600 mt-1 truncate">
-                  {message.conversation.subject}
-                </p>
-                {/* --- END OF CHANGE --- */}
+                    ) : appointments.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="py-6 text-center text-sm text-gray-500"
+                        >
+                          No upcoming appointments
+                        </td>
+                      </tr>
+                    ) : (
+                      appointments.map((appointment) => {
+                        const id = appointment._id || appointment.id;
+                        const name =
+                          appointment.fullName ||
+                          appointment.patient ||
+                          "Unknown";
+                        const doctor = appointment.doctor || "Dr. Philip";
+                        const date = appointment.appointmentDate
+                          ? new Date(
+                              appointment.appointmentDate
+                            ).toLocaleDateString()
+                          : "";
+                        const time = appointment.appointmentTime || "";
+                        const dateTime = [date, time].filter(Boolean).join(" ");
+                        return (
+                          <tr key={id} className="hover:bg-gray-50">
+                            <td className="py-3 px-4">{name}</td>
+                            <td className="py-3 px-4">{doctor}</td>
+                            <td className="py-3 px-4">{dateTime}</td>
+                            <td className="py-3 px-4">
+                              {getStatusBadge(appointment.status)}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
-            ))
-          )}
+            </div>
+
+            {/* Payments Table */}
+            {isOwner && (
+              <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+                <div className="p-6 border-b border-gray-100">
+                  <h2 className="text-lg font-semibold text-[#7F0000]">
+                    Recent Payments
+                  </h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
+                          Patient
+                        </th>
+                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
+                          Amount
+                        </th>
+                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
+                          Date
+                        </th>
+                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
+                          Method
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {paymentsLoading ? (
+                        <tr>
+                          <td
+                            colSpan={4}
+                            className="py-6 text-center text-sm text-gray-500"
+                          >
+                            Loading payments...
+                          </td>
+                        </tr>
+                      ) : payments.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={4}
+                            className="py-6 text-center text-sm text-gray-500"
+                          >
+                            No recent payments
+                          </td>
+                        </tr>
+                      ) : (
+                        payments.map((p) => {
+                          const id = p._id || p.id;
+                          const name = p.patientName || p.patient || "Unknown";
+                          const amount = p.totalAmount ?? p.amount ?? 0;
+                          const date = p.createdAt
+                            ? new Date(p.createdAt).toLocaleDateString()
+                            : "";
+                          const method = "Cash"; // static as requested
+                          return (
+                            <tr key={id} className="hover:bg-gray-50">
+                              <td className="py-3 px-4">{name}</td>
+                              <td className="py-3 px-4">₱{amount}</td>
+                              <td className="py-3 px-4">{date}</td>
+                              <td className="py-3 px-4">{method}</td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-[#7F0000]">
+                Recent Messages
+              </h2>
+              <button className="text-sm text-[#7F0000] hover:text-[#8B0000] font-medium flex items-center">
+                View all <ChevronRight className="h-4 w-4 ml-1" />
+              </button>
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              {messagesLoading ? (
+                <p className="py-6 text-center text-sm text-gray-500">
+                  Loading messages...
+                </p>
+              ) : messages.length === 0 ? (
+                <p className="py-6 text-center text-sm text-gray-500">
+                  No recent messages.
+                </p>
+              ) : (
+                messages.map((message) => (
+                  <div
+                    key={message._id}
+                    className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleViewMessage(message)}
+                  >
+                    <div className="flex justify-between items-start">
+                      <h3 className="font-medium text-gray-800">
+                        {/* --- THIS PART REMAINS THE SAME --- */}
+                        {message.sender.firstName} {message.sender.lastName}
+                      </h3>
+                      <span className="text-xs text-gray-500">
+                        {new Date(message.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {/* --- START OF CHANGE --- */}
+                    {/* The subject is now nested inside the conversation object */}
+                    <p className="text-sm text-gray-600 mt-1 truncate">
+                      {message.conversation.subject}
+                    </p>
+                    {/* --- END OF CHANGE --- */}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          <MessageModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            message={selectedMessage}
+          />
         </div>
-      </div>
-      <MessageModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        message={selectedMessage}
-      />
-    </div>
+      )}
+    </>
   );
 };
 

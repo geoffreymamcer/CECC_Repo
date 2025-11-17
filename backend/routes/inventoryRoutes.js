@@ -7,6 +7,7 @@ import {
   deleteProduct,
   getInventoryStats,
   reduceStock,
+  getProductTypes,
 } from "../controllers/InventoryController.js";
 import { auth } from "../middleware/auth.js";
 
@@ -14,6 +15,7 @@ const router = express.Router();
 
 router.get("/", auth, getProducts);
 router.get("/stats", auth, getInventoryStats);
+router.get("/types", auth, getProductTypes);
 router.get("/:id", auth, getProductById);
 router.post("/", auth, createProduct);
 router.put("/:id", auth, updateProduct);

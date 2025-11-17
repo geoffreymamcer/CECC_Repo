@@ -10,13 +10,6 @@ const ProductListSchema = new mongoose.Schema(
     productType: {
       type: String,
       required: true,
-      enum: [
-        "prescription glasses",
-        "eye drop",
-        "contact lense",
-        "anti radiation glasses",
-        "anti blue light",
-      ],
     },
     productDescription: {
       type: String,
@@ -46,6 +39,10 @@ const ProductListSchema = new mongoose.Schema(
     productImage: {
       type: String,
       required: false,
+    },
+    isPrescriptionTableRequired: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }

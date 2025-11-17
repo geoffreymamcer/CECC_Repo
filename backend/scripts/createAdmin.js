@@ -37,10 +37,10 @@ const createAdmin = async () => {
       _id: newId,
       firstName: "CECC",
       lastName: "Owner",
-      phone_number: "09876543210",
-      email: "owner@cecc.com",
-      password: await bcrypt.hash("owner123", 10),
-      role: "owner",
+      phone_number: "09123321528",
+      email: "admin@cecc.com",
+      password: await bcrypt.hash("admin123", 10),
+      role: "admin",
     };
 
     // Check for existing admin by email or phone

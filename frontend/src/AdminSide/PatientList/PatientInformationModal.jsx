@@ -37,6 +37,11 @@ const PatientInformationModal = ({
   const [error, setError] = useState(null);
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
 
+  const [pdfLoadingState, setPdfLoadingState] = useState({
+    view: null,
+    download: null,
+  });
+
   // --- NEW: Visit-based states ---
   const [visitList, setVisitList] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);
@@ -581,8 +586,9 @@ const PatientInformationModal = ({
 
   // PDF handlers (kept)
   const handleViewPDF = async (invoiceId) => {
+    // Set the loading state to this invoice's ID before starting the request
+    setPdfLoadingState((prev) => ({ ...prev, view: invoiceId }));
     try {
-      // Use the admin-specific route for viewing PDFs from this modal
       const response = await instance.get(`/invoices/${invoiceId}/pdf/view`, {
         responseType: "blob",
       });
@@ -592,10 +598,15 @@ const PatientInformationModal = ({
     } catch (error) {
       console.error("Error viewing PDF:", error);
       alert("Failed to view PDF. Please try again.");
+    } finally {
+      // Always reset the loading state, whether the request succeeded or failed
+      setPdfLoadingState((prev) => ({ ...prev, view: null }));
     }
   };
 
   const handleDownloadPDF = async (invoiceId, invoiceNumber) => {
+    // Set the loading state for the download action
+    setPdfLoadingState((prev) => ({ ...prev, download: invoiceId }));
     try {
       const response = await instance.get(
         `/invoices/${invoiceId}/pdf/download`,
@@ -614,21 +625,25 @@ const PatientInformationModal = ({
     } catch (error) {
       console.error("Error downloading PDF:", error);
       alert("Failed to download PDF. Please try again.");
+    } finally {
+      // Reset the loading state after the operation completes
+      setPdfLoadingState((prev) => ({ ...prev, download: null }));
     }
   };
 
   const handleEdit = () => setIsEditing(true);
 
-  // --- MODIFIED: save per-visit clinical records and update profile ---
   const handleSave = async () => {
     if (!patientId) {
       alert("Error: Patient ID is missing.");
       return;
     }
-    if (!selectedVisit?._id) {
-      alert("No visit selected. Cannot save clinical data.");
-      return;
-    }
+
+    // --- REMOVED --- The problematic check that blocked saving profile details is now gone.
+    // if (!selectedVisit?._id) {
+    //   alert("No visit selected. Cannot save clinical data.");
+    //   return;
+    // }
 
     try {
       // --- Step 1: Construct the payload for the Profile update ---
@@ -708,6 +723,7 @@ const PatientInformationModal = ({
           "",
       };
 
+      // Always prepare the promise to update the profile.
       const profileUpdatePromise = instance.put(
         `/profiles/${patientId}`,
         profilePayload
@@ -715,6 +731,7 @@ const PatientInformationModal = ({
 
       const allPromises = [profileUpdatePromise];
 
+      // Conditionally add promises for clinical data ONLY if a visit is selected.
       if (selectedVisit?._id) {
         const clinicalPromises = [
           instance.put(
@@ -745,14 +762,16 @@ const PatientInformationModal = ({
         allPromises.push(...clinicalPromises);
       }
 
+      // Execute all prepared promises. This will be just the profile update
+      // if no visit is selected, or both profile and clinical data if a visit is selected.
       await Promise.all(allPromises);
+
       alert("Changes saved successfully!");
       setIsEditing(false);
       if (typeof onDataUpdate === "function") {
-        onDataUpdate(); // Refresh the main patient list in the parent component
+        onDataUpdate();
       }
 
-      // Refresh the data for the current view to show the saved changes
       fetchClinicalDataForVisit();
     } catch (err) {
       console.error("Failed to save changes:", err);
@@ -1061,12 +1080,14 @@ const PatientInformationModal = ({
             )}
 
             {activeTab === "invoice" && (
+              // 3️⃣ START: Pass the new loading state down to the InvoiceTab
               <InvoiceTab
                 invoices={invoices}
                 isLoadingInvoices={isLoadingInvoices}
                 handleViewPDF={handleViewPDF}
                 handleDownloadPDF={handleDownloadPDF}
                 setShowInvoiceModal={setShowInvoiceModal}
+                pdfLoadingState={pdfLoadingState} // Pass the state as a prop
               />
             )}
             {activeTab === "downloadables" && (

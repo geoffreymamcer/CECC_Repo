@@ -3,11 +3,8 @@ import Product from "../models/Inventory.js";
 // Get products with pagination and filtering
 export const getProducts = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 12;
-    const search = req.query.search || "";
+    const { page, limit, search = "" } = req.query;
 
-    // Create search query
     const searchQuery = search
       ? {
           $or: [
@@ -17,23 +14,39 @@ export const getProducts = async (req, res) => {
         }
       : {};
 
-    // Get total count for pagination
-    const total = await Product.countDocuments(searchQuery);
-    const totalPages = Math.ceil(total / limit);
+    // If page and limit are provided, use pagination.
+    if (page && limit) {
+      const pageNum = parseInt(page);
+      const limitNum = parseInt(limit);
 
-    // Get paginated and filtered products
-    const products = await Product.find(searchQuery)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean(); // Use lean() for better performance
+      const total = await Product.countDocuments(searchQuery);
+      const totalPages = Math.ceil(total / limitNum);
 
-    res.json({
-      products,
-      totalPages,
-      currentPage: page,
-      totalProducts: total,
-    });
+      const products = await Product.find(searchQuery)
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
+        .lean();
+
+      return res.json({
+        products,
+        totalPages,
+        currentPage: pageNum,
+        totalProducts: total,
+      });
+    } else {
+      // If no page and limit, fetch all products.
+      const products = await Product.find(searchQuery)
+        .sort({ createdAt: -1 })
+        .lean();
+
+      return res.json({
+        products,
+        totalPages: 1, // Only one page since we're fetching all
+        currentPage: 1,
+        totalProducts: products.length,
+      });
+    }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -59,8 +72,10 @@ export const createProduct = async (req, res) => {
     productType,
     productDescription,
     productPrice,
+    productCost,
     availableStocks,
     productImage,
+    isPrescriptionTableRequired,
   } = req.body;
 
   const stocksStatus = availableStocks < 10 ? "low" : "in stock";
@@ -70,9 +85,11 @@ export const createProduct = async (req, res) => {
     productType,
     productDescription,
     productPrice,
+    productCost,
     availableStocks,
     stocksStatus,
     productImage,
+    isPrescriptionTableRequired, // <-- Add this
   });
 
   try {
@@ -190,6 +207,15 @@ export const getInventoryStats = async (req, res) => {
       lowStockItems,
       totalValue,
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+export const getProductTypes = async (req, res) => {
+  try {
+    // .distinct() is a highly efficient MongoDB operation for this exact purpose
+    const types = await Product.distinct("productType");
+    res.json(types.sort()); // Sort them alphabetically for a clean dropdown
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
