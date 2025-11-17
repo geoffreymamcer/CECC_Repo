@@ -908,33 +908,6 @@ const PatientInformationModal = ({
                   </div>
                 </div>
               </div>
-
-              <div className="flex items-center space-x-4">
-                <div className="bg-blue-50 px-4 py-2 rounded-lg">
-                  <p className="text-xs text-gray-600">Blood Type</p>
-                  <p className="font-bold text-blue-700">
-                    {patientDetails?.bloodType}
-                  </p>
-                </div>
-                <div className="bg-green-50 px-4 py-2 rounded-lg">
-                  <p className="text-xs text-gray-600">Last Visit</p>
-                  <p className="font-bold text-green-700">
-                    {patientDetails?.lastVisit}
-                  </p>
-                </div>
-                <div className="bg-purple-50 px-4 py-2 rounded-lg">
-                  <p className="text-xs text-gray-600">Status</p>
-                  <p
-                    className={`font-bold ${
-                      patientDetails?.status === "Active"
-                        ? "text-green-700"
-                        : "text-yellow-700"
-                    }`}
-                  >
-                    {patientDetails?.status}
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
 

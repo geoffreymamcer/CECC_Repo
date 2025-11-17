@@ -139,20 +139,24 @@ export default function SignupForm({ toggleForm }) {
 
   return (
     <form className="w-full space-y-4" onSubmit={handleSignupSubmit}>
-      <FormGroup
-        icon="user"
-        type="text"
-        placeholder="First Name"
-        value={firstName}
-        onChange={(e) => setFirstname(e.target.value)}
-      />
-      <FormGroup
-        icon="user"
-        type="text"
-        placeholder="Middle Name"
-        value={middleName}
-        onChange={(e) => setMiddleName(e.target.value)}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormGroup
+          icon="user"
+          type="text"
+          placeholder="First Name"
+          value={firstName}
+          onChange={(e) => setFirstname(e.target.value)}
+        />
+        <FormGroup
+          icon="user"
+          type="text"
+          placeholder="Middle Name"
+          value={middleName}
+          onChange={(e) => setMiddleName(e.target.value)}
+        />
+      </div>
+
+      {/* Second row: Last Name (full width) */}
       <FormGroup
         icon="user"
         type="text"
@@ -160,34 +164,38 @@ export default function SignupForm({ toggleForm }) {
         value={lastName}
         onChange={(e) => setLastName(e.target.value)}
       />
-      <FormGroup
-        icon="envelope"
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <FormGroup
-        icon="phone"
-        type="tel"
-        placeholder="Phone Number"
-        value={phoneNumber}
-        onChange={(e) => setPhoneNumber(e.target.value)}
-      />
-      <FormGroup
-        icon="lock"
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <FormGroup
-        icon="lock"
-        type="password"
-        placeholder="Confirm Password"
-        value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormGroup
+          icon="envelope"
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <FormGroup
+          icon="phone"
+          type="tel"
+          placeholder="Phone Number"
+          value={phoneNumber}
+          onChange={(e) => setPhoneNumber(e.target.value)}
+        />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormGroup
+          icon="lock"
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <FormGroup
+          icon="lock"
+          type="password"
+          placeholder="Confirm Password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+        />
+      </div>
 
       {error && <p className="error-message">{error}</p>}
 
