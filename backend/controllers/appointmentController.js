@@ -1,6 +1,7 @@
 import Appointment from "../models/Appointment.js";
 import User from "../models/User.js";
 import Notification from "../models/Notification.js";
+import { sendAppointmentConfirmationEmail } from "../services/emailService.js";
 
 // Get all appointments (admin) with optional date filtering
 export const getAllAppointments = async (req, res) => {
@@ -68,6 +69,21 @@ export const createAppointment = async (req, res) => {
       visitStatus,
       notes: notes || additionalNotes || "",
     });
+
+    try {
+      await sendAppointmentConfirmationEmail({
+        email: user.email,
+        firstName: user.firstName,
+        appointmentDate: appointment.appointmentDate,
+        appointmentTime: appointment.appointmentTime,
+        serviceType: appointment.serviceType,
+      });
+    } catch (emailError) {
+      console.error(
+        "Failed to send appointment confirmation email:",
+        emailError.message
+      );
+    }
 
     const adminRecipientIds = ["6869154e483aab1aa36acf26", "CECC25-0004"];
 

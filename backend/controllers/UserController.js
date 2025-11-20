@@ -5,8 +5,10 @@ import bcrypt from "bcryptjs";
 import {
   sendVerificationEmail,
   sendPasswordResetEmail,
+  sendAccountCreationEmail,
 } from "../services/emailService.js";
 import mongoose from "mongoose";
+import crypto from "crypto";
 
 const pendingVerifications = {};
 const passwordResetTokens = {};
@@ -773,6 +775,86 @@ export const deleteAdmin = async (req, res) => {
     res.status(500).json({
       status: "error",
       message: "An error occurred while deleting the account.",
+    });
+  }
+};
+
+export const checkUserExists = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const user = await User.findById(patientId);
+    res.status(200).json({ exists: !!user });
+  } catch (error) {
+    res.status(500).json({ message: "Server error while checking user." });
+  }
+};
+export const generatePatientAccount = async (req, res) => {
+  try {
+    const { patientId, email } = req.body;
+
+    // Validation
+    if (!patientId || !email) {
+      return res
+        .status(400)
+        .json({ message: "Patient ID and email are required." });
+    }
+
+    // Check if a user account already exists for this patient ID
+    const existingUserById = await User.findById(patientId);
+    if (existingUserById) {
+      return res
+        .status(409)
+        .json({ message: "An account already exists for this patient." });
+    }
+
+    // Check if an account with the provided email already exists
+    const existingUserByEmail = await User.findOne({ email });
+    if (existingUserByEmail) {
+      return res
+        .status(409)
+        .json({
+          message: "An account with this email address already exists.",
+        });
+    }
+
+    // Find the patient's profile
+    const profile = await Profile.findById(patientId);
+    if (!profile) {
+      return res.status(404).json({ message: "Patient profile not found." });
+    }
+
+    // Generate a secure temporary password (e.g., 8 characters)
+    const temporaryPassword = crypto.randomBytes(6).toString("hex");
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(temporaryPassword, salt);
+
+    // Create the new user
+    const newUser = await User.create({
+      _id: profile._id, // Link the User._id to the Profile._id
+      patientId: profile._id,
+      firstName: profile.firstName,
+      middleName: profile.middleName,
+      lastName: profile.lastName,
+      phone_number: profile.phone_number || profile.contact,
+      email: email, // Use the email provided from the modal
+      password: hashedPassword,
+      role: "patient",
+    });
+
+    // Send the account creation email with the temporary password
+    await sendAccountCreationEmail({
+      email: newUser.email,
+      firstName: newUser.firstName,
+      temporaryPassword,
+    });
+
+    res.status(201).json({
+      message: `Account successfully created for ${newUser.firstName} ${newUser.lastName}. Credentials have been sent to ${newUser.email}.`,
+    });
+  } catch (error) {
+    console.error("Error generating patient account:", error);
+    res.status(500).json({
+      message: "An error occurred while generating the account.",
     });
   }
 };

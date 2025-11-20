@@ -94,3 +94,75 @@ export const sendPasswordResetEmail = async (email, resetCode, firstName) => {
   };
   return sendEmail(payload);
 };
+
+export const sendAppointmentConfirmationEmail = async ({
+  email,
+  firstName,
+  appointmentDate,
+  appointmentTime,
+  serviceType,
+}) => {
+  const formattedDate = new Date(appointmentDate).toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const payload = {
+    sender: { name: "Candelaria Eye Care Clinic", email: SENDER_EMAIL },
+    to: [{ email }],
+    subject: "Your Appointment has been Scheduled - Candelaria Eye Care Clinic",
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #8b0000; color: white; padding: 20px;">
+          <h2 style="margin: 0;">Appointment Confirmation</h2>
+        </div>
+        <div style="padding: 20px;">
+          <p>Hello ${firstName},</p>
+          <p>Your appointment has been successfully scheduled. Here are the details:</p>
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 10px 0;"><strong>Service:</strong> ${serviceType}</p>
+            <p style="margin: 10px 0;"><strong>Date:</strong> ${formattedDate}</p>
+            <p style="margin: 10px 0;"><strong>Time:</strong> ${appointmentTime}</p>
+          </div>
+          <p>We look forward to seeing you at the Candelaria Eye Care Clinic. If you need to reschedule, please contact us at your earliest convenience.</p>
+          <p>Thank you!</p>
+        </div>
+      </div>
+    `,
+  };
+  // Use the generic sendEmail function to dispatch the email
+  return sendEmail(payload);
+};
+
+export const sendAccountCreationEmail = async ({
+  email,
+  firstName,
+  temporaryPassword,
+}) => {
+  const payload = {
+    sender: { name: "Candelaria Eye Care Clinic", email: SENDER_EMAIL },
+    to: [{ email }],
+    subject: "Your CECC Patient Portal Account Has Been Created!",
+    htmlContent: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: #8b0000; color: white; padding: 20px;">
+          <h2 style="margin: 0;">Welcome to Your Patient Portal</h2>
+        </div>
+        <div style="padding: 20px;">
+          <p>Hello ${firstName},</p>
+          <p>An account has been created for you at the Candelaria Eye Care Clinic patient portal. You can use these credentials to log in and manage your appointments and records.</p>
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 10px 0;"><strong>Email / Username:</strong> ${email}</p>
+            <p style="margin: 10px 0;"><strong>Temporary Password:</strong></p>
+            <h3 style="color: #333; text-align: center;">${temporaryPassword}</h3>
+          </div>
+          <p>We highly recommend that you log in and change your password from your account settings at your earliest convenience.</p>
+          <p>Thank you!</p>
+        </div>
+      </div>
+    `,
+  };
+  return sendEmail(payload);
+};

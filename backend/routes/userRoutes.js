@@ -14,8 +14,11 @@ import {
   getAdmins,
   updateAdminRole,
   deleteAdmin,
+  checkUserExists,
+  generatePatientAccount,
 } from "../controllers/UserController.js";
 import { auth, isOwner } from "../middleware/auth.js";
+import { adminAuth } from "../middleware/adminAuth.js";
 
 const router = express.Router();
 
@@ -37,5 +40,8 @@ router.delete("/admin/:id", auth, isOwner, deleteAdmin);
 router.get("/me", auth, getMe);
 router.delete("/:id", auth, deleteUser);
 router.post("/change-password", auth, changePassword);
+
+router.get("/exists/:patientId", auth, checkUserExists);
+router.post("/generate-account", [auth, adminAuth], generatePatientAccount);
 
 export default router;

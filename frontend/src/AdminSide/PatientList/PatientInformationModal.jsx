@@ -16,6 +16,7 @@ import DiagnosticPlanTab from "./patientModalTabs/DiagnosticPlanTab";
 import PlanOfManagementTab from "./patientModalTabs/PlanOfManagementTab";
 import InvoiceTab from "./patientModalTabs/InvoiceTab";
 import DownloadablesTab from "./patientModalTabs/DownloadablesTab";
+import GenerateAccountModal from "./GenerateAccountModal";
 
 import regions from "../../services/phAddress/region.json";
 import provinces from "../../services/phAddress/province.json";
@@ -36,6 +37,10 @@ const PatientInformationModal = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
+
+  const [hasAccount, setHasAccount] = useState(false);
+  const [showGenerateAccountModal, setShowGenerateAccountModal] =
+    useState(false);
 
   const [pdfLoadingState, setPdfLoadingState] = useState({
     view: null,
@@ -272,12 +277,14 @@ const PatientInformationModal = ({
 
     try {
       // The 'api' instance handles the Authorization header automatically
-      const [profileRes, visitsRes, invoicesRes] = await Promise.all([
-        instance.get(`/profiles/id/${patientId}`),
-        instance.get(`/visits/patient/${patientId}`),
-        instance.get(`/invoices/patient/${patientId}`),
-      ]);
-
+      const [profileRes, visitsRes, invoicesRes, userExistsRes] =
+        await Promise.all([
+          instance.get(`/profiles/id/${patientId}`),
+          instance.get(`/visits/patient/${patientId}`),
+          instance.get(`/invoices/patient/${patientId}`),
+          instance.get(`/users/exists/${patientId}`),
+        ]);
+      setHasAccount(userExistsRes.data.exists);
       const profileData = profileRes.data;
       setPatientDetails(profileData);
 
@@ -1079,6 +1086,18 @@ const PatientInformationModal = ({
             >
               Close
             </button>
+            <button
+              onClick={() => setShowGenerateAccountModal(true)}
+              disabled={hasAccount}
+              className="px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all flex items-center disabled:bg-gray-400 disabled:cursor-not-allowed"
+              title={
+                hasAccount
+                  ? "This patient already has an account"
+                  : "Create a portal account for this patient"
+              }
+            >
+              Generate Account
+            </button>
             {!isEditing ? (
               <button
                 onClick={handleEdit}
@@ -1126,6 +1145,19 @@ const PatientInformationModal = ({
           onClose={() => setShowInvoiceModal(false)}
           currentUser={currentUser}
           patientId={patientId}
+        />
+      )}
+
+      {showGenerateAccountModal && (
+        <GenerateAccountModal
+          isOpen={showGenerateAccountModal}
+          onClose={() => setShowGenerateAccountModal(false)}
+          patientId={patientId}
+          patientEmail={personalFormData.email}
+          onAccountCreated={() => {
+            setHasAccount(true); // Update the state to disable the button
+            setShowGenerateAccountModal(false); // Close the modal
+          }}
         />
       )}
     </div>
