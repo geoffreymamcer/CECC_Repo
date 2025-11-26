@@ -63,28 +63,6 @@ const LoginForm = () => {
             required
           />
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember"
-                name="remember"
-                type="checkbox"
-                className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-              />
-              <label htmlFor="remember" className="ml-2 text-sm text-gray-700">
-                Remember me
-              </label>
-            </div>
-            <a
-              href="#"
-              className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
-            >
-              Forgot password?
-            </a>
-          </div>
-
           <button
             type="submit"
             disabled={isAuthLoading}
@@ -100,19 +78,6 @@ const LoginForm = () => {
             <p className="text-red-500 text-sm text-center mt-2">{error}</p>
           )}
         </form>
-
-        {/* ... your existing JSX for the form footer ... */}
-        <div className="mt-8 text-center">
-          <p className="text-gray-600 text-sm">
-            Need help?{" "}
-            <a
-              href="#"
-              className="text-primary-600 font-medium hover:text-primary-700 transition-colors"
-            >
-              Contact Support
-            </a>
-          </p>
-        </div>
       </div>
     </div>
   );
