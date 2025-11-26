@@ -7,6 +7,7 @@ export default function FormGroup({
   type,
   placeholder,
   onChange,
+  disabled,
   value,
   ...props
 }) {
@@ -37,10 +38,13 @@ export default function FormGroup({
         <input
           type={type}
           placeholder={placeholder}
+          disabled={disabled}
           onChange={onChange}
           value={value} // This was missing, it's needed for a controlled input.
           {...props} // This ensures other props like `required` are passed down.
-          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-red transition-all duration-200"
+          className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-red transition-all duration-200 ${
+            disabled ? "bg-gray-100 cursor-not-allowed text-gray-500" : ""
+          }`}
         />
       </div>
     </div>

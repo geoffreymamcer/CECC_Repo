@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import FormGroup from "./FormGroup";
 import instance from "../../api/axios";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 
 export default function ForgotPasswordModal({ isOpen, onClose }) {
   const [step, setStep] = useState(1);
@@ -125,6 +125,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
             onClick={onClose}
             className="absolute top-0 right-0 mt-4 mr-4 text-gray-400 hover:text-gray-600 transition-colors"
             title="Close"
+            disabled={isLoading}
           >
             <X size={24} />
           </button>
@@ -146,16 +147,32 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
                     placeholder="Enter your email"
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    disabled={isLoading}
                   />
                   {error && (
                     <p className="text-red-500 text-sm text-center">{error}</p>
                   )}
                   <button
                     type="submit"
-                    className="w-full bg-dark-red text-white py-2 px-4 rounded-lg font-bold btn-hover"
+                    className={`w-full py-2 px-4 rounded-lg font-bold transition-all duration-300 flex items-center justify-center space-x-2 ${
+                      isLoading
+                        ? "bg-red-800 cursor-not-allowed opacity-80"
+                        : "bg-dark-red text-white btn-hover"
+                    }`}
                     disabled={isLoading}
                   >
-                    {isLoading ? "Sending..." : "Send Code"}
+                    {isLoading ? (
+                      <>
+                        <Loader2
+                          className="animate-spin"
+                          size={20}
+                          color="white"
+                        />
+                        <span>Sending...</span>
+                      </>
+                    ) : (
+                      "Send Code"
+                    )}
                   </button>
                 </form>
               </div>
@@ -179,16 +196,32 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
                     placeholder="Enter verification code"
                     onChange={(e) => setCode(e.target.value)}
                     required
+                    disabled={isLoading}
                   />
                   {error && (
                     <p className="text-red-500 text-sm text-center">{error}</p>
                   )}
                   <button
                     type="submit"
-                    className="w-full bg-dark-red text-white py-2 px-4 rounded-lg font-bold btn-hover"
+                    className={`w-full py-2 px-4 rounded-lg font-bold transition-all duration-300 flex items-center justify-center space-x-2 ${
+                      isLoading
+                        ? "bg-red-800 cursor-not-allowed opacity-80"
+                        : "bg-dark-red text-white btn-hover"
+                    }`}
                     disabled={isLoading}
                   >
-                    {isLoading ? "Verifying..." : "Verify Code"}
+                    {isLoading ? (
+                      <>
+                        <Loader2
+                          className="animate-spin"
+                          size={20}
+                          color="white"
+                        />
+                        <span>Verifying...</span>
+                      </>
+                    ) : (
+                      "Verify Code"
+                    )}
                   </button>
                 </form>
               </div>
@@ -217,6 +250,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
                     type="password"
                     value={newPassword}
                     placeholder="New Password"
+                    disabled={isLoading}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
                   />
@@ -225,6 +259,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
                     type="password"
                     value={confirmPassword}
                     placeholder="Confirm New Password"
+                    disabled={isLoading}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                   />
@@ -233,10 +268,25 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
                   )}
                   <button
                     type="submit"
-                    className="w-full bg-dark-red text-white py-2 px-4 rounded-lg font-bold btn-hover"
+                    className={`w-full py-2 px-4 rounded-lg font-bold transition-all duration-300 flex items-center justify-center space-x-2 ${
+                      isLoading
+                        ? "bg-red-800 cursor-not-allowed opacity-80"
+                        : "bg-dark-red text-white btn-hover"
+                    }`}
                     disabled={isLoading}
                   >
-                    {isLoading ? "Changing Password..." : "Change Password"}
+                    {isLoading ? (
+                      <>
+                        <Loader2
+                          className="animate-spin"
+                          size={20}
+                          color="white"
+                        />
+                        <span>Changing Password...</span>
+                      </>
+                    ) : (
+                      "Change Password"
+                    )}{" "}
                   </button>
                 </form>
               </div>

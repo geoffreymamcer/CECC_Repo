@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import instance from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
 import ForgotPasswordModal from "./ForgotPasswordModal";
-import { User, Lock } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export default function LoginForm({ toggleForm }) {
   const [email, setEmail] = useState("");
@@ -13,6 +13,8 @@ export default function LoginForm({ toggleForm }) {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { login, isAuthLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const isSubmitting = isLoading || isAuthLoading;
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleSubmit = async (event) => {
@@ -25,6 +27,7 @@ export default function LoginForm({ toggleForm }) {
       navigate("/user-dashboard");
     } else {
       setError(result.message || "Failed to log in. Please try again.");
+      setIsLoading(false);
     }
   };
 
@@ -39,6 +42,7 @@ export default function LoginForm({ toggleForm }) {
           type="email"
           value={email}
           placeholder="Email"
+          disabled={isSubmitting}
           onChange={(e) => setEmail(e.target.value)}
         />
         <FormGroup
@@ -46,6 +50,7 @@ export default function LoginForm({ toggleForm }) {
           type="password"
           value={password}
           placeholder="Password"
+          disabled={isSubmitting}
           onChange={(e) => setPassword(e.target.value)}
         />
 
@@ -55,11 +60,21 @@ export default function LoginForm({ toggleForm }) {
 
         <button
           type="submit"
-          className="w-full bg-dark-red text-white py-3 rounded-lg font-bold btn-hover transition-all duration-300 flex items-center justify-center space-x-2"
-          disabled={isAuthLoading}
+          className={`w-full py-3 rounded-lg font-bold transition-all duration-300 flex items-center justify-center space-x-2 ${
+            isSubmitting
+              ? "bg-red-800 cursor-not-allowed opacity-80"
+              : "bg-dark-red text-white btn-hover"
+          }`}
+          disabled={isSubmitting}
         >
-          <span>{isAuthLoading ? "Logging in..." : "Log In"}</span>
-          <i className="fas fa-arrow-right animate-pulse-slow" />
+          {isSubmitting ? (
+            <>
+              <Loader2 className="animate-spin" size={20} color="white" />
+              <span className="text-white">Signing In...</span>
+            </>
+          ) : (
+            "Sign In"
+          )}
         </button>
 
         <div className="text-center pt-2">

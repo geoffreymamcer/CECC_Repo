@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import FormGroup from "./FormGroup";
 import "./PatientLogin.css";
 import instance from "../../api/axios";
+import { Loader2 } from "lucide-react";
 
 export default function SignupForm({ toggleForm }) {
   const [firstName, setFirstname] = useState("");
@@ -114,21 +115,35 @@ export default function SignupForm({ toggleForm }) {
           placeholder="Verification Code"
           value={verificationCode}
           onChange={(e) => setVerificationCode(e.target.value)}
+          disabled={isLoading}
         />
 
         {error && <p className="error-message">{error}</p>}
 
-        <input
+        <button
           type="submit"
-          className="w-full bg-red-800 text-white py-3 rounded-lg font-bold btn-hover transition-all duration-300"
+          className={`w-full py-3 rounded-lg font-bold transition-all duration-300 flex items-center justify-center space-x-2 ${
+            isLoading
+              ? "bg-red-800 cursor-not-allowed opacity-80"
+              : "bg-red-800 text-white btn-hover"
+          }`}
           disabled={isLoading}
-          value={isLoading ? "Verifying..." : "Verify and Create Account"}
-        />
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="animate-spin" size={20} color="white" />
+              <span>Verifying...</span>
+            </>
+          ) : (
+            "Verify and Create Account"
+          )}
+        </button>
         <div className="text-center pt-4">
           <button
             type="button"
             onClick={() => setFormStep("signup")}
             className="text-sm text-gray-600 hover:underline"
+            disabled={isLoading}
           >
             Back to Sign Up
           </button>
@@ -146,6 +161,7 @@ export default function SignupForm({ toggleForm }) {
           placeholder="First Name"
           value={firstName}
           onChange={(e) => setFirstname(e.target.value)}
+          disabled={isLoading}
         />
         <FormGroup
           icon="user"
@@ -153,6 +169,7 @@ export default function SignupForm({ toggleForm }) {
           placeholder="Middle Name"
           value={middleName}
           onChange={(e) => setMiddleName(e.target.value)}
+          disabled={isLoading}
         />
       </div>
 
@@ -163,6 +180,7 @@ export default function SignupForm({ toggleForm }) {
         placeholder="Last Name"
         value={lastName}
         onChange={(e) => setLastName(e.target.value)}
+        disabled={isLoading}
       />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormGroup
@@ -171,6 +189,7 @@ export default function SignupForm({ toggleForm }) {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          disabled={isLoading}
         />
         <FormGroup
           icon="phone"
@@ -178,6 +197,7 @@ export default function SignupForm({ toggleForm }) {
           placeholder="Phone Number"
           value={phoneNumber}
           onChange={(e) => setPhoneNumber(e.target.value)}
+          disabled={isLoading}
         />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -187,6 +207,7 @@ export default function SignupForm({ toggleForm }) {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          disabled={isLoading}
         />
         <FormGroup
           icon="lock"
@@ -194,17 +215,30 @@ export default function SignupForm({ toggleForm }) {
           placeholder="Confirm Password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
+          disabled={isLoading}
         />
       </div>
 
       {error && <p className="error-message">{error}</p>}
 
-      <input
+      <button
         type="submit"
-        className="w-full bg-red-800 text-white py-3 rounded-lg font-bold btn-hover transition-all duration-300"
+        className={`w-full py-3 rounded-lg font-bold transition-all duration-300 flex items-center justify-center space-x-2 ${
+          isLoading
+            ? "bg-red-800 cursor-not-allowed opacity-80"
+            : "bg-red-800 text-white btn-hover"
+        }`}
         disabled={isLoading}
-        value={isLoading ? "Sending Code..." : "Sign Up"}
-      />
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="animate-spin" size={20} color="white" />
+            <span>Sending Code...</span>
+          </>
+        ) : (
+          "Sign Up"
+        )}
+      </button>
 
       <div className="text-center pt-4 border-t border-gray-100">
         <span className="text-gray-700">Have an Account Already?</span>
@@ -212,6 +246,7 @@ export default function SignupForm({ toggleForm }) {
           type="button"
           onClick={toggleForm}
           className="ml-2 bg-dark-red text-white px-4 py-1 rounded-lg text-sm btn-hover transition-all duration-300"
+          disabled={isLoading}
         >
           Log In
         </button>
