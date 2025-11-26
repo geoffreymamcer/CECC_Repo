@@ -1,17 +1,18 @@
-// --- START OF FILE server.js ---
-
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import apiRoutes from "./routes/api.js";
-import { Server } from "socket.io"; // 👈 EMOJI: Import Server from socket.io
-import http from "http"; // 👈 EMOJI: Import http
+import { Server } from "socket.io";
+import http from "http";
+import path from "path";
+import { fileURLToPath } from "url";
 
-// Load environment variables first
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 dotenv.config();
 
-// Validate critical environment variables
 const requiredEnvVars = [
   "MONGODB_URI",
   "JWT_SECRET",
@@ -34,17 +35,15 @@ const allowedOrigins = [
   "https://cecc-test.vercel.app",
 ];
 
-// --- SETUP SOCKET.IO ---
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins, // Use the shared array
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
   },
 });
 
-// --- SETUP EXPRESS CORS MIDDLEWARE ---
 const corsOptions = {
-  origin: allowedOrigins, // Use the shared array
+  origin: allowedOrigins,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-User-Timezone"],
   credentials: true,
@@ -57,14 +56,12 @@ const onlineUsers = new Map();
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 
-  // When a user connects, they should send an 'addUser' event with their ID
   socket.on("addUser", (userId) => {
     onlineUsers.set(userId, socket.id);
     console.log(`User ${userId} registered with socket ${socket.id}`);
   });
 
   socket.on("disconnect", () => {
-    // Remove user from the map on disconnect
     for (let [userId, socketId] of onlineUsers.entries()) {
       if (socketId === socket.id) {
         onlineUsers.delete(userId);
@@ -75,26 +72,31 @@ io.on("connection", (socket) => {
   });
 });
 
-// Middleware to make 'io' and 'onlineUsers' accessible in your controllers
 app.use((req, res, next) => {
   req.io = io;
   req.onlineUsers = onlineUsers;
   next();
 });
 
-// Middleware
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-app.use(cors(corsOptions));
-
-// Serve static files from the uploads directory
 app.use("/uploads", express.static("uploads"));
 
-// Routes
 app.use("/api", apiRoutes);
 
-// Connect to MongoDB
+app.use("/api", (req, res) => {
+  res.status(404).json({ success: false, message: "API route not found" });
+});
+
+const buildPath = path.join(__dirname, "../frontend/build");
+
+app.use(express.static(buildPath));
+
+app.get(/.*/, (req, res) => {
+  res.sendFile(path.join(buildPath, "index.html"));
+});
+
 try {
   await mongoose.connect(process.env.MONGODB_URI);
   console.log("Connected to MongoDB");
