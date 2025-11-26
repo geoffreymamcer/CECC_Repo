@@ -1,10 +1,9 @@
-// LoginForm.jsx
-
 import React, { useState } from "react";
 import InputField from "./InputField";
 import "./AdminLogin.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { Loader2 } from "lucide-react";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -13,10 +12,14 @@ const LoginForm = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { adminLogin, isAuthLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const isSubmitting = isLoading || isAuthLoading;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(""); // Clear previous errors
+
+    setIsLoading(true);
 
     const result = await adminLogin(email, password);
 
@@ -24,6 +27,7 @@ const LoginForm = () => {
       navigate("/cecc-admin-dashboard");
     } else {
       setError(result.message);
+      setIsLoading(false);
     }
   };
 
@@ -51,6 +55,7 @@ const LoginForm = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            disabled={isSubmitting}
           />
 
           <InputField
@@ -61,19 +66,30 @@ const LoginForm = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            disabled={isSubmitting}
           />
 
           <button
             type="submit"
-            disabled={isAuthLoading}
-            className="login-btn w-full py-3 px-4 bg-primary-700 text-white font-semibold rounded-lg shadow-button hover:bg-primary-600 transition-all duration-300"
+            disabled={isSubmitting}
+            className={`login-btn w-full py-3 px-4 text-white font-semibold rounded-lg shadow-button transition-all duration-300 flex items-center justify-center space-x-2 ${
+              isSubmitting
+                ? "cursor-not-allowed opacity-80"
+                : "hover:bg-primary-600"
+            }`}
             style={{
               background: "linear-gradient(to right, #800000, #b30000)",
             }}
           >
-            {isAuthLoading ? "Logging In..." : "Log In"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" size={20} color="white" />
+                <span>Logging In...</span>
+              </>
+            ) : (
+              "Log In"
+            )}
           </button>
-
           {error && (
             <p className="text-red-500 text-sm text-center mt-2">{error}</p>
           )}
