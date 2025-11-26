@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import FormGroup from "./FormGroup";
 import instance from "../../api/axios";
+import { X } from "lucide-react";
 
 export default function ForgotPasswordModal({ isOpen, onClose }) {
   const [step, setStep] = useState(1);
@@ -9,7 +10,6 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // --- 2. CONSOLIDATE STATE FOR LOADING AND ERRORS ---
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -123,9 +123,10 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
         <div className="text-center">
           <button
             onClick={onClose}
-            className="absolute top-0 right-0 mt-4 mr-4 text-gray-400 hover:text-gray-600"
+            className="absolute top-0 right-0 mt-4 mr-4 text-gray-400 hover:text-gray-600 transition-colors"
+            title="Close"
           >
-            <i className="fas fa-times"></i>
+            <X size={24} />
           </button>
 
           {step === 1 && (

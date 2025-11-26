@@ -1,5 +1,6 @@
 import React from "react";
 import "./PatientLogin.css";
+import { User, Lock, Mail, Key, Phone } from "lucide-react";
 
 export default function FormGroup({
   icon,
@@ -9,11 +10,29 @@ export default function FormGroup({
   value,
   ...props
 }) {
+  const iconComponents = {
+    User: User,
+    user: User,
+    Lock: Lock,
+    lock: Lock,
+    envelope: Mail,
+    mail: Mail,
+    key: Key,
+    phone: Phone,
+    telephone: Phone,
+  };
+
+  const IconComponent = iconComponents[icon];
+
   return (
     <div className="input-group">
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 pointer-events-none">
-          <i className={`fas fa-${icon}`} />
+          {IconComponent ? (
+            <IconComponent size={20} />
+          ) : (
+            <i className={`fas fa-${icon?.toLowerCase()}`} />
+          )}
         </div>
         <input
           type={type}

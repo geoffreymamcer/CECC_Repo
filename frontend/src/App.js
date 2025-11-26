@@ -1,13 +1,8 @@
 // --- START OF FILE App.js ---
 import React, { Suspense, lazy } from "react"; // 👈 IMPORT lazy & Suspense
 import { Route, Routes } from "react-router-dom";
-
-// Keep Layout/Wrapper components as standard imports (they are small and needed everywhere)
 import ProtectedRoute from "./AdminSide/AdminProtectedRoute";
 import PatientProtectedRoute from "./PatientSide/PatientDashboard/PatientProtectedRoute";
-
-// 👇 LAZY LOAD PAGES (Split the bundle)
-// This prevents the browser from downloading the entire app at once.
 const AdminLoginLayout = lazy(() =>
   import("./AdminSide/AdminLoginUI/LoginLayout")
 );
@@ -39,20 +34,16 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 
 const LoadingFallback = () => (
   <div className="flex flex-col items-center justify-center min-h-screen bg-white">
-    {/* The Chart Container */}
     <div className="flex flex-col items-center space-y-1 select-none">
-      {/* Large Letter */}
       <span className="text-6xl font-black text-[#7F0000] animate-[pulse_2s_infinite]">
         E
       </span>
 
-      {/* Medium Letters */}
       <div className="flex gap-4 text-3xl font-bold text-gray-800 opacity-80">
         <span className="animate-[bounce_1s_infinite] delay-75">F</span>
         <span className="animate-[bounce_1s_infinite] delay-150">P</span>
       </div>
 
-      {/* Small Letters */}
       <div className="flex gap-2 text-xl font-medium text-gray-500 opacity-60">
         <span className="animate-[pulse_1.5s_infinite] delay-100">T</span>
         <span className="animate-[pulse_1.5s_infinite] delay-200">O</span>
@@ -60,7 +51,6 @@ const LoadingFallback = () => (
       </div>
     </div>
 
-    {/* Loading Bar at bottom */}
     <div className="w-32 h-1 bg-gray-100 mt-8 rounded-full overflow-hidden">
       <div className="h-full bg-[#7F0000] animate-[translateX_1.5s_ease-in-out_infinite] w-1/2 rounded-full"></div>
     </div>
@@ -70,14 +60,11 @@ const LoadingFallback = () => (
 function App() {
   return (
     <div className="App">
-      {/* 👇 Suspense wraps the Routes. It shows the fallback while the lazy file downloads. */}
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
-          {/* Public Routes */}
           <Route path="/cecc-admin-login" element={<AdminLoginLayout />} />
           <Route path="/" element={<PatientLoginLayout />} />
 
-          {/* Patient Routes */}
           <Route path="/color-vision-test" element={<IshiharaTest />} />
           <Route path="/appointment" element={<Appointments />} />
           <Route path="/records" element={<EyeCareRecordsViewer />} />
@@ -91,7 +78,6 @@ function App() {
             }
           />
 
-          {/* Admin Routes */}
           <Route path="/patient-analytics" element={<PatientAnalytics />} />
           <Route path="/sales-analytics" element={<SalesAnalytics />} />
 
@@ -104,7 +90,6 @@ function App() {
             }
           />
 
-          {/* 404 Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

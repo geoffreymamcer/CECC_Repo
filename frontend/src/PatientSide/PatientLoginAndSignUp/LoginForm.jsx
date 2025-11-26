@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import instance from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
 import ForgotPasswordModal from "./ForgotPasswordModal";
+import { User, Lock } from "lucide-react";
 
 export default function LoginForm({ toggleForm }) {
   const [email, setEmail] = useState("");
@@ -34,14 +35,14 @@ export default function LoginForm({ toggleForm }) {
     <>
       <form className="w-full space-y-4" onSubmit={handleSubmit}>
         <FormGroup
-          icon="user"
+          icon="User"
           type="email"
           value={email}
           placeholder="Email"
           onChange={(e) => setEmail(e.target.value)}
         />
         <FormGroup
-          icon="lock"
+          icon="Lock"
           type="password"
           value={password}
           placeholder="Password"

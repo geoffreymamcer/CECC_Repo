@@ -1,4 +1,3 @@
-// src/pages/NotFound.jsx
 import React from "react";
 import { Link } from "react-router-dom";
 
@@ -10,7 +9,6 @@ const NotFound = () => {
           Error Code
         </p>
 
-        {/* Simulating an Eye Chart with decreasing sizes */}
         <div className="flex flex-col items-center font-serif leading-none text-deep-red select-none">
           <span className="text-9xl font-bold">4</span>
           <span className="text-8xl font-bold opacity-90">0</span>
@@ -41,7 +39,6 @@ const NotFound = () => {
         </Link>
       </div>
 
-      {/* Decorative footer line */}
       <div className="fixed bottom-0 w-full h-2 bg-gradient-to-r from-white via-deep-red to-white opacity-20"></div>
     </div>
   );
