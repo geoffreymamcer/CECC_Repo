@@ -6,8 +6,14 @@ import asyncHandler from "express-async-handler";
 // @route   POST /api/colorvisiontest
 // @access  Private (Patient)
 const createColorVisionTest = asyncHandler(async (req, res) => {
-  const { correctPlates, totalPlates, accuracy, testResult, clientTestId } =
-    req.body;
+  const {
+    correctPlates,
+    totalPlates,
+    accuracy,
+    testResult,
+    clientTestId,
+    plateResults,
+  } = req.body;
 
   if (
     correctPlates === undefined ||
@@ -67,7 +73,8 @@ const createColorVisionTest = asyncHandler(async (req, res) => {
     accuracy,
     testResult,
     testDate: new Date(),
-    clientTestId: clientTestId || null, // Store the clientTestId if provided
+    clientTestId: clientTestId || null,
+    plateResults: plateResults,
   });
 
   if (colorVisionTest) {

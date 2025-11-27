@@ -140,7 +140,6 @@ const IshiharaTest = () => {
         .trim();
       const evaluatedResults = JSON.parse(jsonText);
 
-      // Merge original answers with AI evaluation
       const finalResults = answers.map((answer) => {
         const aiResult = evaluatedResults.find(
           (r) => r.plateNumber === answer.plate.plateNumber
@@ -149,10 +148,20 @@ const IshiharaTest = () => {
         return {
           plateNumber: answer.plate.plateNumber,
           userAnswer: answer.userAnswer,
-          evaluation: aiResult.evaluation,
-          isCorrect: aiResult.evaluation === "Normal",
-          reasoning: aiResult.reasoning,
+
+          // Store all static plate data
+          imageSrc: answer.plate.imageSrc,
+          question: answer.plate.question,
           normalVisionAnswer: answer.plate.normalVisionAnswer,
+          protanopiaAnswer: answer.plate.protanopiaAnswer,
+          deuteranopiaAnswer: answer.plate.deuteranopiaAnswer,
+          totalColorBlindnessAnswer:
+            answer.plate.totalColorBlindnessAnswer || "N/A",
+
+          // AI Evaluation Data
+          evaluation: aiResult.evaluation,
+          reasoning: aiResult.reasoning,
+          isCorrect: aiResult.evaluation === "Normal",
         };
       });
 
@@ -247,12 +256,23 @@ const IshiharaTest = () => {
             throw new Error("Authentication required to save results.");
 
           const payload = {
-            answers: testResults.map((r) => r.userAnswer),
+            plateResults: testResults.map((r) => ({
+              plateNumber: r.plateNumber,
+              userAnswer: r.userAnswer,
+              imageSrc: r.imageSrc,
+              question: r.question,
+              normalVisionAnswer: r.normalVisionAnswer,
+              protanopiaAnswer: r.protanopiaAnswer,
+              deuteranopiaAnswer: r.deuteranopiaAnswer,
+              totalColorBlindnessAnswer: r.totalColorBlindnessAnswer,
+              evaluation: r.evaluation,
+              reasoning: r.reasoning,
+              isCorrect: r.isCorrect,
+            })),
             correctPlates,
             totalPlates,
             accuracy,
             testResult: visionStatus,
-            plateResults: testResults,
             testDate: new Date().toISOString(),
           };
 
