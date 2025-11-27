@@ -1,4 +1,4 @@
-import puppeteer from "puppeteer-core";
+import puppeteer from "puppeteer";
 import chromium from "@sparticuz/chromium";
 import { getFullHtml } from "./pdfTemplate.js";
 import fs from "fs"; // --- 1. NEW --- Import the 'fs' module
@@ -21,9 +21,8 @@ function getImageAsBase64(filePath) {
 export async function generateVisitReport(visit, patient) {
   let browser = null;
   try {
-    // --- 3. THE FIX ---
     const logoPath = path.join(__dirname, "../../assets/clinic-logo.png");
-    const logoBase64 = getImageAsBase64(logoPath); // Convert the image to a Data URI
+    const logoBase64 = getImageAsBase64(logoPath);
 
     const clinicInfo = {
       name: "Candelaria Eye Care Clinic",
@@ -32,24 +31,37 @@ export async function generateVisitReport(visit, patient) {
       contact: "candelariaeyecare@gmail.com | 0917 123 4567",
     };
 
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
-    const page = await browser.newPage();
+    // 2️⃣ ✨ START: Implement the environment-aware browser launch logic
+    let launchOptions = {};
 
-    // Pass clinicInfo to the template function (no logo path needed here anymore)
+    // In production (deployed), use the lightweight serverless chromium
+    if (process.env.NODE_ENV === "production") {
+      console.log("PDF Generation: Using serverless Chromium configuration.");
+      launchOptions = {
+        args: chromium.args,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+      };
+    } else {
+      // In development (local), use the full local browser installed by Puppeteer
+      console.log("PDF Generation: Using local Puppeteer configuration.");
+      // No specific options are needed; Puppeteer finds its browser automatically.
+    }
+
+    browser = await puppeteer.launch(launchOptions);
+    // 2️⃣ ✨ END
+
+    const page = await browser.newPage();
     const htmlContent = getFullHtml(patient, visit, clinicInfo);
 
     await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
+    // The rest of your PDF generation logic remains exactly the same
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
       margin: { top: "130px", bottom: "70px", left: "50px", right: "50px" },
       displayHeaderFooter: true,
-      // --- 4. THE FIX --- Use the Base64 string as the image source
       headerTemplate: `
           <div style="width: 100%; border-bottom: 1px solid #EAEAEA; padding: 0 50px; box-sizing: border-box; font-family: Helvetica, Arial, sans-serif;">
               <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-top: 40px;">
@@ -68,11 +80,13 @@ export async function generateVisitReport(visit, patient) {
                 </div>`,
     });
 
-    await browser.close();
     return pdfBuffer;
   } catch (error) {
     console.error("Error generating PDF with Puppeteer:", error);
-    if (browser) await browser.close();
     throw new Error("Could not generate PDF.");
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
   }
 }
