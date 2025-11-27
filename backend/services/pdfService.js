@@ -23,20 +23,10 @@ const generateInvoicePDF = async (invoiceData) => {
   try {
     let launchOptions = {};
 
-    if (process.env.NODE_ENV === "production") {
-      console.log(
-        "Using serverless Chromium configuration for PDF generation."
-      );
-      launchOptions = {
-        args: chromium.args,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
-      };
-    } else {
-      console.log("Using local Puppeteer configuration for PDF generation.");
-    }
-
-    browser = await puppeteer.launch(launchOptions);
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
     const page = await browser.newPage();
     const logoPath = path.join(__dirname, "../assets/clinic-logo.png");
     const logoBase64 = getImageAsBase64(logoPath);

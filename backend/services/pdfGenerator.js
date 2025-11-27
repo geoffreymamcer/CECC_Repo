@@ -1,5 +1,4 @@
 import puppeteer from "puppeteer";
-import chromium from "@sparticuz/chromium";
 import { getFullHtml } from "./pdfTemplate.js";
 import fs from "fs"; // --- 1. NEW --- Import the 'fs' module
 import path from "path";
@@ -34,22 +33,10 @@ export async function generateVisitReport(visit, patient) {
     // 2️⃣ ✨ START: Implement the environment-aware browser launch logic
     let launchOptions = {};
 
-    // In production (deployed), use the lightweight serverless chromium
-    if (process.env.NODE_ENV === "production") {
-      console.log("PDF Generation: Using serverless Chromium configuration.");
-      launchOptions = {
-        args: chromium.args,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
-      };
-    } else {
-      // In development (local), use the full local browser installed by Puppeteer
-      console.log("PDF Generation: Using local Puppeteer configuration.");
-      // No specific options are needed; Puppeteer finds its browser automatically.
-    }
-
-    browser = await puppeteer.launch(launchOptions);
-    // 2️⃣ ✨ END
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
 
     const page = await browser.newPage();
     const htmlContent = getFullHtml(patient, visit, clinicInfo);
