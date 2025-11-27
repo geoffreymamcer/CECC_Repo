@@ -1,5 +1,4 @@
 import puppeteer from "puppeteer";
-import chromium from "@sparticuz/chromium"; // --- 2. IMPORT the chromium package ---
 import { getInvoiceHtml } from "./invoiceTemplate.js";
 import fs from "fs";
 import path from "path";
