@@ -7,6 +7,9 @@ import {
   DollarSign,
   MessageSquare,
   ChevronRight,
+  Activity,
+  Clock,
+  ArrowUpRight,
   Search,
   MoreVertical,
 } from "lucide-react";
@@ -136,15 +139,20 @@ const Dashboard = () => {
   };
 
   const getStatusBadge = (status) => {
-    const statusClasses = {
-      confirmed: "bg-green-100 text-green-800",
-      pending: "bg-gray-100 text-gray-800",
-      canceled: "bg-red-100 text-red-800",
+    const styles = {
+      confirmed: "bg-emerald-100 text-emerald-700 border-emerald-200",
+      pending: "bg-amber-100 text-amber-700 border-amber-200",
+      canceled: "bg-rose-100 text-rose-700 border-rose-200",
     };
+
+    const baseClass = "px-2.5 py-0.5 rounded-full text-xs font-semibold border";
+    const statusKey = status.toLowerCase();
 
     return (
       <span
-        className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses[status]}`}
+        className={`${baseClass} ${
+          styles[statusKey] || "bg-gray-100 text-gray-700 border-gray-200"
+        }`}
       >
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
@@ -154,243 +162,190 @@ const Dashboard = () => {
   return (
     <>
       {isInitialLoad && kpiLoading ? (
-        <div className="flex justify-center items-center h-screen">
-          <div className="flex flex-col items-center justify-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-deep-red"></div>
-            <p className="mt-4 text-gray-600 font-medium">
-              Loading dashboard...
+        <div className="flex justify-center items-center h-screen bg-gray-50/50 backdrop-blur-sm">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-gray-200 border-t-deep-red rounded-full animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Activity className="w-6 h-6 text-deep-red animate-pulse" />
+              </div>
+            </div>
+            <p className="text-gray-500 font-medium animate-pulse">
+              Initializing Dashboard...
             </p>
           </div>
         </div>
       ) : (
-        <div className="dashboard p-6 bg-gray-50 h-screen overflow-y-auto">
-          <h1 className="text-2xl font-bold text-gray-800 mb-6">
-            Dashboard Overview
-          </h1>
+        <div className="dashboard p-6 lg:p-8 bg-gray-50 h-screen overflow-y-auto font-sans text-slate-800">
+          {/* Header Section */}
 
-          {/* KPI Cards Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {/* Total Patients Card */}
-            <div className="bg-white rounded-2xl shadow-md transition-all hover:shadow-lg overflow-hidden">
-              <div className="h-2 bg-[#7F0000]"></div>
-              <div className="p-5 flex items-center">
-                <div className="rounded-full bg-red-50 p-3">
-                  <Users className="h-6 w-6 text-[#7F0000]" />
-                </div>
-                <div className="ml-4">
-                  <h2 className="text-sm font-semibold text-gray-600">
-                    Total Patients
-                  </h2>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {kpiLoading ? "..." : kpiData.totalPatients}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Today's Appointments Card */}
-            <div className="bg-white rounded-2xl shadow-md transition-all hover:shadow-lg overflow-hidden">
-              <div className="h-2 bg-[#7F0000]"></div>
-              <div className="p-5 flex items-center">
-                <div className="rounded-full bg-red-50 p-3">
-                  <Calendar className="h-6 w-6 text-[#7F0000]" />
-                </div>
-                <div className="ml-4">
-                  <h2 className="text-sm font-semibold text-gray-600">
-                    Today's Appointments
-                  </h2>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {kpiLoading ? "..." : kpiData.todaysAppointments}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Pending Lab Results Card */}
-            <div className="bg-white rounded-2xl shadow-md transition-all hover:shadow-lg overflow-hidden">
-              <div className="h-2 bg-[#7F0000]"></div>
-              <div className="p-5 flex items-center">
-                <div className="rounded-full bg-red-50 p-3">
-                  <FileText className="h-6 w-6 text-[#7F0000]" />
-                </div>
-                <div className="ml-4">
-                  <h2 className="text-sm font-semibold text-gray-600">
-                    Pending Lab Results
-                  </h2>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {kpiData.pendingLabResults}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Revenue Today Card */}
-            {isOwner && (
-              <div className="bg-white rounded-2xl shadow-md transition-all hover:shadow-lg overflow-hidden">
-                <div className="h-2 bg-[#7F0000]"></div>
-                <div className="p-5 flex items-center">
-                  <div className="rounded-full bg-red-50 p-3">
-                    <DollarSign className="h-6 w-6 text-[#7F0000]" />
+          {/* KPI Cards Section - Grid Revamp */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+            {/* Reusable KPI Card Component Logic Inline for Clarity */}
+            {[
+              {
+                label: "Total Patients",
+                value: kpiData.totalPatients,
+                icon: Users,
+                color: "text-blue-600",
+                bg: "bg-blue-50",
+              },
+              {
+                label: "Today's Appointments",
+                value: kpiData.todaysAppointments,
+                icon: Calendar,
+                color: "text-deep-red",
+                bg: "bg-red-50",
+              },
+              {
+                label: "Pending Lab Results",
+                value: kpiData.pendingLabResults,
+                icon: FileText,
+                color: "text-amber-600",
+                bg: "bg-amber-50",
+              },
+              isOwner && {
+                label: "Revenue Today",
+                value: `₱${kpiData.revenueToday.toLocaleString()}`,
+                icon: DollarSign,
+                color: "text-emerald-600",
+                bg: "bg-emerald-50",
+              },
+            ]
+              .filter(Boolean)
+              .map((stat, index) => (
+                <div
+                  key={index}
+                  className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 flex flex-col justify-between min-h-[160px]"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className={`p-3 rounded-xl ${stat.bg}`}>
+                      <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                    </div>
+                    {/* Visual flourish */}
+                    <div className="text-gray-300">
+                      <ArrowUpRight className="h-5 w-5" />
+                    </div>
                   </div>
-                  <div className="ml-4">
-                    <h2 className="text-sm font-semibold text-gray-600">
-                      Revenue Today
-                    </h2>
-                    <p className="text-2xl font-bold text-gray-800">
-                      {kpiLoading
-                        ? "..."
-                        : `₱${kpiData.revenueToday.toLocaleString()}`}
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+                      {stat.label}
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">
+                      {kpiLoading ? (
+                        <span className="animate-pulse bg-gray-200 h-8 w-16 block rounded"></span>
+                      ) : (
+                        stat.value
+                      )}
                     </p>
                   </div>
                 </div>
-              </div>
-            )}
+              ))}
           </div>
 
           {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <PatientVisitsChart />
-            <PatientDemographicsChart />
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+            <div className="transform transition-all duration-300 hover:scale-[1.005]">
+              <PatientVisitsChart />
+            </div>
+            <div className="transform transition-all duration-300 hover:scale-[1.005]">
+              <PatientDemographicsChart />
+            </div>
           </div>
 
-          {/* Tables Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Appointments Table */}
-            <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-              <div className="p-6 border-b border-gray-100">
-                <h2 className="text-lg font-semibold text-[#7F0000]">
-                  Upcoming Appointments
-                </h2>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                        Patient
-                      </th>
-                      <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                        Doctor
-                      </th>
-                      <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                        Time
-                      </th>
-                      <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {appointmentsLoading ? (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="py-6 text-center text-sm text-gray-500"
-                        >
-                          Loading appointments...
-                        </td>
-                      </tr>
-                    ) : appointments.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="py-6 text-center text-sm text-gray-500"
-                        >
-                          No upcoming appointments
-                        </td>
-                      </tr>
-                    ) : (
-                      appointments.map((appointment) => {
-                        const id = appointment._id || appointment.id;
-                        const name =
-                          appointment.fullName ||
-                          appointment.patient ||
-                          "Unknown";
-                        const doctor = appointment.doctor || "Dr. Philip";
-                        const date = appointment.appointmentDate
-                          ? new Date(
-                              appointment.appointmentDate
-                            ).toLocaleDateString()
-                          : "";
-                        const time = appointment.appointmentTime || "";
-                        const dateTime = [date, time].filter(Boolean).join(" ");
-                        return (
-                          <tr key={id} className="hover:bg-gray-50">
-                            <td className="py-3 px-4">{name}</td>
-                            <td className="py-3 px-4">{doctor}</td>
-                            <td className="py-3 px-4">{dateTime}</td>
-                            <td className="py-3 px-4">
-                              {getStatusBadge(appointment.status)}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Payments Table */}
-            {isOwner && (
-              <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-                <div className="p-6 border-b border-gray-100">
-                  <h2 className="text-lg font-semibold text-[#7F0000]">
-                    Recent Payments
+          {/* Tables & Messages Grid */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+            {/* Left Column: Tables (Spans 2 columns on large screens) */}
+            <div className="xl:col-span-2 flex flex-col gap-8">
+              {/* Appointments Table */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/30">
+                  <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-deep-red" /> Upcoming
+                    Appointments
                   </h2>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="bg-gray-50">
-                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
+                      <tr className="bg-gray-50 border-b border-gray-100">
+                        <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                           Patient
                         </th>
-                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                          Amount
+                        <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                          Doctor
                         </th>
-                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                          Date
+                        <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                          Time
                         </th>
-                        <th className="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">
-                          Method
+                        <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                          Status
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {paymentsLoading ? (
+                    <tbody className="divide-y divide-gray-50">
+                      {appointmentsLoading ? (
                         <tr>
                           <td
                             colSpan={4}
-                            className="py-6 text-center text-sm text-gray-500"
+                            className="py-8 text-center text-gray-500"
                           >
-                            Loading payments...
+                            Loading appointments...
                           </td>
                         </tr>
-                      ) : payments.length === 0 ? (
+                      ) : appointments.length === 0 ? (
                         <tr>
                           <td
                             colSpan={4}
-                            className="py-6 text-center text-sm text-gray-500"
+                            className="py-8 text-center text-gray-500 italic"
                           >
-                            No recent payments
+                            No upcoming appointments found.
                           </td>
                         </tr>
                       ) : (
-                        payments.map((p) => {
-                          const id = p._id || p.id;
-                          const name = p.patientName || p.patient || "Unknown";
-                          const amount = p.totalAmount ?? p.amount ?? 0;
-                          const date = p.createdAt
-                            ? new Date(p.createdAt).toLocaleDateString()
+                        appointments.map((appointment) => {
+                          const id = appointment._id || appointment.id;
+                          const name =
+                            appointment.fullName ||
+                            appointment.patient ||
+                            "Unknown";
+                          const doctor = appointment.doctor || "Dr. Philip";
+                          // Format Date nicely
+                          const rawDate = appointment.appointmentDate
+                            ? new Date(appointment.appointmentDate)
+                            : null;
+                          const dateStr = rawDate
+                            ? rawDate.toLocaleDateString(undefined, {
+                                month: "short",
+                                day: "numeric",
+                              })
                             : "";
-                          const method = "Cash"; // static as requested
+                          const timeStr = appointment.appointmentTime || "";
+
                           return (
-                            <tr key={id} className="hover:bg-gray-50">
-                              <td className="py-3 px-4">{name}</td>
-                              <td className="py-3 px-4">₱{amount}</td>
-                              <td className="py-3 px-4">{date}</td>
-                              <td className="py-3 px-4">{method}</td>
+                            <tr
+                              key={id}
+                              className="hover:bg-gray-50/80 transition-colors"
+                            >
+                              <td className="py-4 px-6 font-medium text-gray-900">
+                                {name}
+                              </td>
+                              <td className="py-4 px-6 text-gray-600">
+                                {doctor}
+                              </td>
+                              <td className="py-4 px-6 text-gray-600 text-sm">
+                                <div className="flex flex-col">
+                                  <span className="font-semibold">
+                                    {dateStr}
+                                  </span>
+                                  <span className="text-xs text-gray-400">
+                                    {timeStr}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="py-4 px-6">
+                                {getStatusBadge(appointment.status)}
+                              </td>
                             </tr>
                           );
                         })
@@ -399,54 +354,157 @@ const Dashboard = () => {
                   </table>
                 </div>
               </div>
-            )}
-          </div>
 
-          <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-[#7F0000]">
-                Recent Messages
-              </h2>
-              <button className="text-sm text-[#7F0000] hover:text-[#8B0000] font-medium flex items-center">
-                View all <ChevronRight className="h-4 w-4 ml-1" />
-              </button>
-            </div>
-            <div className="max-h-80 overflow-y-auto">
-              {messagesLoading ? (
-                <p className="py-6 text-center text-sm text-gray-500">
-                  Loading messages...
-                </p>
-              ) : messages.length === 0 ? (
-                <p className="py-6 text-center text-sm text-gray-500">
-                  No recent messages.
-                </p>
-              ) : (
-                messages.map((message) => (
-                  <div
-                    key={message._id}
-                    className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => handleViewMessage(message)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <h3 className="font-medium text-gray-800">
-                        {/* --- THIS PART REMAINS THE SAME --- */}
-                        {message.sender.firstName} {message.sender.lastName}
-                      </h3>
-                      <span className="text-xs text-gray-500">
-                        {new Date(message.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    {/* --- START OF CHANGE --- */}
-                    {/* The subject is now nested inside the conversation object */}
-                    <p className="text-sm text-gray-600 mt-1 truncate">
-                      {message.conversation.subject}
-                    </p>
-                    {/* --- END OF CHANGE --- */}
+              {/* Payments Table (Owner Only) */}
+              {isOwner && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/30">
+                    <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-emerald-600" /> Recent
+                      Payments
+                    </h2>
                   </div>
-                ))
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-100">
+                          <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            Patient
+                          </th>
+                          <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            Amount
+                          </th>
+                          <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            Date
+                          </th>
+                          <th className="py-4 px-6 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            Method
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {paymentsLoading ? (
+                          <tr>
+                            <td
+                              colSpan={4}
+                              className="py-8 text-center text-gray-500"
+                            >
+                              Loading payments...
+                            </td>
+                          </tr>
+                        ) : payments.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={4}
+                              className="py-8 text-center text-gray-500 italic"
+                            >
+                              No recent payments.
+                            </td>
+                          </tr>
+                        ) : (
+                          payments.map((p) => {
+                            const id = p._id || p.id;
+                            const name =
+                              p.patientName || p.patient || "Unknown";
+                            const amount = p.totalAmount ?? p.amount ?? 0;
+                            const date = p.createdAt
+                              ? new Date(p.createdAt).toLocaleDateString()
+                              : "";
+
+                            return (
+                              <tr
+                                key={id}
+                                className="hover:bg-gray-50/80 transition-colors"
+                              >
+                                <td className="py-4 px-6 font-medium text-gray-900">
+                                  {name}
+                                </td>
+                                <td className="py-4 px-6 font-bold text-emerald-600">
+                                  ₱{amount.toLocaleString()}
+                                </td>
+                                <td className="py-4 px-6 text-gray-600 text-sm">
+                                  {date}
+                                </td>
+                                <td className="py-4 px-6 text-gray-600 text-xs uppercase tracking-wide bg-gray-100 rounded inline-block mt-2 px-2 py-1">
+                                  Cash
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
             </div>
+
+            {/* Right Column: Messages Widget */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-full max-h-[600px]">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/30 rounded-t-2xl">
+                <h2 className="text-lg font-bold text-gray-800">
+                  Recent Messages
+                </h2>
+                <button className="text-sm text-deep-red hover:text-red-800 font-semibold flex items-center transition-colors">
+                  View All <ChevronRight className="h-4 w-4 ml-1" />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto flex-1 p-2 space-y-1">
+                {messagesLoading ? (
+                  <p className="py-10 text-center text-sm text-gray-500">
+                    Loading messages...
+                  </p>
+                ) : messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full py-10">
+                    <Activity className="h-10 w-10 text-gray-300 mb-2" />
+                    <p className="text-gray-500 text-sm">No new messages.</p>
+                  </div>
+                ) : (
+                  messages.map((message) => {
+                    const fullName = `${message.sender.firstName} ${message.sender.lastName}`;
+                    const initials = `${message.sender.firstName[0]}${message.sender.lastName[0]}`;
+
+                    return (
+                      <div
+                        key={message._id}
+                        className="group p-3 hover:bg-red-50/50 rounded-xl cursor-pointer transition-all border border-transparent hover:border-red-100"
+                        onClick={() => handleViewMessage(message)}
+                      >
+                        <div className="flex gap-3">
+                          {/* Avatar Placeholder */}
+                          <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 text-deep-red font-bold text-xs">
+                            {initials}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start mb-0.5">
+                              <h3 className="font-semibold text-gray-900 text-sm truncate group-hover:text-deep-red transition-colors">
+                                {fullName}
+                              </h3>
+                              <span className="text-[10px] text-gray-400 whitespace-nowrap ml-2">
+                                {new Date(message.createdAt).toLocaleDateString(
+                                  undefined,
+                                  { month: "short", day: "numeric" }
+                                )}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 truncate font-medium">
+                              {message.conversation.subject}
+                            </p>
+                            <p className="text-xs text-gray-400 truncate mt-0.5">
+                              Click to view conversation...
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           </div>
+
           <MessageModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}

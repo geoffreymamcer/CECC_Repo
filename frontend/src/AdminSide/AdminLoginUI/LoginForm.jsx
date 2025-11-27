@@ -1,99 +1,124 @@
+// --- START OF FILE LoginForm.jsx ---
+
 import React, { useState } from "react";
-import InputField from "./InputField";
-import "./AdminLogin.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { Loader2 } from "lucide-react";
+import InputField from "./InputField";
+import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
+import "./AdminLogin.css";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
+
   const navigate = useNavigate();
   const { adminLogin, isAuthLoading } = useAuth();
+
+  // Local loading state to handle immediate UI feedback
   const [isLoading, setIsLoading] = useState(false);
   const isSubmitting = isLoading || isAuthLoading;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(""); // Clear previous errors
-
+    setError("");
     setIsLoading(true);
 
-    const result = await adminLogin(email, password);
-
-    if (result.success) {
-      navigate("/cecc-admin-dashboard");
-    } else {
-      setError(result.message);
+    try {
+      const result = await adminLogin(email, password);
+      if (result.success) {
+        navigate("/cecc-admin-dashboard");
+      } else {
+        setError(result.message || "Invalid credentials. Please try again.");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please check your connection.");
+    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full md:w-1/2 flex justify-center items-center p-8 md:p-12">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="avatar mx-auto w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-lg">
-            <i className="fas fa-user-shield text-primary-500 text-4xl"></i>
-          </div>
-          <h1 className="admin-title text-2xl font-bold text-gray-800">
-            Admin Account
+    <div className="w-full md:w-7/12 bg-white p-8 md:p-12 flex flex-col justify-center animate-fade-in delay-200">
+      <div className="max-w-md mx-auto w-full">
+        {/* Header */}
+        <div className="mb-10 text-center md:text-left">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome Back
           </h1>
-          <p className="text-gray-600 mt-2">
-            Enter your credentials to access the dashboard
-          </p>
+          <p className="text-gray-500">Please enter your details to sign in.</p>
         </div>
 
-        <form className="space-y-6" onSubmit={handleSubmit}>
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-100 flex items-start gap-3 animate-fade-in">
+            <AlertCircle className="text-red-600 shrink-0 mt-0.5" size={18} />
+            <p className="text-sm text-red-700 font-medium">{error}</p>
+          </div>
+        )}
+
+        <form className="space-y-2" onSubmit={handleSubmit}>
           <InputField
             type="email"
             name="email"
-            placeholder="Email"
-            icon="fas fa-user"
+            placeholder="Email Address"
+            icon={Mail}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             disabled={isSubmitting}
+            autoComplete="email"
           />
 
           <InputField
             type="password"
             name="password"
             placeholder="Password"
-            icon="fas fa-lock"
+            icon={Lock}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             disabled={isSubmitting}
+            autoComplete="current-password"
           />
 
+          {/* Action Row */}
+          <div className="flex items-center justify-between mt-2 mb-8">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="w-4 h-4 text-[#b30000] border-gray-300 rounded focus:ring-[#b30000] transition duration-150 ease-in-out"
+              />
+              <span className="ml-2 text-sm text-gray-500 hover:text-gray-700">
+                Remember for 30 days
+              </span>
+            </label>
+          </div>
+
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`login-btn w-full py-3 px-4 text-white font-semibold rounded-lg shadow-button transition-all duration-300 flex items-center justify-center space-x-2 ${
-              isSubmitting
-                ? "cursor-not-allowed opacity-80"
-                : "hover:bg-primary-600"
-            }`}
-            style={{
-              background: "linear-gradient(to right, #800000, #b30000)",
-            }}
+            className={`w-full py-4 px-4 text-white font-bold rounded-xl shadow-lg shadow-red-900/20 transform transition-all duration-300 
+              flex items-center justify-center space-x-2 
+              ${
+                isSubmitting
+                  ? "bg-gray-400 cursor-not-allowed scale-[0.98]"
+                  : "bg-gradient-to-r from-[#800000] to-[#b30000] hover:to-[#990000] hover:-translate-y-1 hover:shadow-xl active:scale-[0.98]"
+              }`}
           >
             {isSubmitting ? (
               <>
                 <Loader2 className="animate-spin" size={20} color="white" />
-                <span>Logging In...</span>
+                <span>Verifying...</span>
               </>
             ) : (
-              "Log In"
+              <span>Sign In</span>
             )}
           </button>
-          {error && (
-            <p className="text-red-500 text-sm text-center mt-2">{error}</p>
-          )}
         </form>
+
+        {/* Security Footer */}
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import instance from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
 import ForgotPasswordModal from "./ForgotPasswordModal";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowRight } from "lucide-react";
 
 export default function LoginForm({ toggleForm }) {
   const [email, setEmail] = useState("");
@@ -35,13 +35,13 @@ export default function LoginForm({ toggleForm }) {
   const closeModal = () => setIsModalOpen(false);
 
   return (
-    <>
-      <form className="w-full space-y-4" onSubmit={handleSubmit}>
+    <div className="animate-fadeIn">
+      <form className="w-full space-y-2" onSubmit={handleSubmit}>
         <FormGroup
           icon="User"
           type="email"
           value={email}
-          placeholder="Email"
+          placeholder="Email Address"
           disabled={isSubmitting}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -54,51 +54,69 @@ export default function LoginForm({ toggleForm }) {
           onChange={(e) => setPassword(e.target.value)}
         />
 
+        {/* Forgot Password Link - Aligned Right for better UX pattern */}
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={openModal}
+            className="text-sm font-semibold text-gray-500 hover:text-[#7F0000] transition-colors mb-4"
+          >
+            Forgot Password?
+          </button>
+        </div>
+
         {error && (
-          <p className="text-red-500 text-sm text-center mt-2">{error}</p>
+          <div className="p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm text-center mb-4">
+            {error}
+          </div>
         )}
 
         <button
           type="submit"
-          className={`w-full py-3 rounded-lg font-bold transition-all duration-300 flex items-center justify-center space-x-2 ${
+          className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg shadow-red-900/20 transition-all duration-300 flex items-center justify-center gap-2 group ${
             isSubmitting
-              ? "bg-red-800 cursor-not-allowed opacity-80"
-              : "bg-dark-red text-white btn-hover"
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              : "bg-[#7F0000] text-white hover:bg-[#600000] hover:-translate-y-1"
           }`}
           disabled={isSubmitting}
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="animate-spin" size={20} color="white" />
-              <span className="text-white">Signing In...</span>
+              <Loader2 className="animate-spin" size={22} />
+              <span className="text-sm">Signing In...</span>
             </>
           ) : (
-            "Sign In"
+            <>
+              Sign In{" "}
+              <ArrowRight
+                size={20}
+                className="group-hover:translate-x-1 transition-transform"
+              />
+            </>
           )}
         </button>
 
-        <div className="text-center pt-2">
-          <button
-            type="button"
-            onClick={openModal}
-            className="text-gray-600 underline hover:text-dark-red transition-colors duration-200"
-          >
-            Forgot password? <i className="fas fa-question-circle ml-1" />
-          </button>
+        <div className="relative py-8">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-100"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-4 bg-white text-gray-400 font-medium">
+              New to Candelaria Eye Care Clinic?
+            </span>
+          </div>
         </div>
 
-        <div className="text-center pt-4 border-t border-gray-100">
-          <span className="text-gray-700">Do not have an account?</span>
-          <button
-            type="button"
-            onClick={toggleForm}
-            className="ml-2 bg-dark-red text-white px-4 py-1 rounded-lg text-sm btn-hover transition-all duration-300"
-          >
-            Create
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={toggleForm}
+          className="w-full py-3.5 rounded-xl border-2 border-gray-100 text-gray-600 font-bold hover:border-[#7F0000] hover:text-[#7F0000] hover:bg-red-50 transition-all duration-300"
+        >
+          Create an Account
+        </button>
       </form>
+
       <ForgotPasswordModal isOpen={isModalOpen} onClose={closeModal} />
-    </>
+    </div>
   );
 }

@@ -3,7 +3,6 @@ import { FaMapMarkedAlt } from "react-icons/fa";
 import { MapContainer, TileLayer, CircleMarker, Tooltip } from "react-leaflet";
 
 const GeographicDistribution = ({ locations }) => {
-  // Find the location with the most patients to help center the map
   const topLocation =
     locations.length > 0
       ? locations.reduce(
@@ -16,10 +15,8 @@ const GeographicDistribution = ({ locations }) => {
     ? [topLocation.lat, topLocation.lng]
     : [14.5995, 120.9842]; // Default to Manila if no data
 
-  // Calculate a dynamic radius for map markers
   const calculateRadius = (patients) => {
-    // Use a non-linear scale (like square root) to make differences more visible
-    return 5 + Math.sqrt(patients) * 2;
+    return 4 + Math.sqrt(patients) * 2;
   };
 
   return (

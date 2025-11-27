@@ -55,7 +55,6 @@ const SideBar = ({ activeTab, setActiveTab, sidebarOpen, setSidebarOpen }) => {
 
       <div className="absolute bottom-0 w-full p-4 text-center text-sm text-gray-200">
         <p>© 2025 Candelaria Eye Care Clinic</p>
-        <p className="text-xs mt-1">v2.4.1</p>
       </div>
     </div>
   );

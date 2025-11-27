@@ -1,10 +1,8 @@
-// MessageModal.jsx
-
 import React, { useState, useEffect, useRef } from "react";
-import { User, Tag, Mail, Send } from "lucide-react";
+import { User, Tag, Mail, Send, X } from "lucide-react";
 import instance from "../../api/axios";
-import { useSocket } from "../../context/SocketContext"; // 👈 IMPORT SOCKET HOOK
-import { useAuth } from "../../context/AuthContext"; // 👈 IMPORT AUTH HOOK
+import { useSocket } from "../../context/SocketContext";
+import { useAuth } from "../../context/AuthContext";
 
 export default function MessageModal({ isOpen, onClose, message }) {
   const [chatMessages, setChatMessages] = useState([]);
@@ -90,106 +88,106 @@ export default function MessageModal({ isOpen, onClose, message }) {
   if (!isOpen || !message) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
-      <div className="relative bg-white w-full max-w-2xl h-[90vh] max-h-[700px] rounded-2xl shadow-xl animate-scaleIn flex flex-col">
-        {/* Header with Patient Info */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 flex items-center">
-                <User className="w-5 h-5 mr-2 text-gray-500" />
-                {message.sender.firstName} {message.sender.lastName}
-              </h3>
-              <p className="text-xs text-gray-500 flex items-center mt-1">
-                <Tag className="w-3 h-3 mr-1.5" /> {message.sender.patientId}
-              </p>
+    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity">
+      <div className="relative bg-white w-full max-w-2xl h-[85vh] max-h-[700px] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scaleIn ring-1 ring-gray-900/5">
+        <div className="p-5 border-b border-gray-100 bg-white z-10">
+          <div className="flex justify-between items-start">
+            <div className="flex gap-3">
+              <div className="h-10 w-10 bg-red-50 rounded-full flex items-center justify-center text-deep-red">
+                <User className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 leading-none">
+                  {message.sender.firstName} {message.sender.lastName}
+                </h3>
+                <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                  <Tag className="w-3 h-3" /> ID: {message.sender.patientId}
+                </p>
+              </div>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-900"
+              className="text-gray-400 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-full transition-colors"
             >
-              <i className="fas fa-times text-xl"></i>
+              <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="mt-2 text-sm text-gray-700 flex items-center">
-            <Mail className="w-4 h-4 mr-2 text-gray-500" />
-            <strong>Subject:</strong>
-            <span className="ml-2 bg-gray-100 px-2 py-0.5 rounded">
-              {message.conversation.subject}
-            </span>
+          <div className="mt-4 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 text-sm flex items-center text-gray-700">
+            <Mail className="w-4 h-4 mr-2 text-gray-400" />
+            <span className="font-semibold mr-1">Subject:</span>
+            {message.conversation.subject}
           </div>
         </div>
 
-        {/* Chat History */}
+        {/* 🚀 MODIFIED: Chat Area Background */}
         <div
           ref={chatContainerRef}
-          className="flex-1 p-4 space-y-4 overflow-y-auto bg-gray-50"
+          className="flex-1 p-6 space-y-6 overflow-y-auto bg-gray-50/50"
         >
           {isLoadingChat ? (
-            <p className="text-center text-gray-500">Loading history...</p>
+            <div className="flex justify-center items-center h-full">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-300"></div>
+            </div>
           ) : (
-            chatMessages.map((chatMsg) => (
-              <div
-                key={chatMsg._id}
-                className={`flex items-end gap-2 ${
-                  chatMsg.sender._id === user.id
-                    ? "justify-end"
-                    : "justify-start"
-                }`}
-              >
-                {/* Message Bubble */}
+            chatMessages.map((chatMsg) => {
+              const isMe = chatMsg.sender._id === user.id;
+              return (
                 <div
-                  className={`max-w-md p-3 rounded-2xl ${
-                    chatMsg.sender._id === user.id
-                      ? "bg-[#8B0000] text-white rounded-br-none"
-                      : "bg-gray-200 text-gray-800 rounded-bl-none"
+                  key={chatMsg._id}
+                  className={`flex items-end gap-2 ${
+                    isMe ? "justify-end" : "justify-start"
                   }`}
                 >
-                  <p className="text-sm">{chatMsg.content}</p>
-                  <p
-                    className={`text-xs mt-1.5 ${
-                      chatMsg.sender._id === user.id
-                        ? "text-red-100"
-                        : "text-gray-500"
+                  <div
+                    className={`max-w-[80%] px-5 py-3 rounded-2xl shadow-sm relative group ${
+                      isMe
+                        ? "bg-deep-red text-white rounded-br-none"
+                        : "bg-white text-gray-800 border border-gray-100 rounded-bl-none"
                     }`}
                   >
-                    {new Date(chatMsg.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
+                    <p className="text-sm leading-relaxed">{chatMsg.content}</p>
+                    <p
+                      className={`text-[10px] mt-2 opacity-70 text-right ${
+                        isMe ? "text-red-100" : "text-gray-400"
+                      }`}
+                    >
+                      {new Date(chatMsg.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
-        {/* Reply Form */}
-        <div className="p-4 border-t border-gray-200">
-          <form onSubmit={handleSendReply} className="flex items-center gap-3">
-            <textarea
-              rows="1"
+        {/* 🚀 MODIFIED: Input Area styling */}
+        <div className="p-4 bg-white border-t border-gray-100">
+          <form
+            onSubmit={handleSendReply}
+            className="flex items-center gap-3 relative"
+          >
+            <input
+              type="text"
               value={replyContent}
               onChange={(e) => setReplyContent(e.target.value)}
-              className="flex-1 px-4 py-2 text-gray-900 border border-gray-300 rounded-full focus:ring-2 focus:ring-deep-red resize-none"
-              placeholder="Type your reply..."
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendReply(e);
-                }
-              }}
+              className="flex-1 pl-5 pr-12 py-3.5 bg-gray-50 text-gray-900 border border-gray-200 rounded-full focus:ring-2 focus:ring-red-100 focus:border-deep-red transition-all outline-none"
+              placeholder="Type your reply here..."
             />
             <button
               type="submit"
               disabled={isSending || !replyContent.trim()}
-              className="p-3 bg-dark-red text-white rounded-full hover:bg-deep-red transition-all disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="absolute right-2 p-2 bg-deep-red text-white rounded-full hover:bg-dark-red disabled:bg-gray-200 disabled:cursor-not-allowed transition-colors shadow-sm"
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-5 h-5 ml-0.5" />
             </button>
           </form>
           {error && (
-            <p className="text-red-500 text-xs text-center mt-2">{error}</p>
+            <p className="text-red-500 text-xs text-center mt-2 animate-fadeIn">
+              {error}
+            </p>
           )}
         </div>
       </div>

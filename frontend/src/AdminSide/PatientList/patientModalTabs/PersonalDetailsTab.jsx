@@ -109,7 +109,6 @@ const PersonalDetailsTab = ({
             />
           </div>
 
-          {/* Contact Number */}
           <div>
             <label className="text-sm text-gray-600" htmlFor="contact">
               Contact Number
@@ -118,7 +117,7 @@ const PersonalDetailsTab = ({
               type="text"
               id="contact"
               name="contact"
-              value={personalFormData.contact}
+              value={personalFormData.phone_number}
               onChange={handlePersonalChange}
               disabled={!isEditing}
               className="font-medium w-full p-2 border border-gray-200 rounded-md focus:ring-deep-red focus:border-deep-red disabled:bg-transparent disabled:border-none disabled:p-2"

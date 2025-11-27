@@ -65,7 +65,7 @@ const PatientInformationModal = ({
     dob: "",
     age: "",
     email: "",
-    contact: "",
+    phone_number: "",
     occupation: "",
     civilStatus: "",
     referralBy: "",
@@ -299,7 +299,7 @@ const PatientInformationModal = ({
         dob: profileData.dob ? profileData.dob.slice(0, 10) : "",
         age: profileData.age || "",
         email: profileData.email || "",
-        contact: profileData.contact || "",
+        phone_number: profileData.phone_number || "",
         occupation: profileData.occupation || "",
         civilStatus: profileData.civilStatus || "",
         referralBy: profileData.referralBy || "",
@@ -695,7 +695,8 @@ const PatientInformationModal = ({
           : undefined,
         gender: personalFormData.gender || "",
         email: personalFormData.email || "",
-        contact: personalFormData.contact || "",
+
+        phone_number: personalFormData.phone_number || "",
         occupation: personalFormData.occupation || "",
         civilStatus: personalFormData.civilStatus || "",
         referralBy: personalFormData.referralBy || "",
@@ -895,7 +896,9 @@ const PatientInformationModal = ({
                   <IoMdCall className="text-deep-red mr-3 text-xl" />
                   <div>
                     <p className="text-gray-600 text-sm">Phone</p>
-                    <p className="font-medium">{personalFormData.contact}</p>
+                    <p className="font-medium">
+                      {personalFormData.phone_number}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center">

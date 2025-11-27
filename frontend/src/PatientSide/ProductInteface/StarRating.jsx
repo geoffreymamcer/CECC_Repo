@@ -1,17 +1,18 @@
 import { Star } from "lucide-react";
 
 const StarRating = ({ rating }) => (
-  <div className="flex items-center">
+  <div className="flex items-center gap-0.5">
     {[1, 2, 3, 4, 5].map((star) => (
       <Star
         key={star}
-        size={16}
+        size={14}
         className={
-          star <= rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+          star <= rating
+            ? "text-yellow-400 fill-yellow-400"
+            : "text-gray-200 fill-gray-100"
         }
       />
     ))}
-    <span className="ml-1 text-sm text-gray-600">({rating.toFixed(1)})</span>
   </div>
 );
 

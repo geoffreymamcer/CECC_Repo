@@ -6,18 +6,15 @@ import Appointment from "../models/Appointment.js";
 
 const geoCache = new Map();
 
-// --- NEW --- Analytics function for Eye Condition Distribution
 export const getEyeConditionDistribution = async (req, res) => {
   try {
     const conditionData = await DiagnosticAssessmentPlan.aggregate([
-      // Stage 1: Filter out documents where primaryImpression is empty or null
       {
         $match: {
           "assessment.primaryImpression": { $ne: null, $ne: "" },
         },
       },
 
-      // Stage 2: Group by the primaryImpression field and count occurrences
       {
         $group: {
           _id: "$assessment.primaryImpression",
@@ -25,16 +22,14 @@ export const getEyeConditionDistribution = async (req, res) => {
         },
       },
 
-      // Stage 3: Format the output to match the frontend's expectation
       {
         $project: {
           _id: 0,
-          name: "$_id", // Rename _id to 'name'
-          value: "$count", // Rename count to 'value'
+          name: "$_id",
+          value: "$count",
         },
       },
 
-      // Stage 4: Sort by the highest count first
       {
         $sort: { value: -1 },
       },
@@ -58,30 +53,28 @@ export const getVisitGrowth = async (req, res) => {
     switch (timeFrame) {
       case "month":
         startDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-        dateGroupFormat = "%Y-%m"; // Group by year-month (e.g., "2025-10")
+        dateGroupFormat = "%Y-%m";
         break;
 
       case "week":
         startDate = new Date();
         startDate.setDate(now.getDate() - 6 * 7);
-        dateGroupFormat = "%Y-%U"; // Group by year-week number (e.g., "2025-43")
+        dateGroupFormat = "%Y-%U";
         break;
 
-      default: // 'day'
+      default:
         startDate = new Date();
         startDate.setDate(now.getDate() - 6);
-        dateGroupFormat = "%Y-%m-%d"; // Group by year-month-day (e.g., "2025-10-31")
+        dateGroupFormat = "%Y-%m-%d";
         break;
     }
 
     const visitData = await Visit.aggregate([
-      // 1. Filter visits to be within our desired date range
       {
         $match: {
           visitDate: { $gte: startDate },
         },
       },
-      // 2. Group by the calculated date format and count the number of visits
       {
         $group: {
           _id: {
@@ -94,11 +87,9 @@ export const getVisitGrowth = async (req, res) => {
           visitCount: { $sum: 1 },
         },
       },
-      // 3. Sort by the date group
       { $sort: { _id: 1 } },
     ]);
 
-    // 4. Convert the result array into a key-value map for easy lookup
     const visitMap = visitData.reduce((acc, item) => {
       acc[item._id] = item.visitCount;
       return acc;
@@ -114,14 +105,12 @@ export const getVisitGrowth = async (req, res) => {
 export const getAgeGroupDistribution = async (req, res) => {
   try {
     const ageGroupData = await Profile.aggregate([
-      // Stage 1: Filter out any profiles that might be missing an age category
       {
         $match: {
           ageCategory: { $ne: null, $ne: "" },
         },
       },
 
-      // Stage 2: Group by the 'ageCategory' field and count the number of patients in each group
       {
         $group: {
           _id: "$ageCategory",
@@ -129,16 +118,14 @@ export const getAgeGroupDistribution = async (req, res) => {
         },
       },
 
-      // Stage 3: Format the output to match the frontend's expectation
       {
         $project: {
           _id: 0,
-          age: "$_id", // Rename _id to 'age'
-          patients: "$patientCount", // Rename patientCount to 'patients'
+          age: "$_id",
+          patients: "$patientCount",
         },
       },
 
-      // Stage 4: Sort by the age group name for a consistent order in the chart
       {
         $sort: { age: 1 },
       },
@@ -153,44 +140,95 @@ export const getAgeGroupDistribution = async (req, res) => {
 
 export const getGeographicDistribution = async (req, res) => {
   try {
-    const cityCounts = await Profile.aggregate([
-      { $match: { city: { $ne: null, $ne: "" } } },
-      { $group: { _id: "$city", patientCount: { $sum: 1 } } },
+    // 2️⃣ 🚀 NEW: Aggregate by Barangay, City, and Province for accuracy
+    const locationCounts = await Profile.aggregate([
+      {
+        $match: {
+          barangay: { $ne: null, $ne: "" }, // Ensure we have specific barangay data
+          city: { $ne: null, $ne: "" }, // City is needed for context
+        },
+      },
+      {
+        $group: {
+          // Group by unique combination of Barangay + City + Province
+          _id: {
+            barangay: "$barangay",
+            city: "$city",
+            province: "$province",
+          },
+          patientCount: { $sum: 1 },
+        },
+      },
       { $sort: { patientCount: -1 } },
     ]);
 
     const geocodedLocations = await Promise.all(
-      cityCounts.map(async (item) => {
-        const city = item._id;
-        if (geoCache.has(city)) {
-          // Return from cache if available
-          return { city, patients: item.patientCount, ...geoCache.get(city) };
+      locationCounts.map(async (item) => {
+        const { barangay, city, province } = item._id;
+
+        // 3️⃣ 🚀 NEW: Create a unique cache key to distinguish same-named barangays in different cities
+        const cacheKey = `${barangay}, ${city}, ${
+          province || ""
+        }`.toLowerCase();
+
+        // Format label for Frontend (e.g., "Brgy. Poblacion, Makati")
+        const displayLabel = `${barangay}, ${city}`;
+
+        if (geoCache.has(cacheKey)) {
+          return {
+            city: displayLabel, // Keep property name 'city' to avoid breaking frontend
+            fullAddress: cacheKey,
+            patients: item.patientCount,
+            ...geoCache.get(cacheKey),
+          };
         }
 
         try {
-          // Geocoding API call (Nominatim is free but has usage limits)
+          // 4️⃣ 🛠️ MODIFIED: More specific Nominatim query for Barangay level
+          // We build a query string: "Barangay Name, City Name, Province Name, Philippines"
+          const query = `${barangay}, ${city}, ${province || ""}, Philippines`;
+
           const geoResponse = await axios.get(
-            `https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(
-              city
-            )}&country=Philippines&format=json`,
-            { headers: { "User-Agent": "CECC-Clinic-App/1.0" } } // Important for Nominatim policy
+            `https://nominatim.openstreetmap.org/search`,
+            {
+              params: {
+                q: query,
+                format: "json",
+                addressdetails: 1,
+                limit: 1,
+              },
+              headers: { "User-Agent": "CECC-Clinic-App/1.0" },
+            }
           );
 
           if (geoResponse.data && geoResponse.data.length > 0) {
             const { lat, lon } = geoResponse.data[0];
             const coordinates = { lat: parseFloat(lat), lng: parseFloat(lon) };
-            geoCache.set(city, coordinates); // Store in cache
-            return { city, patients: item.patientCount, ...coordinates };
+
+            geoCache.set(cacheKey, coordinates); // Cache the result
+
+            return {
+              city: displayLabel, // Returning "Barangay, City" as the label
+              fullAddress: cacheKey,
+              patients: item.patientCount,
+              ...coordinates,
+            };
           }
         } catch (geoError) {
-          console.error(`Geocoding failed for city: ${city}`, geoError.message);
+          console.error(`Geocoding failed for: ${cacheKey}`, geoError.message);
         }
 
-        return { city, patients: item.patientCount, lat: null, lng: null };
+        // Return with null coordinates if not found
+        return {
+          city: displayLabel,
+          patients: item.patientCount,
+          lat: null,
+          lng: null,
+        };
       })
     );
 
-    // Filter out locations that could not be geocoded
+    // 5️⃣ 🛠️ MODIFIED: Filter invalid locations and calculate percentages
     const validLocations = geocodedLocations.filter(
       (loc) => loc.lat && loc.lng
     );
@@ -220,24 +258,19 @@ export const getSummaryCardStats = async (req, res) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // We will run all our database queries in parallel for maximum efficiency
     const [totalPatients, monthlyVisits, newPatients, returningPatientsData] =
       await Promise.all([
-        // 1. Get total number of patients
         Profile.countDocuments(),
 
-        // 2. Get number of completed appointments in the last 30 days
         Appointment.countDocuments({
           appointmentDate: { $gte: thirtyDaysAgo },
           status: "completed",
         }),
 
-        // 3. Get number of new patients in the last 30 days
         Profile.countDocuments({
           createdAt: { $gte: thirtyDaysAgo },
         }),
 
-        // 4. Get the number of patients with more than one visit (returning patients)
         Visit.aggregate([
           { $group: { _id: "$patientId", visitCount: { $sum: 1 } } },
           { $match: { visitCount: { $gt: 1 } } },
@@ -247,7 +280,6 @@ export const getSummaryCardStats = async (req, res) => {
 
     const returningPatientCount = returningPatientsData[0]?.returningCount || 0;
 
-    // Calculate retention rate, avoiding division by zero
     const retentionRate =
       totalPatients > 0
         ? parseFloat(((returningPatientCount / totalPatients) * 100).toFixed(1))

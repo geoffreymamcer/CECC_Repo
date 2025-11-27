@@ -26,9 +26,12 @@ export default function FormGroup({
   const IconComponent = iconComponents[icon];
 
   return (
-    <div className="input-group">
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 pointer-events-none">
+    <div className="mb-4 group">
+      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">
+        {placeholder}
+      </label>
+      <div className="relative transition-all duration-300 focus-within:transform focus-within:-translate-y-1">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-[#7F0000] transition-colors">
           {IconComponent ? (
             <IconComponent size={20} />
           ) : (
@@ -37,12 +40,11 @@ export default function FormGroup({
         </div>
         <input
           type={type}
-          placeholder={placeholder}
           disabled={disabled}
           onChange={onChange}
-          value={value} // This was missing, it's needed for a controlled input.
-          {...props} // This ensures other props like `required` are passed down.
-          className={`w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-red transition-all duration-200 ${
+          value={value}
+          {...props}
+          className={`w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7F0000]/20 focus:border-[#7F0000] focus:bg-white transition-all ${
             disabled ? "bg-gray-100 cursor-not-allowed text-gray-500" : ""
           }`}
         />

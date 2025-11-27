@@ -4,6 +4,7 @@ import PatientInfo from "./PatientInfo";
 import "./PatientProfileInterface.css";
 import instance from "../../api/axios";
 
+// Helper functions (kept as is)
 const calculateAge = (dob) => {
   if (!dob) return "";
   const birthDate = new Date(dob);
@@ -32,14 +33,12 @@ const ProfileCard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // --- MODIFIED --- useEffect now uses api.get
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
       setError(null);
       try {
         const response = await instance.get("/profiles/me");
-
         const data = response.data;
         const dob = data.dob
           ? new Date(data.dob).toISOString().split("T")[0]
@@ -47,7 +46,6 @@ const ProfileCard = () => {
         const age = calculateAge(dob);
         const ageCategory = getAgeCategory(age);
 
-        // Set a single, clean profile state object
         setProfile({
           firstName: data.firstName || "",
           middleName: data.middleName || "",
@@ -62,7 +60,12 @@ const ProfileCard = () => {
           occupation: data.occupation || "",
           address: data.address || "",
           patientId: data.patientId || data._id,
-          profilePicture: data.profilePicture, // Don't forget the profile picture
+          profilePicture: data.profilePicture,
+          region: data.region || "",
+          province: data.province || "",
+          city: data.city || "",
+          barangay: data.barangay || "",
+          street_subdivision: data.street_subdivision || "",
         });
       } catch (err) {
         console.error("Failed to fetch profile:", err);
@@ -87,41 +90,47 @@ const ProfileCard = () => {
       age: age,
       ageCategory: getAgeCategory(age),
       phone: updatedData.phone_number || updatedData.contact || "",
-      civiStatus: updatedData.civilStatus || "", // Make sure this matches the child state key
+      civiStatus: updatedData.civilStatus || "",
     }));
   };
 
-  if (loading) {
-    return <div className="profile-card">Loading profile...</div>;
-  }
-  if (error) {
-    return <div className="profile-card text-red-600">{error}</div>;
-  }
-  // Add a check in case profile failed to load
-  if (!profile) {
+  if (loading)
     return (
-      <div className="profile-card text-gray-500">
-        Could not load profile data.
+      <div className="p-8 text-center text-gray-500">Loading details...</div>
+    );
+  if (error)
+    return (
+      <div className="p-8 text-center text-red-600 bg-red-50 rounded-xl">
+        {error}
       </div>
     );
-  }
+  if (!profile)
+    return (
+      <div className="p-8 text-center text-gray-500">No profile found.</div>
+    );
 
   return (
-    <div className="profile-card bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl">
-      <div className="flex flex-col md:flex-row">
-        <div className="md:w-1/3 bg-gradient-to-b from-[#7F0000] to-[#8B0000] p-6 md:p-8 text-white">
+    // 👇 🤖 EMOJI: Changed layout from Split-View to Stacked Header + Content
+    <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 relative">
+      {/* Decorative Background Banner */}
+      <div className="h-32 bg-gradient-to-r from-[#7F0000] to-[#5a0000] relative">
+        <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+      </div>
+
+      <div className="px-6 md:px-10 pb-10">
+        {/* Profile Picture (Floating overlap) */}
+        <div className="-mt-16 mb-6 flex justify-center md:justify-start">
           <ProfilePicture
             profile={profile}
             updateProfile={handleProfileUpdate}
           />
         </div>
 
-        <div className="md:w-2/3 p-6 md:p-8">
-          <PatientInfo
-            profileData={profile}
-            onProfileUpdate={handleProfileUpdate}
-          />
-        </div>
+        {/* Main Content */}
+        <PatientInfo
+          profileData={profile}
+          onProfileUpdate={handleProfileUpdate}
+        />
       </div>
     </div>
   );

@@ -71,7 +71,6 @@ export const verifyEmail = async (req, res) => {
 
     const pendingData = pendingVerifications[email];
 
-    // Check if data exists and is not expired
     if (!pendingData || pendingData.expiresAt < Date.now()) {
       return res.status(400).json({
         status: "error",
@@ -80,7 +79,6 @@ export const verifyEmail = async (req, res) => {
       });
     }
 
-    // Check if the code matches
     if (pendingData.verificationCode !== verificationCode) {
       return res.status(400).json({
         status: "error",
@@ -88,32 +86,41 @@ export const verifyEmail = async (req, res) => {
       });
     }
 
-    // --- User Creation Logic (moved from original signup) ---
     const { firstName, middleName, lastName, phone_number, password } =
       pendingData;
+
+    let customId;
+    let isUnique = false;
     const currentYear = new Date().getFullYear().toString().slice(-2);
     const prefix = `CECC${currentYear}-`;
-    const highestUser = await User.findOne(
-      { _id: new RegExp(`^${prefix}`) },
-      { _id: 1 },
-      { sort: { _id: -1 } }
-    );
-    let nextNumber = 1;
-    if (highestUser && highestUser._id) {
-      nextNumber = parseInt(highestUser._id.split("-")[1]) + 1;
-    }
-    const highestProfile = await Profile.findOne(
-      { _id: new RegExp(`^${prefix}`) },
-      { _id: 1 },
-      { sort: { _id: -1 } }
-    );
-    if (highestProfile && highestProfile._id) {
-      const profileNumber = parseInt(highestProfile._id.split("-")[1]);
-      if (profileNumber >= nextNumber) {
-        nextNumber = profileNumber + 1;
+    let attempts = 0;
+    const maxAttempts = 20;
+
+    while (!isUnique && attempts < maxAttempts) {
+      const randomFourDigits = Math.floor(
+        1000 + Math.random() * 9000
+      ).toString();
+      customId = `${prefix}${randomFourDigits}`;
+
+      const existingUser = await User.findById(customId);
+      const existingProfile = await Profile.findById(customId);
+
+      if (!existingUser && !existingProfile) {
+        isUnique = true;
       }
+      attempts++;
     }
-    const customId = `${prefix}${nextNumber.toString().padStart(4, "0")}`;
+
+    if (!isUnique) {
+      console.error(
+        "Failed to generate a unique patient ID after multiple attempts."
+      );
+      return res.status(500).json({
+        status: "error",
+        message:
+          "Could not generate a unique patient ID. Please try again later.",
+      });
+    }
 
     const newUser = await User.create({
       _id: customId,
@@ -122,7 +129,7 @@ export const verifyEmail = async (req, res) => {
       lastName,
       phone_number,
       email,
-      password, // Already hashed
+      password,
       role: "patient",
       patientId: customId,
     });
@@ -147,7 +154,6 @@ export const verifyEmail = async (req, res) => {
       });
     }
 
-    // Cleanup the pending verification data
     delete pendingVerifications[email];
 
     const token = jwt.sign(
@@ -810,11 +816,9 @@ export const generatePatientAccount = async (req, res) => {
     // Check if an account with the provided email already exists
     const existingUserByEmail = await User.findOne({ email });
     if (existingUserByEmail) {
-      return res
-        .status(409)
-        .json({
-          message: "An account with this email address already exists.",
-        });
+      return res.status(409).json({
+        message: "An account with this email address already exists.",
+      });
     }
 
     // Find the patient's profile

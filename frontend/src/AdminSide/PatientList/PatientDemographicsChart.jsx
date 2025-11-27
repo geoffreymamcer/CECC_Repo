@@ -5,7 +5,14 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const CHART_COLORS = ["#7F0000", "#A52A2A", "#CD5C5C", "#8B0000", "#B22222"];
+const CHART_COLORS = [
+  "#7F0000",
+  "#991b1b",
+  "#b91c1c",
+  "#dc2626",
+  "#ef4444",
+  "#f87171",
+];
 
 const PatientDemographicsChart = () => {
   const [chartData, setChartData] = useState(null);
@@ -71,17 +78,22 @@ const PatientDemographicsChart = () => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-md p-6">
-      <h2 className="text-lg font-semibold text-[#7F0000] mb-4">
-        Patient Demographics by Age
-      </h2>
-      <div className="h-64 flex justify-center items-center">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-full flex flex-col">
+      <div className="mb-4">
+        <h2 className="text-lg font-bold text-gray-800">Demographics</h2>
+        <p className="text-xs text-gray-400">
+          Patient distribution by age group
+        </p>
+      </div>
+      <div className="h-64 flex justify-center items-center relative">
         {loading ? (
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-deep-red"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-deep-red"></div>
         ) : chartData ? (
           <Pie data={chartData} options={options} />
         ) : (
-          <p className="text-gray-500">No demographic data available.</p>
+          <p className="text-gray-400 text-sm">
+            No demographic data available.
+          </p>
         )}
       </div>
     </div>

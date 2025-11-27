@@ -16,26 +16,77 @@ import PatientMessageModal from "./PatientMessageModal";
 
 const DASHBOARD_LOADING_DURATION = 500;
 
-// --- 1. Create a Navigation Context ---
-// This will be our new centralized control system for navigation.
 const DashboardNavContext = createContext();
-
-// --- 2. Create a custom hook for easy access ---
-// Any child component can now use `useDashboardNav()` to get the navigation state and setter.
 export const useDashboardNav = () => useContext(DashboardNavContext);
 
-const DashboardHome = ({ unreadNotifications }) => (
-  <main className="flex-1 overflow-y-auto p-4 md:p-6">
-    <h2 className="text-2xl font-bold text-gray-800 mb-6">
-      Dashboard Overview
-    </h2>
-    <AppointmentCard />
-    <MedicalRecords />
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-      <ColorVisionTest />
-      <QuickActions unreadNotifications={unreadNotifications} />
+const WelcomeBanner = ({ user }) => {
+  const time = new Date().getHours();
+  const greeting =
+    time < 12 ? "Good Morning" : time < 18 ? "Good Afternoon" : "Good Evening";
+
+  return (
+    <div className="bg-gradient-to-r from-[#7F0000] to-[#5a0000] rounded-3xl p-8 text-white shadow-xl mb-8 relative overflow-hidden">
+      <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+
+      <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">
+            {greeting}, {user?.firstName || "Patient"}!
+          </h1>
+          <p className="text-white/80 text-lg max-w-2xl">
+            Here's your eye health summary for today. You have full access to
+            your records, test results, and appointments.
+          </p>
+        </div>
+        <div className="hidden md:block bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
+          <p className="text-xs font-bold uppercase tracking-widest text-white/70 mb-1">
+            Current Date
+          </p>
+          <p className="text-xl font-mono font-bold">
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
+        </div>
+      </div>
     </div>
-    <ProductPreview />
+  );
+};
+
+const DashboardHome = ({ unreadNotifications, user }) => (
+  <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+    <WelcomeBanner user={user} />
+
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <div className="xl:col-span-2 space-y-8 animate-fadeIn">
+        <section>
+          <div className="flex items-center justify-between mb-4 px-1">
+            <h3 className="text-xl font-bold text-gray-800">Next Visit</h3>
+          </div>
+          <AppointmentCard />
+        </section>
+
+        <section>
+          <div className="flex items-center justify-between mb-4 px-1">
+            <h3 className="text-xl font-bold text-gray-800">My Records</h3>
+          </div>
+          <MedicalRecords />
+        </section>
+      </div>
+
+      <div
+        className="space-y-8 animate-fadeIn"
+        style={{ animationDelay: "0.1s" }}
+      >
+        <QuickActions unreadNotifications={unreadNotifications} />
+
+        <ColorVisionTest />
+
+        <ProductPreview />
+      </div>
+    </div>
   </main>
 );
 
@@ -69,7 +120,6 @@ const DashboardLayout = () => {
         try {
           const res = await instance.get("/messages/my-conversations");
           setConversations(res.data);
-          // Check if any conversation has an unread last message sent by an admin
           setHasUnreadMessages(
             res.data.some(
               (c) =>
@@ -94,7 +144,6 @@ const DashboardLayout = () => {
         setHasUnread(true);
       });
       socket.on("new_message_reply", (newReply) => {
-        // Find the conversation this reply belongs to and update it
         setConversations((prevConvos) =>
           prevConvos.map((convo) =>
             convo._id === newReply.conversation
@@ -111,7 +160,6 @@ const DashboardLayout = () => {
     }
   }, [socket]);
 
-  // Handle loading state when navigating to home tab
   useEffect(() => {
     if (activeNav === "home") {
       setIsLoading(true);
@@ -123,7 +171,6 @@ const DashboardLayout = () => {
   }, [activeNav]);
 
   const handleNotificationRead = async (notificationId) => {
-    // First, optimistically update the UI to feel instant
     const updatedNotifications = notifications.map((n) =>
       n._id === notificationId ? { ...n, isRead: true } : n
     );
@@ -145,9 +192,7 @@ const DashboardLayout = () => {
     setIsMsgModalOpen(true);
 
     const lastMsg = conversation.lastMessage;
-    // If the last message is an unread reply from an admin, mark it as read
     if (lastMsg && !lastMsg.isRead && lastMsg.sender.role !== "patient") {
-      // Optimistic UI update
       const updatedConversations = conversations.map((c) =>
         c._id === conversation._id
           ? { ...c, lastMessage: { ...c.lastMessage, isRead: true } }
@@ -163,29 +208,26 @@ const DashboardLayout = () => {
         )
       );
 
-      // API call to update the backend
       try {
         await instance.patch(`/messages/${lastMsg._id}/read`);
       } catch (err) {
         console.error("Failed to mark message as read on server:", err);
-        // Revert UI on failure if needed
       }
     }
   };
 
-  // Filter for only unread notifications to pass to QuickActions
   const unreadNotifications = notifications.filter((n) => !n.isRead);
   const sortedConversations = conversations
-    .filter((c) => c.lastMessage) // Ensure conversation has a last message to display
+    .filter((c) => c.lastMessage)
     .sort(
       (a, b) =>
         new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt)
     );
   return (
     <DashboardNavContext.Provider value={providerValue}>
-      <div className="flex h-screen">
+      <div className="flex h-screen bg-gray-100 ">
         <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-        <div className="flex-1 ml-0 md:ml-64 bg-gray-100 flex flex-col">
+        <div className="flex-1 ml-0 md:ml-72 flex flex-col h-screen overflow-hidden">
           <Navbar
             sidebarOpen={sidebarOpen}
             setSidebarOpen={setSidebarOpen}
@@ -196,19 +238,21 @@ const DashboardLayout = () => {
             hasUnreadMessages={hasUnreadMessages}
             onMessageClick={handleMessageClick}
           />
-          {/* The rendering logic remains the same, but it's now controlled
-              by a state that is accessible everywhere. */}
+
           {activeNav === "home" && isLoading ? (
-            <main className="flex-1 flex items-center justify-center p-4 md:p-6">
+            <main className="flex-1 flex items-center justify-center bg-gray-50">
               <div className="flex flex-col items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-dark-red"></div>
-                <p className="mt-4 text-gray-600 font-medium">
-                  Loading dashboard...
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-[#7F0000]"></div>
+                <p className="mt-4 text-gray-500 font-medium animate-pulse">
+                  Preparing your dashboard...
                 </p>
               </div>
             </main>
           ) : activeNav === "home" ? (
-            <DashboardHome unreadNotifications={unreadNotifications} />
+            <DashboardHome
+              unreadNotifications={unreadNotifications}
+              user={user}
+            />
           ) : null}
           {activeNav === "appointments" && <Appointments />}
           {activeNav === "products" && <ProductInterface />}

@@ -8,12 +8,14 @@ import {
   FaStethoscope,
   FaCheck,
   FaTimes,
+  FaChevronRight,
+  FaMapMarkerAlt,
 } from "react-icons/fa";
+import { Loader2 } from "lucide-react"; // Assuming you have lucide-react installed, otherwise use FaSpinner
 import instance from "../../api/axios";
 
 // --- Loading Configuration (in milliseconds) ---
-// Adjust this value to control the loading state duration across all environments
-const APPOINTMENTS_LOADING_DURATION = 1500; // 1.5 seconds
+const APPOINTMENTS_LOADING_DURATION = 1500;
 
 const Appointments = () => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -23,13 +25,14 @@ const Appointments = () => {
     time: "",
     reason: "",
   });
-  const [loading, setLoading] = useState(true); // Add loading state
-  const [isInitialLoad, setIsInitialLoad] = useState(true); // Track initial load phase
+  const [loading, setLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [appointments, setAppointments] = useState({
     today: [],
     tomorrow: [],
   });
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("today"); // 'today' or 'tomorrow' for mobile view toggling
 
   const allAppointmentsForCalendar = useMemo(() => {
     return [...appointments.today, ...appointments.tomorrow];
@@ -39,19 +42,16 @@ const Appointments = () => {
     setLoading(true);
     setError("");
     try {
-      // Get today's and tomorrow's dates in YYYY-MM-DD format
       const today = new Date().toISOString().split("T")[0];
       const tomorrow = new Date(new Date().setDate(new Date().getDate() + 1))
         .toISOString()
         .split("T")[0];
 
-      // Fetch today's and tomorrow's appointments in parallel using the backend's filtering
       const [todayRes, tomorrowRes] = await Promise.all([
         instance.get(`/appointments?date=${today}`),
         instance.get(`/appointments?date=${tomorrow}`),
       ]);
 
-      // Map the data to the desired structure for rendering
       const mapAppointmentData = (app) => ({
         id: app._id,
         name: app.fullName,
@@ -77,8 +77,6 @@ const Appointments = () => {
     fetchAppointments();
   }, []);
 
-  // --- Loading State Timer ---
-  // Show loading spinner for configured duration, then hide it
   useEffect(() => {
     if (isInitialLoad && loading) {
       const timer = setTimeout(() => {
@@ -88,49 +86,32 @@ const Appointments = () => {
     }
   }, [isInitialLoad, loading]);
 
+  // --- Helper Functions ---
   const getCurrentMonth = () => {
-    const months = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    return `${months[new Date().getMonth()]} ${new Date().getFullYear()}`;
-  };
-
-  const getDaysInMonth = () => {
-    const date = new Date();
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
-
-  const getFirstDayOfMonth = () => {
-    const date = new Date();
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+    return new Date().toLocaleString("default", {
+      month: "long",
+      year: "numeric",
+    });
   };
 
   const renderCalendar = () => {
-    const daysInMonth = getDaysInMonth();
-    const firstDay = getFirstDayOfMonth();
+    const date = new Date();
+    const daysInMonth = new Date(
+      date.getFullYear(),
+      date.getMonth() + 1,
+      0
+    ).getDate();
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
     const today = new Date().getDate();
     const currentMonth = new Date().getMonth();
 
     const days = [];
-    // Add empty cells for days before the first day of month
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="h-12" />);
+      days.push(<div key={`empty-${i}`} className="h-10 w-10" />);
     }
 
     for (let i = 1; i <= daysInMonth; i++) {
       const isToday = i === today;
-
       const hasAppointment = allAppointmentsForCalendar.some((app) => {
         const appDate = new Date(app.date);
         return appDate.getDate() === i && appDate.getMonth() === currentMonth;
@@ -139,14 +120,18 @@ const Appointments = () => {
       days.push(
         <div
           key={i}
-          className={`h-12 flex items-center justify-center rounded-lg cursor-pointer transition-all
-            ${isToday ? "bg-deep-red text-white" : ""}
+          className={`h-10 w-10 flex items-center justify-center rounded-full text-sm font-medium transition-all duration-300 cursor-default
             ${
-              hasAppointment
-                ? "border-2 border-deep-red"
-                : "border border-gray-200"
+              isToday
+                ? "bg-deep-red text-white shadow-lg shadow-red-200"
+                : "text-gray-700 hover:bg-red-50"
             }
-            hover:bg-gray-50`}
+            ${
+              hasAppointment && !isToday
+                ? "border-2 border-deep-red text-deep-red font-bold"
+                : ""
+            }
+          `}
         >
           {i}
         </div>
@@ -154,13 +139,6 @@ const Appointments = () => {
     }
     return days;
   };
-
-  // Re-evaluate these dates as they are used to filter the *initial* static data
-  // Now `todayAppointments` and `tomorrowAppointments` are populated by `fetchAppointments`
-  const todayDateStr = new Date().toISOString().split("T")[0];
-  const tomorrowDateStr = new Date(new Date().setDate(new Date().getDate() + 1))
-    .toISOString()
-    .split("T")[0];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -177,467 +155,406 @@ const Appointments = () => {
         serviceType: appointmentData.reason,
         status: "scheduled",
       };
-
       await instance.post("/appointments", payload);
-
       fetchAppointments();
       setShowAddModal(false);
       setAppointmentData({ name: "", date: "", time: "", reason: "" });
     } catch (err) {
       console.error("Failed to add appointment:", err);
-      setError(
-        "Failed to add appointment. Ensure patient name is correct or backend is adapted."
-      );
+      setError("Failed to add appointment.");
     }
   };
 
   const updateAppointmentStatus = async (id, status) => {
     try {
       await instance.patch(`/appointments/${id}/status`, { status });
-      fetchAppointments(); // Refresh the list
+      fetchAppointments();
     } catch (err) {
-      console.error("Failed to update appointment status:", err);
-      setError("Failed to update appointment status. Please try again.");
+      console.error("Failed to update status:", err);
+      setError("Failed to update status.");
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusStyle = (status) => {
     switch (status) {
       case "present":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-700 border-green-200";
       case "absent":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-700 border-red-200";
       case "cancelled":
-        return "bg-yellow-100 text-yellow-800";
-      case "rescheduled":
-        return "bg-blue-100 text-blue-800";
+        return "bg-gray-100 text-gray-500 border-gray-200 line-through decoration-gray-400";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-blue-50 text-blue-700 border-blue-200";
     }
   };
 
+  // --- Components ---
+
+  const AppointmentCard = ({ appointment }) => (
+    <div className="group relative bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ease-out overflow-hidden">
+      {/* Decorative side bar */}
+      <div
+        className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+          appointment.status === "present"
+            ? "bg-green-500"
+            : appointment.status === "absent"
+            ? "bg-red-500"
+            : "bg-deep-red"
+        }`}
+      ></div>
+
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pl-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <h4 className="text-lg font-bold text-gray-800 group-hover:text-deep-red transition-colors">
+              {appointment.name}
+            </h4>
+            <span
+              className={`px-2.5 py-0.5 text-[10px] uppercase tracking-wider font-bold rounded-full border ${getStatusStyle(
+                appointment.status
+              )}`}
+            >
+              {appointment.status}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-y-2 gap-x-6 text-sm text-gray-500">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-red-50 text-deep-red rounded-md">
+                <FaClock size={12} />
+              </div>
+              <span className="font-medium">{appointment.time}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-red-50 text-deep-red rounded-md">
+                <FaStethoscope size={12} />
+              </div>
+              <span>{appointment.reason}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+          <button
+            onClick={() => updateAppointmentStatus(appointment.id, "present")}
+            className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-colors shadow-sm"
+            title="Mark Present"
+          >
+            <FaCheck size={14} />
+          </button>
+          <button
+            onClick={() => updateAppointmentStatus(appointment.id, "absent")}
+            className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition-colors shadow-sm"
+            title="Mark Absent"
+          >
+            <FaTimes size={14} />
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
+        <div className="flex gap-4 text-xs font-semibold text-gray-400">
+          <button className="hover:text-blue-600 transition-colors">
+            Reschedule
+          </button>
+          <button
+            onClick={() => updateAppointmentStatus(appointment.id, "cancelled")}
+            className="hover:text-red-600 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+        <FaChevronRight
+          className="text-gray-300 group-hover:translate-x-1 transition-transform"
+          size={12}
+        />
+      </div>
+    </div>
+  );
+
   return (
-    <div className="p-4 md:p-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
+    <div className="h-screen overflow-y-auto pb-24 bg-gray-50/50 p-4 md:p-8 font-sans">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 flex items-center">
-            <FaCalendarAlt className="mr-3 text-deep-red" />
+          <h1 className="text-4xl font-bold text-gray-700 tracking-tight mb-1">
             Appointments
           </h1>
-          <p className="text-gray-600 mt-2">
-            Manage patient appointments and schedules
+          <p className="text-gray-500 font-medium">
+            Welcome back, manage your patient schedules efficiently.
           </p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="mt-4 md:mt-0 px-4 py-2 bg-gradient-to-r from-deep-red to-dark-red text-white rounded-lg hover:opacity-90 transition-opacity flex items-center"
+          className="group flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-xl hover:bg-deep-red transition-all duration-300 shadow-lg shadow-gray-200 hover:shadow-red-200"
         >
-          <FaPlus className="mr-2" /> Add Appointment
+          <div className="bg-white/20 p-1 rounded-full group-hover:rotate-90 transition-transform duration-300">
+            <FaPlus size={12} />
+          </div>
+          <span className="font-semibold text-sm">New Appointment</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-2xl shadow-lg p-6 lg:col-span-1 animate-fadeIn">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">
-            {getCurrentMonth()}
-          </h2>
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <div
-                key={day}
-                className="text-center text-sm font-medium text-gray-500 py-1"
-              >
-                {day}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+        {/* Left Column: Calendar Widget (Sticky on large screens) */}
+        <div className="xl:col-span-4 space-y-6">
+          <div className="bg-white rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 sticky top-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-800">
+                {getCurrentMonth()}
+              </h2>
+              <div className="p-2 bg-red-50 text-deep-red rounded-lg">
+                <FaCalendarAlt />
               </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1">{renderCalendar()}</div>
+            </div>
 
-          <div className="mt-6">
-            <h3 className="font-bold text-gray-800 mb-3">Appointment Legend</h3>
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full bg-deep-red mr-2"></div>
-                <span className="text-sm">Today</span>
+            <div className="grid grid-cols-7 gap-y-4 justify-items-center mb-2">
+              {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+                <span
+                  key={day}
+                  className="text-xs font-bold text-gray-400 uppercase tracking-wider"
+                >
+                  {day}
+                </span>
+              ))}
+              {renderCalendar()}
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-gray-100">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
+                Quick Stats
+              </h3>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl mb-2">
+                <span className="text-sm font-medium text-gray-600">
+                  Total Today
+                </span>
+                <span className="text-lg font-bold text-deep-red">
+                  {appointments.today.length}
+                </span>
               </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full border-2 border-deep-red mr-2"></div>
-                <span className="text-sm">Has Appointment</span>
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                <span className="text-sm font-medium text-gray-600">
+                  Pending Tomorrow
+                </span>
+                <span className="text-lg font-bold text-gray-800">
+                  {appointments.tomorrow.length}
+                </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Appointments List */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 lg:col-span-2 animate-fadeIn">
-          <div className="flex space-x-4 border-b border-gray-200 mb-6">
-            <button className="pb-3 px-1 font-medium border-b-2 border-deep-red text-deep-red">
-              Today's Appointments
+        {/* Right Column: Appointment Lists */}
+        <div className="xl:col-span-8">
+          {/* Mobile Tabs */}
+          <div className="flex xl:hidden mb-6 bg-white p-1 rounded-xl shadow-sm border border-gray-100">
+            <button
+              onClick={() => setActiveTab("today")}
+              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+                activeTab === "today"
+                  ? "bg-deep-red text-white shadow-md"
+                  : "text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              Today
             </button>
-            <button className="pb-3 px-1 font-medium text-gray-500 hover:text-gray-700">
-              Tomorrow's Appointments
+            <button
+              onClick={() => setActiveTab("tomorrow")}
+              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+                activeTab === "tomorrow"
+                  ? "bg-deep-red text-white shadow-md"
+                  : "text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              Tomorrow
             </button>
           </div>
 
           {isInitialLoad && loading ? (
-            <div className="flex justify-center items-center h-96">
-              <div className="flex flex-col items-center justify-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-deep-red"></div>
-                <p className="mt-4 text-gray-600 font-medium">
-                  Loading appointments...
-                </p>
-              </div>
+            <div className="flex flex-col items-center justify-center h-96 bg-white rounded-3xl shadow-sm border border-gray-100">
+              <Loader2 className="h-12 w-12 text-deep-red animate-spin mb-4" />
+              <p className="text-gray-500 font-medium">Syncing schedules...</p>
             </div>
           ) : error ? (
-            <div className="text-center py-8 text-red-500">{error}</div>
+            <div className="p-6 bg-red-50 text-red-600 rounded-2xl border border-red-100 text-center">
+              {error}
+            </div>
           ) : (
-            <>
-              {/* Today's Appointments */}
-              <div>
-                <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  Today,{" "}
-                  {new Date().toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </h3>
+            <div className="space-y-8 animate-fadeIn">
+              {/* Today's Section */}
+              <div
+                className={`${
+                  activeTab === "today" ? "block" : "hidden xl:block"
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="h-8 w-1 bg-deep-red rounded-full"></div>
+                  <h3 className="text-xl font-bold text-gray-800">
+                    Today's Schedule
+                    <span className="ml-3 text-sm font-medium text-gray-400">
+                      {new Date().toLocaleDateString("en-US", {
+                        weekday: "long",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </h3>
+                </div>
 
                 {appointments.today.length > 0 ? (
-                  <div className="space-y-4">
-                    {appointments.today.map((appointment) => (
-                      <div
-                        key={appointment.id}
-                        className="border border-gray-200 rounded-xl p-4 transition-all duration-300 hover:shadow-md"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="flex items-center">
-                              <h4 className="text-lg font-bold text-gray-800">
-                                {appointment.name}
-                              </h4>
-                              <span
-                                className={`ml-3 px-2 py-1 text-xs rounded-full ${getStatusColor(
-                                  appointment.status
-                                )}`}
-                              >
-                                {appointment.status.charAt(0).toUpperCase() +
-                                  appointment.status.slice(1)}
-                              </span>
-                            </div>
-                            <div className="flex items-center text-gray-600 mt-1">
-                              <FaClock className="mr-2 text-sm" />
-                              <span>{appointment.time}</span>
-                            </div>
-                            <div className="flex items-center text-gray-600 mt-1">
-                              <FaStethoscope className="mr-2 text-sm" />
-                              <span>{appointment.reason}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() =>
-                                updateAppointmentStatus(
-                                  appointment.id,
-                                  "present"
-                                )
-                              }
-                              className={`p-2 rounded-full ${
-                                appointment.status === "present"
-                                  ? "bg-green-500 text-white"
-                                  : "bg-gray-100 text-gray-500 hover:bg-green-100 hover:text-green-500"
-                              }`}
-                              title="Mark as Present"
-                            >
-                              <FaCheck />
-                            </button>
-                            <button
-                              onClick={() =>
-                                updateAppointmentStatus(
-                                  appointment.id,
-                                  "absent"
-                                )
-                              }
-                              className={`p-2 rounded-full ${
-                                appointment.status === "absent"
-                                  ? "bg-red-500 text-white"
-                                  : "bg-gray-100 text-gray-500 hover:bg-red-100 hover:text-red-500"
-                              }`}
-                              title="Mark as Absent"
-                            >
-                              <FaTimes />
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex space-x-3 mt-4">
-                          <button className="text-sm text-blue-600 hover:underline">
-                            Reschedule
-                          </button>
-                          <button
-                            onClick={() =>
-                              updateAppointmentStatus(
-                                appointment.id,
-                                "cancelled"
-                              )
-                            }
-                            className="text-sm text-red-600 hover:underline"
-                          >
-                            Cancel
-                          </button>
-                          <button className="text-sm text-gray-600 hover:underline">
-                            Details
-                          </button>
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    {appointments.today.map((app) => (
+                      <AppointmentCard key={app.id} appointment={app} />
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <div className="text-gray-400 text-5xl mb-4">
-                      <FaCalendarAlt className="inline-block" />
+                  <div className="flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-dashed border-gray-300 text-center">
+                    <div className="p-4 bg-gray-50 rounded-full mb-3 text-gray-300">
+                      <FaCalendarAlt size={24} />
                     </div>
-                    <h4 className="text-xl font-medium text-gray-700">
-                      No appointments scheduled for today
-                    </h4>
-                    <p className="text-gray-500 mt-2">
-                      Click "Add Appointment" to schedule a new appointment
+                    <p className="text-gray-500 font-medium">
+                      No appointments for today.
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Tomorrow's Appointments */}
-              <div className="mt-8">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  Tomorrow,{" "}
-                  {new Date(
-                    new Date().setDate(new Date().getDate() + 1)
-                  ).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </h3>
+              {/* Tomorrow's Section */}
+              <div
+                className={`${
+                  activeTab === "tomorrow" ? "block" : "hidden xl:block"
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-5 mt-8">
+                  <div className="h-8 w-1 bg-gray-300 rounded-full"></div>
+                  <h3 className="text-xl font-bold text-gray-800">
+                    Upcoming Tomorrow
+                  </h3>
+                </div>
 
                 {appointments.tomorrow.length > 0 ? (
-                  <div className="space-y-4">
-                    {appointments.tomorrow.map((appointment) => (
-                      <div
-                        key={appointment.id}
-                        className="border border-gray-200 rounded-xl p-4 transition-all duration-300 hover:shadow-md"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="flex items-center">
-                              <h4 className="text-lg font-bold text-gray-800">
-                                {appointment.name}
-                              </h4>
-                              <span
-                                className={`ml-3 px-2 py-1 text-xs rounded-full ${getStatusColor(
-                                  appointment.status
-                                )}`}
-                              >
-                                {appointment.status.charAt(0).toUpperCase() +
-                                  appointment.status.slice(1)}
-                              </span>
-                            </div>
-                            <div className="flex items-center text-gray-600 mt-1">
-                              <FaClock className="mr-2 text-sm" />
-                              <span>{appointment.time}</span>
-                            </div>
-                            <div className="flex items-center text-gray-600 mt-1">
-                              <FaStethoscope className="mr-2 text-sm" />
-                              <span>{appointment.reason}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() =>
-                                updateAppointmentStatus(
-                                  appointment.id,
-                                  "present"
-                                )
-                              }
-                              className="p-2 rounded-full bg-gray-100 text-gray-500 hover:bg-green-100 hover:text-green-500"
-                              title="Mark as Present"
-                            >
-                              <FaCheck />
-                            </button>
-                            <button
-                              onClick={() =>
-                                updateAppointmentStatus(
-                                  appointment.id,
-                                  "absent"
-                                )
-                              }
-                              className="p-2 rounded-full bg-gray-100 text-gray-500 hover:bg-red-100 hover:text-red-500"
-                              title="Mark as Absent"
-                            >
-                              <FaTimes />
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex space-x-3 mt-4">
-                          <button className="text-sm text-blue-600 hover:underline">
-                            Reschedule
-                          </button>
-                          <button
-                            onClick={() =>
-                              updateAppointmentStatus(
-                                appointment.id,
-                                "cancelled"
-                              )
-                            }
-                            className="text-sm text-red-600 hover:underline"
-                          >
-                            Cancel
-                          </button>
-                          <button className="text-sm text-gray-600 hover:underline">
-                            Details
-                          </button>
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {appointments.tomorrow.map((app) => (
+                      <AppointmentCard key={app.id} appointment={app} />
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <div className="text-gray-400 text-5xl mb-4">
-                      <FaCalendarAlt className="inline-block" />
-                    </div>
-                    <h4 className="text-xl font-medium text-gray-700">
-                      No appointments scheduled for tomorrow
-                    </h4>
-                    <p className="text-gray-500 mt-2">
-                      Click "Add Appointment" to schedule a new appointment
-                    </p>
+                  <div className="p-8 text-center text-gray-400 bg-gray-50/50 rounded-2xl border border-gray-100">
+                    No upcoming appointments for tomorrow.
                   </div>
                 )}
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Add Appointment Modal */}
+      {/* Modern Modal Overlay */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md animate-fadeIn">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-800">
-                  Add New Appointment
-                </h2>
-                <button
-                  onClick={() => setShowAddModal(false)}
-                  className="p-2 rounded-full hover:bg-gray-100"
-                >
-                  <FaTimes className="text-gray-600" />
-                </button>
-              </div>
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl animate-scaleIn overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-deep-red to-red-900 p-6 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <FaPlus className="text-red-300" /> New Appointment
+              </h2>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors"
+              >
+                <FaTimes />
+              </button>
+            </div>
 
-              <form onSubmit={handleAddAppointment}>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-gray-700 mb-2" htmlFor="name">
-                      Patient Name
+            {/* Modal Body */}
+            <div className="p-8">
+              <form onSubmit={handleAddAppointment} className="space-y-5">
+                <div className="group">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">
+                    Patient Name
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      name="name"
+                      value={appointmentData.name}
+                      onChange={handleInputChange}
+                      className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-deep-red/20 focus:border-deep-red transition-all font-medium"
+                      placeholder="e.g. Juan dela Cruz"
+                      required
+                    />
+                    <FaUser className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-deep-red transition-colors" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="group">
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">
+                      Date
                     </label>
                     <div className="relative">
                       <input
-                        type="text"
-                        id="name"
-                        name="name"
-                        value={appointmentData.name}
+                        type="date"
+                        name="date"
+                        value={appointmentData.date}
                         onChange={handleInputChange}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-deep-red focus:border-transparent"
-                        placeholder="Enter patient name"
+                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-deep-red/20 focus:border-deep-red transition-all font-medium text-gray-600"
                         required
                       />
-                      <FaUser className="absolute left-3 top-3 text-gray-400" />
+                      <FaCalendarAlt className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-deep-red transition-colors" />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label
-                        className="block text-gray-700 mb-2"
-                        htmlFor="date"
-                      >
-                        Date
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="date"
-                          id="date"
-                          name="date"
-                          value={appointmentData.date}
-                          onChange={handleInputChange}
-                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-deep-red focus:border-transparent"
-                          required
-                        />
-                        <FaCalendarAlt className="absolute left-3 top-3 text-gray-400" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label
-                        className="block text-gray-700 mb-2"
-                        htmlFor="time"
-                      >
-                        Time
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="time"
-                          id="time"
-                          name="time"
-                          value={appointmentData.time}
-                          onChange={handleInputChange}
-                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-deep-red focus:border-transparent"
-                          required
-                        />
-                        <FaClock className="absolute left-3 top-3 text-gray-400" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label
-                      className="block text-gray-700 mb-2"
-                      htmlFor="reason"
-                    >
-                      Reason
+                  <div className="group">
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">
+                      Time
                     </label>
                     <div className="relative">
-                      <textarea
-                        id="reason"
-                        name="reason"
-                        value={appointmentData.reason}
+                      <input
+                        type="time"
+                        name="time"
+                        value={appointmentData.time}
                         onChange={handleInputChange}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-deep-red focus:border-transparent"
-                        placeholder="Enter appointment reason"
-                        rows="3"
+                        className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-deep-red/20 focus:border-deep-red transition-all font-medium text-gray-600"
                         required
-                      ></textarea>
-                      <FaStethoscope className="absolute left-3 top-3 text-gray-400" />
+                      />
+                      <FaClock className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-deep-red transition-colors" />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-3 mt-6">
+                <div className="group">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 ml-1">
+                    Service / Reason
+                  </label>
+                  <div className="relative">
+                    <textarea
+                      name="reason"
+                      value={appointmentData.reason}
+                      onChange={handleInputChange}
+                      className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-deep-red/20 focus:border-deep-red transition-all font-medium resize-none"
+                      placeholder="Describe the service required..."
+                      rows="3"
+                      required
+                    ></textarea>
+                    <FaStethoscope className="absolute left-4 top-4 text-gray-400 group-focus-within:text-deep-red transition-colors" />
+                  </div>
+                </div>
+
+                <div className="pt-4 flex gap-4">
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    className="flex-1 px-6 py-3 border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-gradient-to-r from-deep-red to-dark-red text-white rounded-lg hover:opacity-90"
+                    className="flex-1 px-6 py-3 bg-deep-red text-white font-bold rounded-xl hover:bg-red-900 shadow-lg shadow-red-200 hover:shadow-xl transition-all"
                   >
-                    Add Appointment
+                    Confirm Booking
                   </button>
                 </div>
               </form>

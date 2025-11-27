@@ -1,6 +1,14 @@
 // src/components/ColorVisionTestTryUI.jsx
 import { useState, useEffect } from "react";
-import { FiArrowLeft, FiArrowRight, FiHome, FiEye } from "react-icons/fi";
+import {
+  FiArrowLeft,
+  FiArrowRight,
+  FiHome,
+  FiEye,
+  FiCheckCircle,
+  FiActivity,
+  FiRefreshCcw,
+} from "react-icons/fi";
 import { ishiharaTestPlatesConsistent } from "./questionsList"; // Ensure this is the correct path
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import instance from "../../../api/axios";
@@ -270,12 +278,14 @@ const IshiharaTest = () => {
     }
   }, [visionStatus, testResults, isSubmitting, submitSuccess, plates.length]);
 
-  // --- RENDER LOGIC ---
   if (!plates.length) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-        <div className="max-w-4xl mx-auto flex justify-center items-center h-screen">
-          <p className="text-lg text-gray-600">Loading Test...</p>
+      <div className="min-h-screen bg-gray-50 flex justify-center items-center">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-[#7F0000]"></div>
+          <p className="text-lg text-gray-600 mt-4 font-medium">
+            Preparing your test...
+          </p>
         </div>
       </div>
     );
@@ -286,257 +296,303 @@ const IshiharaTest = () => {
   const correctCount = testResults.filter((r) => r.isCorrect).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <button
-            onClick={() => (window.location.href = "/user-dashboard")}
-            className="flex items-center text-dark-red hover:text-deep-red transition-colors"
-          >
-            <FiHome className="mr-2" />
-            Back to Dashboard
-          </button>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 flex items-center">
-            <FiEye className="mr-2 text-dark-red" />
-            Ishihara Color Vision Test
-          </h1>
-          <div className="w-10"></div>
+    <div className="min-h-screen w-full bg-gray-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] flex flex-col">
+      {/* Header Navigation */}
+      <div className="w-full max-w-5xl mx-auto px-4 py-6 flex justify-between items-center">
+        <button
+          onClick={() => (window.location.href = "/user-dashboard")}
+          className="group flex items-center text-gray-500 hover:text-[#7F0000] transition-colors font-medium"
+        >
+          <span className="bg-white p-2 rounded-full shadow-sm mr-2 group-hover:shadow-md transition-all">
+            <FiHome className="w-5 h-5" />
+          </span>
+          Dashboard
+        </button>
+        <div className="text-center hidden md:block">
+          <h2 className="text-gray-800 font-bold">Ishihara Color Test</h2>
+          <p className="text-xs text-gray-500">Standardized Assessment</p>
         </div>
+        <div className="w-24"></div> {/* Spacer for centering */}
+      </div>
 
-        {/* Progress Bar */}
-        <div className="mb-6">
-          <div className="flex justify-between mb-1">
-            <span className="text-sm font-medium text-gray-700">
-              Plate {currentPlateIndex + 1} of {plates.length}
-            </span>
-            <span className="text-sm font-medium text-dark-red">
-              {progress.toFixed(0)}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
-            <div
-              className="bg-dark-red h-2.5 rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            ></div>
-          </div>
-        </div>
-
-        {!isCompleted ? (
-          /* Test Interface */
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="p-6 md:p-8">
-              <div className="flex justify-center mb-8">
-                <div className="relative w-full max-w-md h-64 md:h-80 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-                  <img
-                    src={currentPlate.imageSrc}
-                    alt={`Ishihara Plate ${currentPlate.plateNumber}`}
-                    className="object-contain w-full h-full"
-                  />
+      <div className="flex-1 flex items-center justify-center px-4 pb-10">
+        <div className="w-full max-w-2xl">
+          {!isCompleted ? (
+            /* --- ACTIVE TEST INTERFACE --- */
+            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden relative animate-fadeIn">
+              {/* Progress Bar Header */}
+              <div className="px-8 pt-8 pb-2">
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                    Plate {currentPlateIndex + 1}{" "}
+                    <span className="font-normal text-gray-300">
+                      / {plates.length}
+                    </span>
+                  </span>
+                  <span className="text-[#7F0000] font-bold">
+                    {progress.toFixed(0)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className="bg-[#7F0000] h-full rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${progress}%` }}
+                  ></div>
                 </div>
               </div>
 
-              <div className="mb-8">
-                <label
-                  htmlFor="answer"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  {currentPlate.question}
-                </label>
-                <input
-                  type="text"
-                  id="answer"
-                  value={currentUserInput}
-                  onChange={(e) => setCurrentUserInput(e.target.value)}
-                  className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-dark-red focus:border-dark-red text-center text-xl font-medium"
-                  placeholder="Enter your answer"
-                  autoFocus
-                  onKeyDown={(e) => e.key === "Enter" && handleNext()}
-                />
+              <div className="p-8 flex flex-col items-center">
+                {/* Plate Display - Clean & Focused */}
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-[#7F0000]/5 rounded-full filter blur-xl transform scale-90 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                  <div className="relative w-64 h-64 md:w-80 md:h-80 bg-white rounded-full shadow-[inset_0_4px_20px_rgba(0,0,0,0.05)] flex items-center justify-center border border-gray-50 p-4">
+                    <img
+                      src={currentPlate.imageSrc}
+                      alt={`Plate ${currentPlate.plateNumber}`}
+                      className="w-full h-full object-contain transition-all duration-300"
+                    />
+                  </div>
+                </div>
+
+                {/* Question & Input */}
+                <div className="w-full max-w-md mt-8 text-center">
+                  <label
+                    htmlFor="answer"
+                    className="block text-lg font-medium text-gray-700 mb-4"
+                  >
+                    {currentPlate.question}
+                  </label>
+
+                  <div className="relative">
+                    <input
+                      type="text"
+                      id="answer"
+                      value={currentUserInput}
+                      onChange={(e) => setCurrentUserInput(e.target.value)}
+                      className="w-full p-4 bg-gray-50 border-2 border-gray-200 rounded-2xl text-center text-2xl font-bold tracking-widest text-gray-800 focus:outline-none focus:border-[#7F0000] focus:bg-white focus:ring-4 focus:ring-[#7F0000]/10 transition-all placeholder-gray-300"
+                      placeholder="Type here..."
+                      autoComplete="off"
+                      autoFocus
+                      onKeyDown={(e) => e.key === "Enter" && handleNext()}
+                    />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none">
+                      <FiEye size={20} />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex justify-between">
+              {/* Footer Controls */}
+              <div className="bg-gray-50 p-6 flex justify-between items-center border-t border-gray-100">
                 <button
                   onClick={handlePrev}
                   disabled={currentPlateIndex === 0}
-                  className={`px-6 py-3 rounded-lg flex items-center ${
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold transition-all ${
                     currentPlateIndex === 0
-                      ? "text-gray-400 cursor-not-allowed"
-                      : "text-dark-red hover:bg-red-50"
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "text-gray-600 hover:bg-gray-200 hover:text-gray-900"
                   }`}
                 >
-                  <FiArrowLeft className="mr-2" />
-                  Previous
+                  <FiArrowLeft /> Prev
                 </button>
+
+                <div className="text-xs text-gray-400 font-medium">
+                  Press{" "}
+                  <span className="border border-gray-300 px-1 rounded bg-white text-gray-500">
+                    Enter
+                  </span>{" "}
+                  to submit
+                </div>
+
                 <button
                   onClick={handleNext}
-                  className="px-6 py-3 bg-dark-red text-white rounded-lg hover:bg-deep-red transition-colors flex items-center"
+                  className="flex items-center gap-2 px-8 py-3 bg-[#7F0000] text-white rounded-xl font-bold shadow-lg shadow-red-900/20 hover:bg-[#600000] hover:shadow-xl hover:-translate-y-0.5 transition-all"
                 >
-                  {currentPlateIndex === plates.length - 1
-                    ? "Finish Test"
-                    : "Next"}
-                  <FiArrowRight className="ml-2" />
+                  {currentPlateIndex === plates.length - 1 ? "Finish" : "Next"}{" "}
+                  <FiArrowRight />
                 </button>
               </div>
             </div>
-          </div>
-        ) : (
-          /* Results Screen */
-          <div className="bg-white rounded-xl shadow-lg overflow-hidden animate-fadeIn">
-            <div className="p-6 md:p-8 text-center">
-              {isLoading && <p>Evaluating all answers with AI...</p>}
-              {isSubmitting && <p>Submitting results...</p>}
-              {submitError && (
-                <p className="text-red-600">Error: {submitError}</p>
-              )}
-              {submitSuccess && (
-                <>
-                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg
-                      className="w-10 h-10 text-green-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M5 13l4 4L19 7"
-                      ></path>
-                    </svg>
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                    Test Completed!
-                  </h2>
-                  <p className="text-gray-600 mb-6">
-                    Your color vision test results have been analyzed.
+          ) : (
+            /* --- RESULTS INTERFACE --- */
+            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden animate-scaleIn">
+              {isLoading ? (
+                <div className="p-12 flex flex-col items-center justify-center text-center">
+                  <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-100 border-t-[#7F0000] mb-6"></div>
+                  <h3 className="text-xl font-bold text-gray-800">
+                    Analyzing Your Vision
+                  </h3>
+                  <p className="text-gray-500 mt-2">
+                    Our AI is evaluating your responses against standard
+                    Ishihara patterns...
                   </p>
-                  <div className="max-w-md mx-auto bg-gray-50 rounded-xl p-6 mb-6">
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-600">Diagnosis</p>
-                      <p className="text-2xl font-bold text-dark-red">
-                        {visionStatus}
+                </div>
+              ) : (
+                <>
+                  <div className="bg-gradient-to-br from-[#7F0000] to-[#5a0000] p-10 text-center text-white relative overflow-hidden">
+                    <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+                    <div className="relative z-10">
+                      <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full mb-4 shadow-inner border border-white/20">
+                        <FiActivity className="w-10 h-10 text-white" />
+                      </div>
+                      <h2 className="text-3xl font-bold mb-2">
+                        Assessment Complete
+                      </h2>
+                      <p className="text-white/80">
+                        Result:{" "}
+                        <strong className="text-white">{visionStatus}</strong>
                       </p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-white p-4 rounded-lg">
-                        <p className="text-sm text-gray-600">
-                          Correct (Normal Vision)
-                        </p>
-                        <p className="text-3xl font-bold text-dark-red">
+                  </div>
+
+                  <div className="p-8">
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-2 gap-4 mb-8">
+                      <div className="bg-green-50 p-5 rounded-2xl border border-green-100 text-center">
+                        <span className="block text-3xl font-extrabold text-green-700">
                           {correctCount}
-                        </p>
+                        </span>
+                        <span className="text-xs font-bold text-green-600 uppercase tracking-wide">
+                          Correct Plates
+                        </span>
                       </div>
-                      <div className="bg-white p-4 rounded-lg">
-                        <p className="text-sm text-gray-600">Total Plates</p>
-                        <p className="text-3xl font-bold text-gray-800">
+                      <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 text-center">
+                        <span className="block text-3xl font-extrabold text-blue-700">
                           {plates.length}
-                        </p>
+                        </span>
+                        <span className="text-xs font-bold text-blue-600 uppercase tracking-wide">
+                          Total Plates
+                        </span>
                       </div>
                     </div>
+
+                    {submitError && (
+                      <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl border border-red-100 text-sm text-center">
+                        {submitError}
+                      </div>
+                    )}
+
+                    <div className="flex flex-col gap-3">
+                      <button
+                        onClick={() => setShowResults(true)}
+                        className="w-full py-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition-all shadow-lg flex items-center justify-center gap-2"
+                      >
+                        <FiEye /> View Detailed Report
+                      </button>
+                      <button
+                        onClick={() => window.location.reload()}
+                        className="w-full py-4 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                      >
+                        <FiRefreshCcw /> Retake Test
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => setShowResults(true)}
-                    className="px-6 py-3 bg-dark-red text-white rounded-lg hover:bg-deep-red transition-colors mb-4"
-                  >
-                    View Detailed Analysis
-                  </button>
                 </>
               )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Detailed Results Modal - Modernized */}
+      {showResults && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[85vh] flex flex-col shadow-2xl animate-scaleIn">
+            <div className="border-b border-gray-100 p-6 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">
+                  Detailed Clinical Analysis
+                </h3>
+                <p className="text-sm text-gray-500">
+                  AI-Powered evaluation per plate
+                </p>
+              </div>
               <button
-                onClick={() => (window.location.href = "/user-dashboard")}
-                className="text-dark-red hover:underline flex items-center justify-center mx-auto"
+                onClick={() => setShowResults(false)}
+                className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
               >
-                <FiHome className="mr-2" />
-                Return to Dashboard
+                <svg
+                  className="w-6 h-6 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-0 overflow-y-auto flex-1 custom-scrollbar">
+              <table className="w-full">
+                <thead className="bg-gray-50 sticky top-0">
+                  <tr>
+                    <th className="text-left py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      Plate
+                    </th>
+                    <th className="text-left py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      Your Answer
+                    </th>
+                    <th className="text-left py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      Result
+                    </th>
+                    <th className="text-left py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      Analysis
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {testResults.map((result, index) => (
+                    <tr
+                      key={index}
+                      className="hover:bg-gray-50/50 transition-colors"
+                    >
+                      <td className="py-4 px-6 text-sm font-medium text-gray-900">
+                        #{result.plateNumber}
+                      </td>
+                      <td className="py-4 px-6 text-sm text-gray-600 font-mono bg-gray-50/50">
+                        {result.userAnswer || "-"}
+                      </td>
+                      <td className="py-4 px-6">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                            result.evaluation === "Normal"
+                              ? "bg-green-100 text-green-800"
+                              : result.evaluation === "Incorrect"
+                              ? "bg-gray-100 text-gray-600"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {result.evaluation === "Normal" && (
+                            <FiCheckCircle className="mr-1" />
+                          )}
+                          {result.evaluation}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-sm text-gray-500 leading-relaxed">
+                        {result.reasoning}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl text-center">
+              <button
+                onClick={() => setShowResults(false)}
+                className="text-[#7F0000] font-bold text-sm hover:underline"
+              >
+                Close Report
               </button>
             </div>
           </div>
-        )}
-
-        {/* Detailed Results Modal */}
-        {showResults && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl max-w-4xl w-full animate-fadeIn shadow-2xl overflow-hidden">
-              <div className="border-b border-gray-200 p-4 flex justify-between items-center bg-gray-50">
-                <h3 className="text-xl font-semibold text-gray-800">
-                  Detailed Test Analysis (AI-Powered)
-                </h3>
-                <button
-                  onClick={() => setShowResults(false)}
-                  className="p-1 rounded-full hover:bg-gray-200 transition-colors"
-                >
-                  <svg
-                    className="w-5 h-5 text-gray-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    ></path>
-                  </svg>
-                </button>
-              </div>
-
-              <div className="p-6 max-h-[70vh] overflow-y-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-2 text-sm font-medium text-gray-700">
-                        Plate
-                      </th>
-                      <th className="text-left py-2 text-sm font-medium text-gray-700">
-                        Your Answer
-                      </th>
-                      <th className="text-left py-2 text-sm font-medium text-gray-700">
-                        AI Evaluation
-                      </th>
-                      <th className="text-left py-2 text-sm font-medium text-gray-700">
-                        Reasoning (from AI)
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {testResults.map((result, index) => (
-                      <tr key={index} className="border-b border-gray-100">
-                        <td className="py-3 text-sm text-gray-700">
-                          #{result.plateNumber}
-                        </td>
-                        <td className="py-3 text-sm font-medium">
-                          {result.userAnswer}
-                        </td>
-                        <td className="py-3">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                              result.evaluation === "Normal"
-                                ? "bg-green-100 text-green-800"
-                                : result.evaluation === "Incorrect"
-                                ? "bg-gray-100 text-gray-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {result.evaluation}
-                          </span>
-                        </td>
-                        <td className="py-3 text-sm text-gray-600">
-                          {result.reasoning}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

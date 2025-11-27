@@ -1,20 +1,20 @@
 import React from "react";
-import "./PatientLogin.css";
 import logo from "./LoginAndSignUpAssets/cecc.png";
 
 export default function Logo({ size = "large" }) {
-  // Increase the size here
-  const classes = size === "small" ? "w-32 h-32" : "w-40 h-40";
+  const sizeClasses =
+    size === "small"
+      ? "w-24 h-24"
+      : size === "medium"
+      ? "w-32 h-32"
+      : "w-40 h-40";
 
   return (
-    <div
-      className={`bg-white rounded-full flex items-center justify-center mb-6 ${classes}`}
-    >
+    <div className={`mx-auto flex items-center justify-center ${sizeClasses}`}>
       <img
         src={logo}
-        alt="Logo"
-        className="object-contain"
-        style={{ width: "100%", height: "100%" }}
+        alt="CECC Logo"
+        className="object-contain w-full h-full drop-shadow-md"
       />
     </div>
   );

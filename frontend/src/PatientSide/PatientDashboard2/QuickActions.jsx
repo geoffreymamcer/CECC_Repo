@@ -1,92 +1,80 @@
 import React from "react";
-// --- 1. Import the custom hook we created in DashboardLayout ---
 import { useDashboardNav } from "./DashboardLayout";
+import { FiUser, FiLock, FiBell, FiArrowRight } from "react-icons/fi";
 
 const QuickActions = ({ unreadNotifications }) => {
-  // --- 2. Use the hook to get the navigation setter function ---
   const { setActiveNav } = useDashboardNav();
 
-  const actions = [
+  const actionButtons = [
     {
-      name: "Edit Profile",
-      icon: "M9 5l7 7-7 7",
-      // --- 3. Add an onClick handler to navigate ---
-      onClick: () => setActiveNav("profile"),
+      label: "Edit Profile",
+      icon: <FiUser />,
+      nav: "profile",
+      color: "bg-blue-50 text-blue-700 hover:bg-blue-100",
     },
     {
-      name: "Change Password",
-      icon: "M9 5l7 7-7 7",
-      // Change Password button also navigates to the profile page
-      onClick: () => setActiveNav("profile"),
-    },
-  ];
-
-  const notifications = [
-    { text: "New test results available", time: "2 hours ago", type: "info" },
-    {
-      text: "Appointment reminder: June 25",
-      time: "1 day ago",
-      type: "normal",
+      label: "Security",
+      icon: <FiLock />,
+      nav: "profile",
+      color: "bg-purple-50 text-purple-700 hover:bg-purple-100",
     },
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 transition-all duration-300 hover:shadow-lg">
-      <h3 className="text-xl font-semibold text-gray-800 mb-4">
-        Quick Actions
+    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <span className="w-1 h-6 bg-[#7F0000] rounded-full"></span>
+        Quick Access
       </h3>
-      <div className="space-y-3">
-        {actions.map((action, index) => (
+
+      {/* Action Tiles */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        {actionButtons.map((btn, idx) => (
           <button
-            key={index}
-            // --- 4. Attach the onClick handler here ---
-            onClick={action.onClick}
-            className="w-full flex items-center justify-between p-3 border border-gray-200 rounded hover:bg-gray-50 transition-all duration-200 transform hover:scale-[1.01]"
+            key={idx}
+            onClick={() => setActiveNav(btn.nav)}
+            className={`flex flex-col items-center justify-center p-4 rounded-2xl transition-all duration-300 ${btn.color}`}
           >
-            <span>{action.name}</span>
-            <svg
-              className="w-5 h-5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d={action.icon}
-              ></path>
-            </svg>
+            <div className="text-2xl mb-2">{btn.icon}</div>
+            <span className="text-xs font-bold">{btn.label}</span>
           </button>
         ))}
       </div>
 
-      <h4 className="font-medium text-gray-800 mt-6 mb-3">New Notifications</h4>
-      <div className="space-y-3">
-        {unreadNotifications && unreadNotifications.length > 0 ? (
-          // If there are unread notifications, map over them
-          unreadNotifications.slice(0, 2).map(
-            (
-              notification // Show max of 2 for brevity
-            ) => (
+      {/* Notification Widget */}
+      <div className="border-t border-gray-100 pt-4">
+        <div className="flex justify-between items-center mb-3">
+          <h4 className="text-sm font-bold text-gray-600 flex items-center gap-2">
+            <FiBell /> Recent Updates
+          </h4>
+          {unreadNotifications?.length > 0 && (
+            <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
+              {unreadNotifications.length} New
+            </span>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          {unreadNotifications && unreadNotifications.length > 0 ? (
+            unreadNotifications.slice(0, 2).map((n) => (
               <div
-                key={notification._id}
-                className="p-3 border rounded bg-blue-50 border-blue-100"
+                key={n._id}
+                className="p-3 bg-gray-50 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors cursor-default"
               >
-                <p className="text-sm font-semibold text-blue-800">
-                  {notification.title}
+                <p className="text-xs font-bold text-gray-800 mb-0.5 truncate">
+                  {n.title}
                 </p>
-                <p className="text-xs text-blue-700">{notification.message}</p>
+                <p className="text-[10px] text-gray-500 line-clamp-1">
+                  {n.message}
+                </p>
               </div>
-            )
-          )
-        ) : (
-          // If the array is empty, show a message
-          <div className="p-3 text-center text-sm text-gray-500 bg-gray-50 rounded-lg">
-            No new notifications.
-          </div>
-        )}
+            ))
+          ) : (
+            <p className="text-xs text-gray-400 italic text-center py-2">
+              You're all caught up!
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

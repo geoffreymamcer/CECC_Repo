@@ -3,10 +3,10 @@ import instance from "../../api/axios";
 import RescheduleModal from "./RescheduleModal";
 import CancelModal from "./CancelAppointmentModal";
 import { useAuth } from "../../context/AuthContext";
+import { FiCalendar, FiClock, FiMapPin, FiUser } from "react-icons/fi";
 
 const AppointmentCard = () => {
   const { user } = useAuth();
-
   const [upcoming, setUpcoming] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -15,27 +15,15 @@ const AppointmentCard = () => {
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchUpcomingAppointment = async () => {
-    // Moved into its own function for re-usability
     setLoading(true);
     setError("");
     try {
-      if (!user) {
-        // setError("Missing user session. Please log in again.");
-        return; // Don't try to fetch if there's no user
-      }
-
+      if (!user) return;
       const patientId = user.id || user._id;
-      if (!patientId) {
-        setError("Invalid user session.");
-        return;
-      }
-
-      // --- 2. USE THE API INSTANCE ---
-      // The Authorization header is now handled automatically by the instance
       const res = await instance.get(`/appointments/${patientId}`);
-
       const now = new Date();
-      // Filter for appointments that are in the future and not cancelled
+      now.setHours(0, 0, 0, 0);
+
       const upcomingList = (res.data || []).filter(
         (appt) =>
           new Date(appt.appointmentDate) >= now &&
@@ -45,7 +33,6 @@ const AppointmentCard = () => {
       if (upcomingList.length === 0) {
         setUpcoming(null);
       } else {
-        // Sort to find the very next appointment
         upcomingList.sort(
           (a, b) => new Date(a.appointmentDate) - new Date(b.appointmentDate)
         );
@@ -60,27 +47,21 @@ const AppointmentCard = () => {
   };
 
   useEffect(() => {
-    // Only fetch if the user object is available
-    if (user) {
-      fetchUpcomingAppointment();
-    } else {
-      setLoading(false); // If no user, we're done loading
-    }
+    if (user) fetchUpcomingAppointment();
+    else setLoading(false);
   }, [user]);
 
   const handleReschedule = async ({ _id, date, time }) => {
     if (!_id) return;
     setActionLoading(true);
     try {
-      // --- 3. USE THE API INSTANCE ---
       await instance.patch(`/appointments/${_id}`, {
         appointmentDate: date,
         appointmentTime: time,
       });
       setShowReschedule(false);
-      fetchUpcomingAppointment(); // Re-fetch data instead of reloading the page
+      fetchUpcomingAppointment();
     } catch (err) {
-      console.error("Failed to reschedule:", err);
       alert("Failed to reschedule appointment.");
     } finally {
       setActionLoading(false);
@@ -91,124 +72,128 @@ const AppointmentCard = () => {
     if (!_id) return;
     setActionLoading(true);
     try {
-      // --- 4. USE THE API INSTANCE ---
       await instance.patch(`/appointments/${_id}/status`, {
         status: "cancelled",
         cancellationReason,
       });
       setShowCancel(false);
-      fetchUpcomingAppointment(); // Re-fetch data instead of reloading the page
+      fetchUpcomingAppointment();
     } catch (err) {
-      console.error("Failed to cancel:", err);
       alert("Failed to cancel appointment.");
     } finally {
       setActionLoading(false);
     }
   };
 
-  if (loading) {
+  if (loading)
     return (
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
-        <div className="h-4 bg-gray-200 rounded w-full"></div>
-      </div>
+      <div className="bg-white h-40 rounded-3xl animate-pulse shadow-sm"></div>
     );
-  }
-  if (error) {
+  if (error)
     return (
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6 text-red-500">
-        {error}
-      </div>
+      <div className="bg-red-50 text-red-500 p-6 rounded-3xl">{error}</div>
     );
-  }
+
   if (!upcoming) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h3 className="text-xl font-semibold text-gray-800">
-          Upcoming Appointment
-        </h3>
-        <span className="text-gray-500">
-          No upcoming appointment scheduled.
-        </span>
+      <div className="bg-white rounded-3xl shadow-sm p-8 border border-gray-100 flex flex-col items-center justify-center text-center h-full min-h-[200px]">
+        <div className="bg-gray-100 p-4 rounded-full mb-4 text-gray-400">
+          <FiCalendar size={24} />
+        </div>
+        <h3 className="text-lg font-bold text-gray-800">No Upcoming Visits</h3>
+        <p className="text-gray-500 mt-1 mb-4 text-sm">
+          You're all caught up! Need to see a doctor?
+        </p>
+        {/* This could link to the booking page */}
       </div>
     );
   }
 
   const dateObj = new Date(upcoming.appointmentDate);
-  const dateStr = dateObj.toLocaleDateString(undefined, {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const timeStr = upcoming.appointmentTime;
+  const dayName = dateObj.toLocaleDateString("en-US", { weekday: "short" });
+  const dayNum = dateObj.getDate();
+  const monthName = dateObj.toLocaleDateString("en-US", { month: "short" });
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6 transition-all duration-300 hover:shadow-lg">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-semibold text-gray-800">
-          Upcoming Appointment
-        </h3>
-        <span className="bg-green-100 text-green-800 text-sm font-medium px-2.5 py-0.5 rounded animate-pulse">
-          {upcoming.status ? upcoming.status.toUpperCase() : "SCHEDULED"}
-        </span>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <div>
-          <p className="text-gray-600">Date & Time</p>
-          <p className="font-medium">
-            {dateStr} at {timeStr}
-          </p>
+    <div className="bg-white rounded-3xl shadow-lg shadow-gray-200/50 border border-gray-100 overflow-hidden relative group hover:shadow-xl transition-all duration-300">
+      {/* Left Border Accent */}
+      <div className="absolute left-0 top-0 bottom-0 w-2 bg-[#7F0000]"></div>
+
+      <div className="p-6 pl-8 flex flex-col md:flex-row gap-6 items-start md:items-center">
+        {/* Date Box */}
+        <div className="flex-shrink-0 bg-gray-50 rounded-2xl p-4 text-center min-w-[90px] border border-gray-200">
+          <span className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
+            {monthName}
+          </span>
+          <span className="block text-3xl font-extrabold text-[#7F0000]">
+            {dayNum}
+          </span>
+          <span className="block text-sm font-medium text-gray-600">
+            {dayName}
+          </span>
         </div>
-        <div>
-          <p className="text-gray-600">Doctor</p>
-          <p className="font-medium">
-            {upcoming.doctorName || "Philip Richard Budiongan"}
-          </p>
+
+        {/* Details */}
+        <div className="flex-grow space-y-2">
+          <div className="flex justify-between items-start">
+            <h3 className="text-xl font-bold text-gray-900">
+              {upcoming.serviceType || "Consultation"}
+            </h3>
+            <span className="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-1 rounded-full">
+              {upcoming.status?.toUpperCase() || "CONFIRMED"}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-2">
+            <div className="flex items-center gap-1.5">
+              <FiClock className="text-[#7F0000]" />
+              {upcoming.appointmentTime}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <FiUser className="text-[#7F0000]" />
+              {upcoming.doctorName || "Dr. Philip Budiongan"}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <FiMapPin className="text-[#7F0000]" />
+              {upcoming.location || "Main Clinic"}
+            </div>
+          </div>
         </div>
-        <div>
-          <p className="text-gray-600">Reason</p>
-          <p className="font-medium">
-            {upcoming.serviceType || "Annual Eye Exam"}
-          </p>
+
+        {/* Actions */}
+        <div className="flex flex-row md:flex-col gap-2 w-full md:w-auto">
+          <button
+            onClick={() => setShowReschedule(true)}
+            className="flex-1 md:w-32 px-4 py-2 bg-[#7F0000] text-white text-sm font-bold rounded-xl hover:bg-[#600000] transition-colors shadow-md hover:shadow-lg"
+          >
+            Reschedule
+          </button>
+          <button
+            onClick={() => setShowCancel(true)}
+            className="flex-1 md:w-32 px-4 py-2 border-2 border-gray-200 text-gray-600 text-sm font-bold rounded-xl hover:bg-gray-50 hover:text-red-600 hover:border-red-100 transition-all"
+          >
+            Cancel
+          </button>
         </div>
-        <div>
-          <p className="text-gray-600">Location</p>
-          <p className="font-medium">
-            {upcoming.location || "Main Clinic - Room 205"}
-          </p>
-        </div>{" "}
       </div>
-      <div className="flex space-x-3">
-        <button
-          className="px-4 py-2 bg-dark-red text-white rounded hover:bg-deep-red transition-all duration-200 transform hover:scale-[1.02]"
-          onClick={() => setShowReschedule(true)}
-        >
-          Reschedule
-        </button>
-        <button
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-all duration-200 transform hover:scale-[1.02]"
-          onClick={() => setShowCancel(true)}
-        >
-          Cancel
-        </button>
-        {showReschedule && (
-          <RescheduleModal
-            appointment={upcoming}
-            onClose={() => setShowReschedule(false)}
-            onReschedule={handleReschedule} // Use the new handler
-            actionLoading={actionLoading}
-          />
-        )}
-        {showCancel && (
-          <CancelModal
-            appointment={upcoming}
-            onClose={() => setShowCancel(false)}
-            onCancel={handleCancel} // Use the new handler
-            actionLoading={actionLoading}
-          />
-        )}
-      </div>
+
+      {/* Modals */}
+      {showReschedule && (
+        <RescheduleModal
+          appointment={upcoming}
+          onClose={() => setShowReschedule(false)}
+          onReschedule={handleReschedule}
+          actionLoading={actionLoading}
+        />
+      )}
+      {showCancel && (
+        <CancelModal
+          appointment={upcoming}
+          onClose={() => setShowCancel(false)}
+          onCancel={handleCancel}
+          actionLoading={actionLoading}
+        />
+      )}
     </div>
   );
 };

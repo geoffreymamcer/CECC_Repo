@@ -10,7 +10,7 @@ const CancelModal = ({ appointment, onClose, onCancel }) => {
     "Found another provider",
     "Financial reasons",
     "Scheduling conflict",
-    "Other"
+    "Other",
   ];
 
   const handleSubmit = async (e) => {
@@ -18,14 +18,14 @@ const CancelModal = ({ appointment, onClose, onCancel }) => {
     setIsSubmitting(true);
     await onCancel({
       ...appointment,
-      cancellationReason: reason
+      cancellationReason: reason,
     });
     setIsSubmitting(false);
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div 
+      <div
         className="bg-white rounded-xl max-w-md w-full animate-fadeIn shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
@@ -35,7 +35,7 @@ const CancelModal = ({ appointment, onClose, onCancel }) => {
             <FiAlertTriangle className="mr-2 text-red-600" />
             Cancel Appointment
           </h3>
-          <button 
+          <button
             onClick={onClose}
             className="p-1 rounded-full hover:bg-red-100 transition-colors"
           >
@@ -46,17 +46,18 @@ const CancelModal = ({ appointment, onClose, onCancel }) => {
         {/* Appointment Info */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-start mb-3">
-                <div className="bg-gray-100 p-2 rounded-lg mr-3">
-                <FiCalendar className="w-5 h-5 text-gray-600" />
-                </div>
-                <div>
-                <h4 className="font-medium text-gray-800">
-                    {appointment.reason} with {appointment.doctor}
-                </h4>
-                <p className="text-sm text-gray-600">
-                    {new Date(appointment.date).toLocaleDateString()} at {appointment.time}
-                </p>
-                </div>
+            <div className="bg-gray-100 p-2 rounded-lg mr-3">
+              <FiCalendar className="w-5 h-5 text-gray-600" />
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-800">
+                {appointment.reason} with {appointment.doctor}
+              </h4>
+              <p className="text-sm text-gray-600">
+                {new Date(appointment.date).toLocaleDateString()} at{" "}
+                {appointment.time}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -83,7 +84,7 @@ const CancelModal = ({ appointment, onClose, onCancel }) => {
               </select>
             </div>
 
-            {/* Optional Feedback */}
+            {/* Optional edback */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Additional feedback (optional)
@@ -113,9 +114,25 @@ const CancelModal = ({ appointment, onClose, onCancel }) => {
             >
               {isSubmitting ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Cancelling...
                 </>
@@ -129,6 +146,5 @@ const CancelModal = ({ appointment, onClose, onCancel }) => {
     </div>
   );
 };
-
 
 export default CancelModal;

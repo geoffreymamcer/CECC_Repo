@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import FormGroup from "./FormGroup";
 import "./PatientLogin.css";
 import instance from "../../api/axios";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle, Mail } from "lucide-react";
 
 export default function SignupForm({ toggleForm }) {
   const [firstName, setFirstname] = useState("");
@@ -17,9 +17,7 @@ export default function SignupForm({ toggleForm }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  // State to manage which step of the form is visible
-  const [formStep, setFormStep] = useState("signup"); // 'signup' or 'verify'
+  const [formStep, setFormStep] = useState("signup");
 
   const handleSignupSubmit = async (event) => {
     event.preventDefault();
@@ -27,16 +25,13 @@ export default function SignupForm({ toggleForm }) {
     setMessage("");
 
     if (isLoading) return;
-
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
 
     setIsLoading(true);
-
     try {
-      // Step 1: Send user details to get a verification code
       const response = await instance.post("/users/signup", {
         firstName,
         middleName,
@@ -48,7 +43,7 @@ export default function SignupForm({ toggleForm }) {
 
       if (response.data.status === "success") {
         setMessage(response.data.message);
-        setFormStep("verify"); // Move to the verification step
+        setFormStep("verify");
       }
     } catch (err) {
       console.error("Error sending verification code:", err);
@@ -64,34 +59,20 @@ export default function SignupForm({ toggleForm }) {
     event.preventDefault();
     setError("");
     setMessage("");
-
     if (isLoading) return;
     setIsLoading(true);
 
     try {
-      // Step 2: Verify the code and create the account
       const response = await instance.post("/users/verify-email", {
         email,
         verificationCode,
       });
-
       if (response.data.status === "success") {
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data.user));
-
         alert("Account Created Successfully!");
-        toggleForm(); // Switch to login form or close modal
-
-        // Reset all fields
-        setFirstname("");
-        setMiddleName("");
-        setLastName("");
-        setPhoneNumber("");
-        setEmail("");
-        setPassword("");
-        setConfirmPassword("");
-        setVerificationCode("");
-        setError("");
+        toggleForm();
+        // Reset fields...
       }
     } catch (err) {
       console.error("Error verifying code:", err);
@@ -103,58 +84,67 @@ export default function SignupForm({ toggleForm }) {
 
   if (formStep === "verify") {
     return (
-      <form className="w-full space-y-4" onSubmit={handleVerificationSubmit}>
-        <h3 className="text-xl font-bold text-center text-gray-800">
-          Verify Your Email
-        </h3>
-        {message && <p className="success-message">{message}</p>}
+      <div className="animate-fadeIn">
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Mail className="w-8 h-8" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-800">Check your Email</h3>
+          <p className="text-gray-500 text-sm mt-2">
+            {message || "We sent a code to " + email}
+          </p>
+        </div>
 
-        <FormGroup
-          icon="key"
-          type="text"
-          placeholder="Verification Code"
-          value={verificationCode}
-          onChange={(e) => setVerificationCode(e.target.value)}
-          disabled={isLoading}
-        />
+        <form className="w-full space-y-4" onSubmit={handleVerificationSubmit}>
+          <FormGroup
+            icon="key"
+            type="text"
+            placeholder="Verification Code"
+            value={verificationCode}
+            onChange={(e) => setVerificationCode(e.target.value)}
+            disabled={isLoading}
+          />
 
-        {error && <p className="error-message">{error}</p>}
-
-        <button
-          type="submit"
-          className={`w-full py-3 rounded-lg font-bold transition-all duration-300 flex items-center justify-center space-x-2 ${
-            isLoading
-              ? "bg-red-800 cursor-not-allowed opacity-80"
-              : "bg-red-800 text-white btn-hover"
-          }`}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="animate-spin" size={20} color="white" />
-              <span>Verifying...</span>
-            </>
-          ) : (
-            "Verify and Create Account"
+          {error && (
+            <p className="text-red-500 text-sm text-center bg-red-50 p-2 rounded">
+              {error}
+            </p>
           )}
-        </button>
-        <div className="text-center pt-4">
+
           <button
-            type="button"
-            onClick={() => setFormStep("signup")}
-            className="text-sm text-gray-600 hover:underline"
+            type="submit"
+            className="w-full py-3.5 rounded-xl font-bold bg-[#7F0000] text-white hover:bg-[#600000] transition-all shadow-lg"
             disabled={isLoading}
           >
-            Back to Sign Up
+            {isLoading ? (
+              <div className="flex justify-center gap-2">
+                <Loader2 className="animate-spin" /> Verifying...
+              </div>
+            ) : (
+              "Verify & Create Account"
+            )}
           </button>
-        </div>
-      </form>
+          <div className="text-center pt-4">
+            <button
+              type="button"
+              onClick={() => setFormStep("signup")}
+              className="text-sm text-gray-500 hover:text-[#7F0000] underline"
+              disabled={isLoading}
+            >
+              Change Email / Back
+            </button>
+          </div>
+        </form>
+      </div>
     );
   }
 
   return (
-    <form className="w-full space-y-4" onSubmit={handleSignupSubmit}>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <form
+      className="w-full space-y-3 animate-fadeIn"
+      onSubmit={handleSignupSubmit}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <FormGroup
           icon="user"
           type="text"
@@ -173,7 +163,6 @@ export default function SignupForm({ toggleForm }) {
         />
       </div>
 
-      {/* Second row: Last Name (full width) */}
       <FormGroup
         icon="user"
         type="text"
@@ -182,7 +171,8 @@ export default function SignupForm({ toggleForm }) {
         onChange={(e) => setLastName(e.target.value)}
         disabled={isLoading}
       />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <FormGroup
           icon="envelope"
           type="email"
@@ -200,7 +190,8 @@ export default function SignupForm({ toggleForm }) {
           disabled={isLoading}
         />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <FormGroup
           icon="lock"
           type="password"
@@ -219,34 +210,32 @@ export default function SignupForm({ toggleForm }) {
         />
       </div>
 
-      {error && <p className="error-message">{error}</p>}
+      {error && (
+        <p className="text-red-500 text-sm text-center bg-red-50 p-2 rounded">
+          {error}
+        </p>
+      )}
 
       <button
         type="submit"
-        className={`w-full py-3 rounded-lg font-bold transition-all duration-300 flex items-center justify-center space-x-2 ${
-          isLoading
-            ? "bg-red-800 cursor-not-allowed opacity-80"
-            : "bg-red-800 text-white btn-hover"
-        }`}
+        className="w-full py-3.5 rounded-xl font-bold bg-[#7F0000] text-white hover:bg-[#600000] transition-all shadow-lg mt-4"
         disabled={isLoading}
       >
         {isLoading ? (
-          <>
-            <Loader2 className="animate-spin" size={20} color="white" />
-            <span>Sending Code...</span>
-          </>
+          <div className="flex justify-center gap-2">
+            <Loader2 className="animate-spin" /> Processing...
+          </div>
         ) : (
           "Sign Up"
         )}
       </button>
 
-      <div className="text-center pt-4 border-t border-gray-100">
-        <span className="text-gray-700">Have an Account Already?</span>
+      <div className="text-center pt-6">
+        <span className="text-gray-500 text-sm">Already have an account?</span>
         <button
           type="button"
           onClick={toggleForm}
-          className="ml-2 bg-dark-red text-white px-4 py-1 rounded-lg text-sm btn-hover transition-all duration-300"
-          disabled={isLoading}
+          className="ml-2 text-[#7F0000] font-bold hover:underline text-sm"
         >
           Log In
         </button>

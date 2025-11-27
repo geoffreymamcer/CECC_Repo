@@ -1,6 +1,15 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import {
+  FiBell,
+  FiMail,
+  FiMenu,
+  FiChevronDown,
+  FiLogOut,
+  FiUser,
+  FiSettings,
+} from "react-icons/fi";
 
 const Navbar = ({
   sidebarOpen,
@@ -14,277 +23,275 @@ const Navbar = ({
 }) => {
   const { user, logout } = useAuth();
 
-  const [notificationOpen, setNotificationOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
+  // State for dropdowns
+  const [activeDropdown, setActiveDropdown] = useState(null);
   const [userName, setUserName] = useState("");
   const [profilePic, setProfilePic] = useState("");
-  const [inboxOpen, setInboxOpen] = useState(false);
 
-  const handleNotificationClick = (notification) => {
-    if (!notification.isRead) {
-      onNotificationRead(notification._id);
-    }
-    setNotificationOpen(false);
-  };
-
-  const handleMessageClick = (conversation) => {
-    if (onMessageClick) {
-      onMessageClick(conversation); // This now passes the correct object
-    }
-    setInboxOpen(false);
-  };
-
-  const handleSignOut = () => {
-    logout();
-  };
+  // Refs for click-outside detection
+  const navRef = useRef(null);
 
   useEffect(() => {
     if (user) {
-      setUserName(user.firstName || "");
+      setUserName(user.firstName || "Patient");
       setProfilePic(user.profilePicture || "");
-    } else {
-      setUserName("");
-      setProfilePic("");
     }
   }, [user]);
 
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (navRef.current && !navRef.current.contains(event.target)) {
+        setActiveDropdown(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const toggleDropdown = (name) => {
+    setActiveDropdown(activeDropdown === name ? null : name);
+  };
+
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center">
+    <header
+      ref={navRef}
+      className="bg-white border-b border-gray-100 sticky top-0 z-40 h-20 flex items-center shadow-sm w-full"
+    >
+      <div className="w-full px-4 md:px-8 flex justify-between items-center">
+        {/* Left: Mobile Toggle & Title */}
+        <div className="flex items-center gap-4">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="md:hidden mr-4 text-gray-600 hover:text-gray-900 transition-colors"
+            className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              ></path>
-            </svg>
+            <FiMenu size={24} />
           </button>
-          <h1 className="text-xl font-semibold text-gray-800">
-            Candelaria Eye Care Clinic
-          </h1>
         </div>
-        <div className="flex items-center space-x-4">
-          {/* --- Notification Bell --- */}
+
+        {/* Right: Actions & Profile */}
+        <div className="flex items-center gap-2 md:gap-4">
+          {/* --- Messages --- */}
           <div className="relative">
             <button
-              onClick={() => {
-                setNotificationOpen(!notificationOpen);
-                setProfileOpen(false);
-              }}
-              className="p-2 rounded-full hover:bg-gray-100 relative transition-colors"
+              onClick={() => toggleDropdown("messages")}
+              className={`p-2.5 rounded-full transition-all duration-200 relative group ${
+                activeDropdown === "messages"
+                  ? "bg-red-50 text-[#7F0000]"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+              }`}
             >
-              <svg
-                className="w-6 h-6 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                ></path>
-              </svg>
-              {hasUnread && (
-                <>
-                  <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-red-500 animate-ping"></span>
-                  <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-red-500"></span>
-                </>
+              <FiMail size={20} />
+              {hasUnreadMessages && (
+                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>
               )}
             </button>
-            {notificationOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg py-1 z-30 animate-fadeIn">
-                <div className="px-4 py-2 border-b">
-                  <h4 className="font-medium text-gray-800">Notifications</h4>
+
+            {/* Messages Dropdown */}
+            {activeDropdown === "messages" && (
+              <div className="absolute right-0 mt-4 w-80 md:w-96 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-fadeIn origin-top-right">
+                <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                  <h4 className="font-bold text-gray-800 text-sm">Messages</h4>
+                  <Link
+                    to="#"
+                    className="text-xs font-bold text-[#7F0000] hover:underline"
+                  >
+                    View All
+                  </Link>
                 </div>
-                <div className="max-h-80 overflow-y-auto">
+                <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                  {conversations.length > 0 ? (
+                    conversations.map((convo) => (
+                      <button
+                        key={convo._id}
+                        onClick={() => {
+                          onMessageClick(convo);
+                          setActiveDropdown(null);
+                        }}
+                        className={`w-full text-left p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors flex gap-3 ${
+                          convo.lastMessage && !convo.lastMessage.isRead
+                            ? "bg-red-50/30"
+                            : ""
+                        }`}
+                      >
+                        <div
+                          className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${
+                            convo.lastMessage && !convo.lastMessage.isRead
+                              ? "bg-[#7F0000]"
+                              : "bg-transparent"
+                          }`}
+                        ></div>
+                        <div className="min-w-0">
+                          <p
+                            className={`text-sm truncate ${
+                              convo.lastMessage && !convo.lastMessage.isRead
+                                ? "font-bold text-gray-900"
+                                : "font-medium text-gray-700"
+                            }`}
+                          >
+                            {convo.subject}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate mt-0.5">
+                            {convo.lastMessage?.content}
+                          </p>
+                          <span className="text-[10px] text-gray-400 mt-1 block">
+                            {convo.lastMessage
+                              ? new Date(
+                                  convo.lastMessage.createdAt
+                                ).toLocaleString()
+                              : ""}
+                          </span>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-8 text-center text-gray-400 text-sm">
+                      No messages yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* --- Notifications --- */}
+          <div className="relative">
+            <button
+              onClick={() => toggleDropdown("notifications")}
+              className={`p-2.5 rounded-full transition-all duration-200 relative group ${
+                activeDropdown === "notifications"
+                  ? "bg-red-50 text-[#7F0000]"
+                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+              }`}
+            >
+              <FiBell size={20} />
+              {hasUnread && (
+                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full"></span>
+              )}
+            </button>
+
+            {/* Notifications Dropdown */}
+            {activeDropdown === "notifications" && (
+              <div className="absolute right-0 mt-4 w-80 md:w-96 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-fadeIn origin-top-right">
+                <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                  <h4 className="font-bold text-gray-800 text-sm">
+                    Notifications
+                  </h4>
+                  <button className="text-xs font-bold text-gray-400 hover:text-gray-600">
+                    Mark all read
+                  </button>
+                </div>
+                <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                   {notifications.length > 0 ? (
                     notifications.map((n) => (
                       <div
                         key={n._id}
-                        onClick={() => handleNotificationClick(n)}
-                        className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
-                          !n.isRead ? "bg-red-50" : ""
+                        onClick={() => {
+                          if (!n.isRead) onNotificationRead(n._id);
+                          setActiveDropdown(null);
+                        }}
+                        className={`p-4 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors flex gap-3 ${
+                          !n.isRead ? "bg-blue-50/30" : ""
                         }`}
                       >
-                        <p
-                          className={`font-semibold text-sm ${
-                            !n.isRead ? "text-deep-red" : "text-gray-800"
+                        <div
+                          className={`w-2 h-2 mt-1.5 rounded-full flex-shrink-0 ${
+                            !n.isRead ? "bg-blue-500" : "bg-gray-200"
                           }`}
-                        >
-                          {n.title}
-                        </p>
-                        <p className="text-sm text-gray-600">{n.message}</p>
-                        <span className="block text-xs text-gray-400 mt-1">
-                          {new Date(n.createdAt).toLocaleString()}
-                        </span>
+                        ></div>
+                        <div>
+                          <p
+                            className={`text-sm ${
+                              !n.isRead
+                                ? "font-bold text-gray-800"
+                                : "font-medium text-gray-600"
+                            }`}
+                          >
+                            {n.title}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                            {n.message}
+                          </p>
+                          <span className="text-[10px] text-gray-400 mt-1 block">
+                            {new Date(n.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
                     ))
                   ) : (
-                    <div className="p-4 text-sm text-center text-gray-500">
+                    <div className="p-8 text-center text-gray-400 text-sm">
                       No new notifications.
                     </div>
                   )}
                 </div>
-                <div className="px-4 py-2 border-t">
-                  <Link
-                    to="#"
-                    className="text-sm text-dark-red hover:underline"
-                  >
-                    View all notifications
-                  </Link>
-                </div>
               </div>
             )}
           </div>
 
-          <div className="relative">
-            <button
-              onClick={() => {
-                setInboxOpen(!inboxOpen);
-                setNotificationOpen(false); // Close other dropdowns
-                setProfileOpen(false);
-              }}
-              className="p-2 rounded-full hover:bg-gray-100 relative transition-colors"
-            >
-              {/* Mail Icon */}
-              <svg
-                className="w-6 h-6 text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                />
-              </svg>
-              {hasUnreadMessages && (
-                <>
-                  <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-red-500 animate-ping"></span>
-                  <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-red-500"></span>
-                </>
-              )}
-            </button>
-            {inboxOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg py-1 z-30 animate-fadeIn">
-                <div className="px-4 py-2 border-b">
-                  <h4 className="font-medium text-gray-800">Inbox</h4>
-                </div>
-                <div className="max-h-80 overflow-y-auto">
-                  {/* --- 3. UPDATE MAPPING LOGIC --- */}
-                  {conversations.length > 0 ? (
-                    conversations.map((convo) => (
-                      <div
-                        key={convo._id} // Use conversation ID for the key
-                        onClick={() => handleMessageClick(convo)} // Pass the whole convo object
-                        className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
-                          convo.lastMessage && !convo.lastMessage.isRead
-                            ? "bg-red-50"
-                            : ""
-                        }`}
-                      >
-                        <p
-                          className={`font-semibold text-sm ${
-                            convo.lastMessage && !convo.lastMessage.isRead
-                              ? "text-deep-red"
-                              : "text-gray-800"
-                          }`}
-                        >
-                          {/* Display the subject now, which is more useful */}
-                          {convo.subject}
-                        </p>
-                        <p className="text-sm text-gray-600 truncate">
-                          {/* Access the last message content for the preview */}
-                          {convo.lastMessage?.content}
-                        </p>
-                        <span className="block text-xs text-gray-400 mt-1">
-                          {convo.lastMessage
-                            ? new Date(
-                                convo.lastMessage.createdAt
-                              ).toLocaleString()
-                            : ""}
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-4 text-sm text-center text-gray-500">
-                      You have no messages.
-                    </div>
-                  )}
-                </div>
-                <div className="px-4 py-2 border-t">
-                  <Link
-                    to="#"
-                    className="text-sm text-dark-red hover:underline"
-                  >
-                    View all messages
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
+          {/* Divider */}
+          <div className="h-8 w-px bg-gray-200 mx-1 hidden md:block"></div>
 
-          {/* --- Profile Dropdown --- */}
+          {/* --- Profile Menu --- */}
           <div className="relative">
             <button
-              onClick={() => {
-                setProfileOpen(!profileOpen);
-                setNotificationOpen(false);
-              }}
-              className="flex items-center space-x-2 focus:outline-none"
+              onClick={() => toggleDropdown("profile")}
+              className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-full hover:bg-gray-100 transition-all border border-transparent hover:border-gray-200"
             >
-              <span className="text-gray-600">
-                Welcome,{" "}
-                <span className="font-medium">{userName || "there"}</span>
-              </span>
+              <div className="hidden md:block text-right">
+                <p className="text-sm font-bold text-gray-800 leading-none">
+                  {userName}
+                </p>
+                <p className="text-[10px] text-gray-500 font-medium mt-0.5">
+                  Patient
+                </p>
+              </div>
+
               {profilePic ? (
                 <img
                   src={profilePic}
                   alt="Profile"
-                  className="h-8 w-8 rounded-full object-cover border-2 transition-transform hover:scale-105"
+                  className="h-9 w-9 rounded-full object-cover border-2 border-white shadow-sm"
                 />
               ) : (
-                <div className="h-8 w-8 rounded-full bg-dark-red flex items-center justify-center text-white font-semibold transition-transform hover:scale-105">
-                  {userName ? userName[0].toUpperCase() : "?"}
+                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#7F0000] to-[#5a0000] flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                  {userName ? userName[0].toUpperCase() : "P"}
                 </div>
               )}
+              <FiChevronDown
+                className={`text-gray-400 transition-transform duration-200 ${
+                  activeDropdown === "profile" ? "rotate-180" : ""
+                }`}
+              />
             </button>
-            {profileOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-30 animate-fadeIn">
+
+            {/* Profile Dropdown */}
+            {activeDropdown === "profile" && (
+              <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-fadeIn origin-top-right p-2">
+                <div className="px-3 py-2 mb-2 border-b border-gray-50 md:hidden">
+                  <p className="font-bold text-gray-800">{userName}</p>
+                  <p className="text-xs text-gray-500">Patient</p>
+                </div>
+
                 <Link
                   to="#"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
                 >
-                  Your Profile
+                  <FiUser className="text-gray-400" /> Your Profile
                 </Link>
                 <Link
                   to="#"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
                 >
-                  Settings
+                  <FiSettings className="text-gray-400" /> Settings
                 </Link>
+
+                <div className="my-2 border-t border-gray-100"></div>
+
                 <button
-                  onClick={handleSignOut}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  onClick={logout}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-red-600 rounded-xl hover:bg-red-50 transition-colors"
                 >
-                  Sign out
+                  <FiLogOut /> Sign Out
                 </button>
               </div>
             )}

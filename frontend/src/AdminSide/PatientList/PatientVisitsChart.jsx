@@ -99,27 +99,54 @@ const PatientVisitsChart = () => {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
-    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { precision: 0, color: "#9ca3af", font: { size: 11 } },
+        grid: { color: "#f3f4f6", borderDash: [5, 5] },
+        border: { display: false },
+      },
+      x: {
+        ticks: { color: "#9ca3af", font: { size: 11 } },
+        grid: { display: false },
+        border: { display: false },
+      },
+    },
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: (context) => `${context.raw} visits` } },
+      tooltip: {
+        backgroundColor: "#1f2937",
+        padding: 12,
+        cornerRadius: 8,
+        titleFont: { size: 13 },
+        bodyFont: { size: 13 },
+        displayColors: false,
+        callbacks: { label: (context) => `${context.raw} visits` },
+      },
+    },
+    interaction: {
+      mode: "nearest",
+      axis: "x",
+      intersect: false,
     },
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-md p-6">
-      <h2 className="text-lg font-semibold text-[#7F0000] mb-4">
-        Patient Visits This Week
-      </h2>
-      <div className="h-64">
+    // 🚀 MODIFIED: Container Styling
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-full flex flex-col">
+      <div className="mb-6">
+        <h2 className="text-lg font-bold text-gray-800">Patient Visits</h2>
+        <p className="text-xs text-gray-400">Activity over the last 7 days</p>
+      </div>
+      <div className="h-64 w-full flex-grow">
         {loading ? (
           <div className="flex justify-center items-center h-full">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-deep-red"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-deep-red"></div>
           </div>
         ) : chartData ? (
           <Line data={chartData} options={options} />
         ) : (
-          <div className="flex justify-center items-center h-full text-gray-500">
+          <div className="flex justify-center items-center h-full text-gray-400 text-sm">
             No visit data available.
           </div>
         )}

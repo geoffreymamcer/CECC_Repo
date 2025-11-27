@@ -38,6 +38,9 @@ export const createAppointment = async (req, res) => {
       notes,
       visitStatus,
       additionalNotes,
+      // 👇 🤖 EMOJI: Extract fullName from body (sent by Admin Frontend)
+      fullName: manualFullName,
+      // 👆 🤖 EMOJI: End extraction
     } = req.body;
 
     // Get user data from the authenticated user
@@ -49,20 +52,43 @@ export const createAppointment = async (req, res) => {
       });
     }
 
-    // Create appointment with user info
-    const fullName = `${user.firstName} ${
-      user.middleName ? user.middleName + " " : ""
-    }${user.lastName}`.trim();
+    // 👇 🤖 EMOJI: START LOGIC FIX
+    // Determine who the appointment is for.
+    let finalFullName;
+    let finalPatientId;
+    let finalPhoneNumber;
 
-    // Use patientId if available, otherwise use _id (which should be the custom ID for patients)
-    const patientIdToUse = user.patientId || user._id;
+    // Check if the logged-in user is an Admin/Owner booking for someone else
+    const isAdminBooking =
+      (user.role === "admin" || user.role === "owner") && manualFullName;
 
-    console.log(`Creating appointment for patient ID: ${patientIdToUse}`);
+    if (isAdminBooking) {
+      // CASE 1: Admin is booking for a patient manually
+      finalFullName = manualFullName;
+      // Since this is a manual entry, we assign a placeholder ID or the Admin's ID depending on your preference.
+      // Here using "WALK-IN" or similar ensures it doesn't mess up the Admin's personal medical history.
+      finalPatientId = "WALK-IN-" + Date.now();
+      // Admin modal doesn't capture phone number yet, so we default it or use Admin's to satisfy Schema requirements
+      finalPhoneNumber = "N/A (Walk-in)";
+    } else {
+      // CASE 2: Patient is booking for themselves (Standard Logic)
+      finalFullName = `${user.firstName} ${
+        user.middleName ? user.middleName + " " : ""
+      }${user.lastName}`.trim();
+
+      finalPatientId = user.patientId || user._id;
+      finalPhoneNumber = user.phone_number;
+    }
+    // 👆 🤖 EMOJI: END LOGIC FIX
+
+    console.log(
+      `Creating appointment for: ${finalFullName} (ID: ${finalPatientId})`
+    );
 
     const appointment = await Appointment.create({
-      patientId: patientIdToUse,
-      fullName,
-      phoneNumber: user.phone_number,
+      patientId: finalPatientId, // Used the variable determined above
+      fullName: finalFullName, // Used the variable determined above
+      phoneNumber: finalPhoneNumber, // Used the variable determined above
       appointmentDate,
       appointmentTime,
       serviceType,
@@ -70,46 +96,44 @@ export const createAppointment = async (req, res) => {
       notes: notes || additionalNotes || "",
     });
 
-    try {
-      await sendAppointmentConfirmationEmail({
-        email: user.email,
-        firstName: user.firstName,
-        appointmentDate: appointment.appointmentDate,
-        appointmentTime: appointment.appointmentTime,
-        serviceType: appointment.serviceType,
-      });
-    } catch (emailError) {
-      console.error(
-        "Failed to send appointment confirmation email:",
-        emailError.message
-      );
+    // --- EMAIL NOTIFICATION LOGIC ---
+    // Only send patient confirmation email if it was the patient booking for themselves.
+    // (Because if Admin books for "John Doe", we don't have John's email in this payload)
+    if (!isAdminBooking) {
+      try {
+        await sendAppointmentConfirmationEmail({
+          email: user.email,
+          firstName: user.firstName,
+          appointmentDate: appointment.appointmentDate,
+          appointmentTime: appointment.appointmentTime,
+          serviceType: appointment.serviceType,
+        });
+      } catch (emailError) {
+        console.error("Failed to send email:", emailError.message);
+      }
     }
 
+    // ... [Notification logic remains the same] ...
     const adminRecipientIds = ["6869154e483aab1aa36acf26", "CECC25-0004"];
 
     for (const adminId of adminRecipientIds) {
       const notificationPayload = {
-        recipient: adminId, // Use the ID from the current loop iteration
+        recipient: adminId,
         title: "New Appointment Booked",
-        message: `${fullName} has booked an appointment for ${serviceType} on ${new Date(
+        message: `${finalFullName} has booked an appointment for ${serviceType} on ${new Date(
           appointmentDate
         ).toLocaleDateString()}.`,
         type: "appointment",
         link: "/cecc-admin-dashboard?tab=Appointments",
       };
 
-      // Save the notification to the database for this specific admin
       await Notification.create(notificationPayload);
 
-      // Emit a real-time event if this specific admin is online
       const recipientSocketId = req.onlineUsers.get(adminId);
       if (recipientSocketId) {
         req.io
           .to(recipientSocketId)
           .emit("new_notification", notificationPayload);
-        console.log(`Sent new appointment notification to admin ${adminId}`);
-      } else {
-        console.log(`Admin ${adminId} is offline. Notification saved to DB.`);
       }
     }
 

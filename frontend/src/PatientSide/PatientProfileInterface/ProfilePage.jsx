@@ -5,8 +5,7 @@ import Footer from "./Footer";
 import "./PatientProfileInterface.css";
 
 // --- Loading Configuration (in milliseconds) ---
-// Adjust this value to control the loading state duration across all environments
-const PROFILE_LOADING_DURATION = 500; // 1.5 seconds
+const PROFILE_LOADING_DURATION = 500;
 
 const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -20,18 +19,23 @@ const ProfilePage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    // 👇 🤖 EMOJI: Added a subtle pattern background for a more premium feel
+    <div className="h-full overflow-y-auto  bg-gray-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-repeat bg-fixed">
       {isLoading ? (
         <div className="min-h-screen flex items-center justify-center">
           <div className="flex flex-col items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-dark-red"></div>
-            <p className="mt-4 text-gray-600 font-medium">Loading profile...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-[#7F0000]"></div>
+            <p className="mt-4 text-gray-600 font-medium animate-pulse">
+              Loading profile...
+            </p>
           </div>
         </div>
       ) : (
-        <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="max-w-5xl mx-auto px-4 py-8 md:py-12">
           <ProfileHeader />
-          <ProfileCard />
+          <div className="animate-slideUp">
+            <ProfileCard />
+          </div>
           <Footer />
         </div>
       )}
