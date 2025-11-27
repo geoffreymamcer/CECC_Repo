@@ -1,4 +1,5 @@
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core"; // --- 1. IMPORT from 'puppeteer-core' ---
+import chromium from "@sparticuz/chromium"; // --- 2. IMPORT the chromium package ---
 import { getInvoiceHtml } from "./invoiceTemplate.js";
 import fs from "fs";
 import path from "path";
@@ -20,16 +21,20 @@ function getImageAsBase64(filePath) {
 const generateInvoicePDF = async (invoiceData) => {
   let browser = null;
   try {
-    let launchOptions = {};
-
+    // --- 3. THE FIX: Configure Puppeteer for a serverless environment ---
     browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
     });
+
     const page = await browser.newPage();
+
     const logoPath = path.join(__dirname, "../assets/clinic-logo.png");
+
     const logoBase64 = getImageAsBase64(logoPath);
     const htmlContent = getInvoiceHtml(invoiceData, logoBase64);
+
     await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
     const pdfBuffer = await page.pdf({
@@ -47,6 +52,7 @@ const generateInvoicePDF = async (invoiceData) => {
     return pdfBuffer;
   } catch (error) {
     console.error("Error generating Invoice PDF with Puppeteer:", error);
+    // Propagate the error so the controller can handle it
     throw new Error("Could not generate Invoice PDF.");
   } finally {
     if (browser) {
