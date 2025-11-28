@@ -1,10 +1,4 @@
-// controllers/ClinicalExaminationController.js
 import ClinicalExamination from "../models/ClinicalExamination.js";
-// --- REMOVED --- The Profile model is no longer needed for these operations.
-
-// --- REMOVED --- createClinicalExamination is obsolete and has been deleted.
-
-// --- MODIFIED --- Fetches a single clinical examination record by its own unique _id.
 export const getClinicalExaminationByRecordId = async (req, res) => {
   try {
     const { recordId } = req.params;
@@ -33,11 +27,9 @@ export const updateClinicalExaminationByRecordId = async (req, res) => {
     );
 
     if (!clinicalExamination) {
-      return res
-        .status(404)
-        .json({
-          message: "Could not find Clinical Examination record to update.",
-        });
+      return res.status(404).json({
+        message: "Could not find Clinical Examination record to update.",
+      });
     }
 
     res.status(200).json(clinicalExamination);
