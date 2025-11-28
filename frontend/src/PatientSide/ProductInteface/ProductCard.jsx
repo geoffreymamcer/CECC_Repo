@@ -1,5 +1,4 @@
 import { Star, ArrowRight } from "lucide-react";
-import StarRating from "./StarRating";
 
 const ProductCard = ({ product, onClick }) => (
   <div
@@ -41,13 +40,6 @@ const ProductCard = ({ product, onClick }) => (
         <h3 className="font-bold text-gray-900 text-lg leading-tight group-hover:text-deep-red transition-colors line-clamp-1">
           {product.name}
         </h3>
-      </div>
-
-      <div className="flex items-center gap-2 mb-4">
-        <StarRating rating={product.rating} />
-        <span className="text-xs text-gray-400 font-medium">
-          ({product.reviewCount} reviews)
-        </span>
       </div>
 
       <p className="text-gray-500 text-sm line-clamp-2 mb-4 flex-grow">

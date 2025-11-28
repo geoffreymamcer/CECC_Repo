@@ -143,7 +143,7 @@ const ColorVisionTestDetailsModal = ({
               </h3>
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">Name</span>
+                  <span className="text-sm text-gray-500">Name: </span>
                   <span className="font-bold text-gray-900">
                     {test.patientName || "Unknown"}
                   </span>

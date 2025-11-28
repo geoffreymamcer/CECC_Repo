@@ -1,5 +1,5 @@
-import path from "path"; // --- THIS IS THE FIX --- Add the missing import
-import { fileURLToPath } from "url"; // You might need this if it's not already there for __dirname
+import path from "path";
+import { fileURLToPath } from "url";
 
 // --- SETUP ---
 const __filename = fileURLToPath(import.meta.url);
@@ -11,9 +11,13 @@ const TEXT_COLOR = "#4A5568";
 const LABEL_COLOR = "#2D3748";
 const BORDER_COLOR = "#EAEAEA";
 
+// --- CONFIGURATION ---
+// Change this string to modify what appears for empty fields globally
+const FALLBACK = "Nothing follows";
+
 // --- HELPER FUNCTIONS ---
 function formatBooleanData(dataObject) {
-  if (!dataObject || typeof dataObject !== "object") return "None reported";
+  if (!dataObject || typeof dataObject !== "object") return FALLBACK;
   const trueKeys = Object.keys(dataObject).filter(
     (key) => key !== "others" && dataObject[key] === true
   );
@@ -27,11 +31,11 @@ function formatBooleanData(dataObject) {
           .trim()
     )
     .join(", ");
-  return formattedKeys.length > 0 ? formattedKeys : "None reported";
+  return formattedKeys.length > 0 ? formattedKeys : FALLBACK;
 }
 
 function formatDate(dateString) {
-  if (!dateString) return "N/A";
+  if (!dateString) return FALLBACK;
   return new Date(dateString).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -44,15 +48,19 @@ function generatePatientInformationHtml(patient) {
   const fullName = [patient.firstName, patient.middleName, patient.lastName]
     .filter(Boolean)
     .join(" ");
-  const fullAddress = [
+
+  // Logic to handle address: if parts are missing, we still try to join,
+  // but if the result is empty string, we return FALLBACK
+  const addressParts = [
     patient.street_subdivision,
     patient.barangay,
     patient.city,
     patient.province,
     patient.region,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  ].filter(Boolean);
+
+  const fullAddress =
+    addressParts.length > 0 ? addressParts.join(", ") : FALLBACK;
 
   return `
     <div class="header-content">
@@ -65,7 +73,7 @@ function generatePatientInformationHtml(patient) {
     
     <div class="patient-identifier">
         <h2>${fullName}</h2>
-        <p>Patient ID: ${patient.patientId || "N/A"}</p>
+        <p>Patient ID: ${patient.patientId || FALLBACK}</p>
     </div>
 
     <div class="section-header">Identity Details</div>
@@ -74,48 +82,48 @@ function generatePatientInformationHtml(patient) {
           patient.dob
         )}</span></div>
         <div class="info-item"><span class="label">Age:</span><span class="value">${
-          patient.age ? `${patient.age} (${patient.ageCategory})` : "N/A"
+          patient.age ? `${patient.age} (${patient.ageCategory})` : FALLBACK
         }</span></div>
         <div class="info-item"><span class="label">Gender:</span><span class="value">${
-          patient.gender || "N/A"
+          patient.gender || FALLBACK
         }</span></div>
         <div class="info-item"><span class="label">Civil Status:</span><span class="value">${
-          patient.civilStatus || "N/A"
+          patient.civilStatus || FALLBACK
         }</span></div>
         <div class="info-item full-width"><span class="label">Occupation:</span><span class="value">${
-          patient.occupation || "N/A"
+          patient.occupation || FALLBACK
         }</span></div>
     </div>
 
     <div class="section-header">Contact Information</div>
     <div class="grid-container">
         <div class="info-item"><span class="label">Phone Number:</span><span class="value">${
-          patient.contact || patient.phone_number || "N/A"
+          patient.contact || patient.phone_number || FALLBACK
         }</span></div>
         <div class="info-item"><span class="label">Email Address:</span><span class="value">${
-          patient.email || "N/A"
+          patient.email || FALLBACK
         }</span></div>
         <div class="info-item full-width"><span class="label">Referred By:</span><span class="value">${
-          patient.referralBy || "N/A"
+          patient.referralBy || FALLBACK
         }</span></div>
     </div>
     
     <div class="section-header">Address Information</div>
     <div class="grid-container">
         <div class="info-item"><span class="label">Street / Subdivision:</span><span class="value">${
-          patient.street_subdivision || "N/A"
+          patient.street_subdivision || FALLBACK
         }</span></div>
         <div class="info-item"><span class="label">Barangay:</span><span class="value">${
-          patient.barangay || "N/A"
+          patient.barangay || FALLBACK
         }</span></div>
         <div class="info-item"><span class="label">City / Municipality:</span><span class="value">${
-          patient.city || "N/A"
+          patient.city || FALLBACK
         }</span></div>
         <div class="info-item"><span class="label">Province:</span><span class="value">${
-          patient.province || "N/A"
+          patient.province || FALLBACK
         }</span></div>
         <div class="info-item full-width"><span class="label">Region:</span><span class="value">${
-          patient.region || "N/A"
+          patient.region || FALLBACK
         }</span></div>
     </div>
 `;
@@ -133,27 +141,27 @@ function generateCaseHistoryHtml(caseHistory) {
               caseHistory.chiefComplaint
             )}</span></div>
             <div class="info-item"><span class="label">Others:</span><span class="value">${
-              caseHistory.chiefComplaint?.others || "N/A"
+              caseHistory.chiefComplaint?.others || FALLBACK
             }</span></div>
         </div>
         <div class="info-grid sub-section">
             <div class="info-item"><span class="label">Frequency:</span><span class="value">${
-              caseHistory.historyOfChiefComplaint?.frequency || "N/A"
+              caseHistory.historyOfChiefComplaint?.frequency || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Onset:</span><span class="value">${
-              caseHistory.historyOfChiefComplaint?.onset || "N/A"
+              caseHistory.historyOfChiefComplaint?.onset || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Location:</span><span class="value">${
-              caseHistory.historyOfChiefComplaint?.location || "N/A"
+              caseHistory.historyOfChiefComplaint?.location || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Duration:</span><span class="value">${
-              caseHistory.historyOfChiefComplaint?.duration || "N/A"
+              caseHistory.historyOfChiefComplaint?.duration || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Relief:</span><span class="value">${
-              caseHistory.historyOfChiefComplaint?.relief || "N/A"
+              caseHistory.historyOfChiefComplaint?.relief || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Quality:</span><span class="value">${
-              caseHistory.historyOfChiefComplaint?.quality || "N/A"
+              caseHistory.historyOfChiefComplaint?.quality || FALLBACK
             }</span></div>
         </div>
 
@@ -163,15 +171,15 @@ function generateCaseHistoryHtml(caseHistory) {
               caseHistory.associatedComplaint
             )}</span></div>
             <div class="info-item"><span class="label">Others:</span><span class="value">${
-              caseHistory.associatedComplaint?.others || "N/A"
+              caseHistory.associatedComplaint?.others || FALLBACK
             }</span></div>
         </div>
         <div class="info-grid sub-section">
             <div class="info-item"><span class="label">Frequency:</span><span class="value">${
-              caseHistory.historyOfAssociatedComplaint?.frequency || "N/A"
+              caseHistory.historyOfAssociatedComplaint?.frequency || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Onset:</span><span class="value">${
-              caseHistory.historyOfAssociatedComplaint?.onset || "N/A"
+              caseHistory.historyOfAssociatedComplaint?.onset || FALLBACK
             }</span></div>
         </div>
 
@@ -181,13 +189,13 @@ function generateCaseHistoryHtml(caseHistory) {
               caseHistory.medicalHistory
             )}</span></div>
             <div class="info-item"><span class="label">Others:</span><span class="value">${
-              caseHistory.medicalHistory?.others || "N/A"
+              caseHistory.medicalHistory?.others || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Family Medical History:</span><span class="value">${formatBooleanData(
               caseHistory.familyHistory
             )}</span></div>
             <div class="info-item"><span class="label">Others:</span><span class="value">${
-              caseHistory.familyHistory?.others || "N/A"
+              caseHistory.familyHistory?.others || FALLBACK
             }</span></div>
         </div>
 
@@ -197,30 +205,30 @@ function generateCaseHistoryHtml(caseHistory) {
               caseHistory.ocularCondition
             )}</span></div>
             <div class="info-item"><span class="label">Others:</span><span class="value">${
-              caseHistory.ocularCondition?.others || "N/A"
+              caseHistory.ocularCondition?.others || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Family Ocular Condition:</span><span class="value">${formatBooleanData(
               caseHistory.familyOcularCondition
             )}</span></div>
             <div class="info-item"><span class="label">Others:</span><span class="value">${
-              caseHistory.familyOcularCondition?.others || "N/A"
+              caseHistory.familyOcularCondition?.others || FALLBACK
             }</span></div>
         </div>
         <div class="info-grid sub-section">
              <div class="info-item"><span class="label">Spectacle Rx:</span><span class="value">${
-               caseHistory.ocularHistory?.spectacleRx || "N/A"
+               caseHistory.ocularHistory?.spectacleRx || FALLBACK
              }</span></div>
             <div class="info-item"><span class="label">Spectacle Year:</span><span class="value">${
-              caseHistory.ocularHistory?.spectacleYear || "N/A"
+              caseHistory.ocularHistory?.spectacleYear || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Contact Lens:</span><span class="value">${
-              caseHistory.ocularHistory?.contactLens || "N/A"
+              caseHistory.ocularHistory?.contactLens || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Eye Surgery:</span><span class="value">${
-              caseHistory.ocularHistory?.eyeSurgery || "N/A"
+              caseHistory.ocularHistory?.eyeSurgery || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Systemic Surgery:</span><span class="value">${
-              caseHistory.ocularHistory?.systemicSurgery || "N/A"
+              caseHistory.ocularHistory?.systemicSurgery || FALLBACK
             }</span></div>
         </div>
 
@@ -233,25 +241,25 @@ function generateCaseHistoryHtml(caseHistory) {
               caseHistory.occupationalHistory?.student ? "Yes" : "No"
             }</span></div>
             <div class="info-item full-width"><span class="label">Occupation Details:</span><span class="value">${
-              caseHistory.occupationalHistory?.details || "N/A"
+              caseHistory.occupationalHistory?.details || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Cellphone Use:</span><span class="value">${
-              caseHistory.digitalHistory?.cellphone || "N/A"
+              caseHistory.digitalHistory?.cellphone || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Laptop Use:</span><span class="value">${
-              caseHistory.digitalHistory?.laptop || "N/A"
+              caseHistory.digitalHistory?.laptop || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Desktop Use:</span><span class="value">${
-              caseHistory.digitalHistory?.desktop || "N/A"
+              caseHistory.digitalHistory?.desktop || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Television Use:</span><span class="value">${
-              caseHistory.digitalHistory?.television || "N/A"
+              caseHistory.digitalHistory?.television || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Previous Power:</span><span class="value">${
-              caseHistory.eyeglassHistory?.power || "N/A"
+              caseHistory.eyeglassHistory?.power || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Previous Lens Type:</span><span class="value">${
-              caseHistory.eyeglassHistory?.lensType || "N/A"
+              caseHistory.eyeglassHistory?.lensType || FALLBACK
             }</span></div>
         </div>
     `;
@@ -264,8 +272,8 @@ function generateEyeDataTableHtml(title, dataRows) {
       (row) => `
         <div class="table-row">
             <span class="label">${row.label}</span>
-            <span class="value">${row.od || "N/A"}</span>
-            <span class="value">${row.os || "N/A"}</span>
+            <span class="value">${row.od || FALLBACK}</span>
+            <span class="value">${row.os || FALLBACK}</span>
         </div>
     `
     )
@@ -436,13 +444,13 @@ function generateClinicalExaminationHtml(clinicalExam) {
         <div class="section-header">Visual Acuity</div>
         <div class="info-grid">
             <div class="info-item"><span class="label">Chart Used:</span><span class="value">${
-              clinicalExam.visualAcuity?.chartUsed || "N/A"
+              clinicalExam.visualAcuity?.chartUsed || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Test Distance:</span><span class="value">${
-              clinicalExam.visualAcuity?.testDistanceUsed || "N/A"
+              clinicalExam.visualAcuity?.testDistanceUsed || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Other Distance:</span><span class="value">${
-              clinicalExam.visualAcuity?.testDistanceOther || "N/A"
+              clinicalExam.visualAcuity?.testDistanceOther || FALLBACK
             }</span></div>
         </div>
         ${generateEyeDataTableHtml("Without Glasses", withoutGlassesRows)}
@@ -451,12 +459,12 @@ function generateClinicalExaminationHtml(clinicalExam) {
              <div class="info-item"><span class="label">Dominant Eye (Far):</span><span class="value">${
                clinicalExam.visualAcuity?.dominantEye?.far?.od ||
                clinicalExam.visualAcuity?.dominantEye?.far?.os ||
-               "N/A"
+               FALLBACK
              }</span></div>
              <div class="info-item"><span class="label">Dominant Eye (Near):</span><span class="value">${
                clinicalExam.visualAcuity?.dominantEye?.near?.od ||
                clinicalExam.visualAcuity?.dominantEye?.near?.os ||
-               "N/A"
+               FALLBACK
              }</span></div>
         </div>
 
@@ -474,13 +482,13 @@ function generateClinicalExaminationHtml(clinicalExam) {
         <div class="section-header">Additional Results & Medications</div>
         <div class="info-grid">
             <div class="info-item full-width"><span class="label">ARK Results:</span><span class="value">${
-              clinicalExam.arkResults || "N/A"
+              clinicalExam.arkResults || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Meds Used (Type):</span><span class="value">${
-              clinicalExam.medsUsed?.type || "N/A"
+              clinicalExam.medsUsed?.type || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Meds Used (Other):</span><span class="value">${
-              clinicalExam.medsUsed?.comboTCOthers || "N/A"
+              clinicalExam.medsUsed?.comboTCOthers || FALLBACK
             }</span></div>
         </div>
     `;
@@ -511,40 +519,40 @@ function generateBinocularTestsHtml(binocularTests) {
         <div class="section-header">Binocular Tests</div>
         <div class="info-grid">
             <div class="info-item"><span class="label">Stereo Acuity (Langs):</span><span class="value">${
-              binocularTests.binocularTests?.stereoAcuityLangs || "N/A"
+              binocularTests.binocularTests?.stereoAcuityLangs || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Stereo Acuity (Circles):</span><span class="value">${
-              binocularTests.binocularTests?.stereoAcuityCircles || "N/A"
+              binocularTests.binocularTests?.stereoAcuityCircles || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Ocular Motility (Version):</span><span class="value">${
-              binocularTests.binocularTests?.ocularMotilityVersion || "N/A"
+              binocularTests.binocularTests?.ocularMotilityVersion || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">NPC:</span><span class="value">${
-              binocularTests.binocularTests?.npc || "N/A"
+              binocularTests.binocularTests?.npc || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Worth 4 Light (6m):</span><span class="value">${
-              binocularTests.binocularTests?.w4l6m || "N/A"
+              binocularTests.binocularTests?.w4l6m || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Worth 4 Light (33cm):</span><span class="value">${
-              binocularTests.binocularTests?.w4l33cm || "N/A"
+              binocularTests.binocularTests?.w4l33cm || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Maddox Wing:</span><span class="value">${
-              binocularTests.binocularTests?.maddoxWing || "N/A"
+              binocularTests.binocularTests?.maddoxWing || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Cover Test (6m):</span><span class="value">${
-              binocularTests.binocularTests?.ct6m || "N/A"
+              binocularTests.binocularTests?.ct6m || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Cover Test (33cm):</span><span class="value">${
-              binocularTests.binocularTests?.ct33cm || "N/A"
+              binocularTests.binocularTests?.ct33cm || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Bagolini (6m):</span><span class="value">${
-              binocularTests.binocularTests?.bagolini6m || "N/A"
+              binocularTests.binocularTests?.bagolini6m || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Bagolini (33cm):</span><span class="value">${
-              binocularTests.binocularTests?.bagolini33cm || "N/A"
+              binocularTests.binocularTests?.bagolini33cm || FALLBACK
             }</span></div>
             <div class="info-item full-width"><span class="label">Other Tests:</span><span class="value">${
-              binocularTests.binocularTests?.otherTests || "N/A"
+              binocularTests.binocularTests?.otherTests || FALLBACK
             }</span></div>
         </div>
 
@@ -552,25 +560,26 @@ function generateBinocularTestsHtml(binocularTests) {
         <div class="info-grid sub-section">
             <div class="info-item full-width section-title"><span class="label">@ 6 meters</span></div>
             <div class="info-item"><span class="label">Hirschberg's:</span><span class="value">${
-              binocularTests.binocularTests?.angleEst6m?.hirschbergs || "N/A"
+              binocularTests.binocularTests?.angleEst6m?.hirschbergs || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Krimsky:</span><span class="value">${
-              binocularTests.binocularTests?.angleEst6m?.krimsky || "N/A"
+              binocularTests.binocularTests?.angleEst6m?.krimsky || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">PCT:</span><span class="value">${
-              binocularTests.binocularTests?.angleEst6m?.pct || "N/A"
+              binocularTests.binocularTests?.angleEst6m?.pct || FALLBACK
             }</span></div>
         </div>
         <div class="info-grid sub-section">
             <div class="info-item full-width section-title"><span class="label">@ 33 centimeters</span></div>
             <div class="info-item"><span class="label">Hirschberg's:</span><span class="value">${
-              binocularTests.binocularTests?.angleEst33cm?.hirschbergs || "N/A"
+              binocularTests.binocularTests?.angleEst33cm?.hirschbergs ||
+              FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Krimsky:</span><span class="value">${
-              binocularTests.binocularTests?.angleEst33cm?.krimsky || "N/A"
+              binocularTests.binocularTests?.angleEst33cm?.krimsky || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">PCT:</span><span class="value">${
-              binocularTests.binocularTests?.angleEst33cm?.pct || "N/A"
+              binocularTests.binocularTests?.angleEst33cm?.pct || FALLBACK
             }</span></div>
         </div>
         
@@ -753,7 +762,7 @@ function generateDiagnosticPlanHtml(diagnosticPlan) {
 
         <div class="section-header">Interpretation of Results</div>
         <div class="paragraph-block">
-            <p>${diagnosticPlan.interpretationOfResults || "N/A"}</p>
+            <p>${diagnosticPlan.interpretationOfResults || FALLBACK}</p>
         </div>
 
         <div class="section-header">Assessment</div>
@@ -761,13 +770,13 @@ function generateDiagnosticPlanHtml(diagnosticPlan) {
             <div class="info-item full-width">
                 <span class="label">Primary Impression:</span>
                 <span class="value">${
-                  diagnosticPlan.assessment?.primaryImpression || "N/A"
+                  diagnosticPlan.assessment?.primaryImpression || FALLBACK
                 }</span>
             </div>
             <div class="info-item full-width">
                 <span class="label">Secondary Impression:</span>
                 <span class="value">${
-                  diagnosticPlan.assessment?.secondaryImpression || "N/A"
+                  diagnosticPlan.assessment?.secondaryImpression || FALLBACK
                 }</span>
             </div>
         </div>
@@ -905,7 +914,7 @@ function generatePlanOfManagementHtml(plan) {
       plan.therapy?.patching?.patchLEye ? "Left Eye" : "",
     ]
       .filter(Boolean)
-      .join(" & ") || "No";
+      .join(" & ") || FALLBACK;
 
   return `
         <div class="page-break"></div>
@@ -914,10 +923,10 @@ function generatePlanOfManagementHtml(plan) {
         <div class="section-header">Slit Lamp Management</div>
         <div class="info-grid">
             <div class="info-item"><span class="label">OD (Right Eye):</span><span class="value">${
-              plan.slitLampManagement?.od || "N/A"
+              plan.slitLampManagement?.od || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">OS (Left Eye):</span><span class="value">${
-              plan.slitLampManagement?.os || "N/A"
+              plan.slitLampManagement?.os || FALLBACK
             }</span></div>
         </div>
 
@@ -928,35 +937,35 @@ function generatePlanOfManagementHtml(plan) {
         )}
         <div class="info-grid sub-section">
             <div class="info-item"><span class="label">Materials:</span><span class="value">${
-              plan.opticalManagement?.materials || "N/A"
+              plan.opticalManagement?.materials || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Coating:</span><span class="value">${
-              plan.opticalManagement?.coating || "N/A"
+              plan.opticalManagement?.coating || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Tint:</span><span class="value">${
-              plan.opticalManagement?.tint || "N/A"
+              plan.opticalManagement?.tint || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Design:</span><span class="value">${
-              plan.opticalManagement?.design || "N/A"
+              plan.opticalManagement?.design || FALLBACK
             }</span></div>
             <div class="info-item full-width"><span class="label">Frames:</span><span class="value">${
-              plan.opticalManagement?.frames || "N/A"
+              plan.opticalManagement?.frames || FALLBACK
             }</span></div>
             <div class="info-item full-width section-title"><span class="label">Frame Measurements</span></div>
             <div class="info-item"><span class="label">A:</span><span class="value">${
-              plan.opticalManagement?.frameMeasurements?.a || "N/A"
+              plan.opticalManagement?.frameMeasurements?.a || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">B:</span><span class="value">${
-              plan.opticalManagement?.frameMeasurements?.b || "N/A"
+              plan.opticalManagement?.frameMeasurements?.b || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">ED:</span><span class="value">${
-              plan.opticalManagement?.frameMeasurements?.ed || "N/A"
+              plan.opticalManagement?.frameMeasurements?.ed || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">DBL:</span><span class="value">${
-              plan.opticalManagement?.frameMeasurements?.dbl || "N/A"
+              plan.opticalManagement?.frameMeasurements?.dbl || FALLBACK
             }</span></div>
             <div class="info-item full-width"><span class="label">Glazing Instruction:</span><span class="value">${
-              plan.opticalManagement?.glazingInstruction || "N/A"
+              plan.opticalManagement?.glazingInstruction || FALLBACK
             }</span></div>
         </div>
 
@@ -967,43 +976,43 @@ function generatePlanOfManagementHtml(plan) {
         )}
         <div class="info-grid sub-section">
             <div class="info-item"><span class="label">Design:</span><span class="value">${
-              plan.contactLensManagement?.design || "N/A"
+              plan.contactLensManagement?.design || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Brand:</span><span class="value">${
-              plan.contactLensManagement?.brand || "N/A"
+              plan.contactLensManagement?.brand || FALLBACK
             }</span></div>
             <div class="info-item full-width"><span class="label">Others:</span><span class="value">${
-              plan.contactLensManagement?.others || "N/A"
+              plan.contactLensManagement?.others || FALLBACK
             }</span></div>
         </div>
 
         <div class="section-header">Eye Care Solutions & Therapy</div>
         <div class="info-grid">
             <div class="info-item"><span class="label">Lubricant:</span><span class="value">${
-              plan.eyeCareSolutions?.lubricant || "N/A"
+              plan.eyeCareSolutions?.lubricant || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Contact Lens Solutions:</span><span class="value">${
-              plan.eyeCareSolutions?.contactLensSolutions || "N/A"
+              plan.eyeCareSolutions?.contactLensSolutions || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Eye Vitamins:</span><span class="value">${
-              plan.eyeCareSolutions?.eyeVitamins || "N/A"
+              plan.eyeCareSolutions?.eyeVitamins || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Lid Wipes:</span><span class="value">${
-              plan.eyeCareSolutions?.lidWipes || "N/A"
+              plan.eyeCareSolutions?.lidWipes || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Warm/Cold Compress:</span><span class="value">${
-              plan.eyeCareSolutions?.warmColdCompress || "N/A"
+              plan.eyeCareSolutions?.warmColdCompress || FALLBACK
             }</span></div>
              <div class="info-item full-width section-title"><span class="label">Therapy</span></div>
             <div class="info-item"><span class="label">Amblyopia:</span><span class="value">${
-              plan.therapy?.amblyopia || "N/A"
+              plan.therapy?.amblyopia || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Patching:</span><span class="value">${patchingStatus}</span></div>
             <div class="info-item"><span class="label">Time/Duration:</span><span class="value">${
-              plan.therapy?.time || "N/A"
+              plan.therapy?.time || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Other Details:</span><span class="value">${
-              plan.therapy?.others || "N/A"
+              plan.therapy?.others || FALLBACK
             }</span></div>
         </div>
         
@@ -1013,13 +1022,13 @@ function generatePlanOfManagementHtml(plan) {
         <div class="section-header">Referral & Follow-Up</div>
         <div class="info-grid">
             <div class="info-item"><span class="label">Referral To:</span><span class="value">${
-              plan.referralAndFollowUp?.referralTo || "N/A"
+              plan.referralAndFollowUp?.referralTo || FALLBACK
             }</span></div>
             <div class="info-item"><span class="label">Purpose:</span><span class="value">${
-              plan.referralAndFollowUp?.purpose || "N/A"
+              plan.referralAndFollowUp?.purpose || FALLBACK
             }</span></div>
             <div class="info-item full-width"><span class="label">Next Appointment:</span><span class="value">${
-              plan.referralAndFollowUp?.nextAppointment || "N/A"
+              plan.referralAndFollowUp?.nextAppointment || FALLBACK
             }</span></div>
         </div>
     `;

@@ -273,20 +273,32 @@ const AddPatientModal = ({ handleCloseModal, handleAddPatient }) => {
     }
   };
   useEffect(() => {
-    const generateNextPatientId = async () => {
-      try {
-        const response = await instance.get("/profiles/latest-id");
-        const latestId = response.data.latestId || "CECC25B-0000";
-        const numericPart = parseInt(latestId.split("-")[1]);
-        const newId = `CECC25B-${(numericPart + 1)
-          .toString()
-          .padStart(4, "0")}`;
-        setPatientId(newId);
-      } catch {
-        setPatientId(`CECC25B-${Date.now()}`);
+    const generatePatientId = async () => {
+      const date = new Date();
+      const year = date.getFullYear().toString().slice(-2); // Get "25" from 2025
+
+      let isUnique = false;
+      let newId = "";
+
+      while (!isUnique) {
+        const randomNum = Math.floor(Math.random() * 10000);
+        const paddedNum = randomNum.toString().padStart(4, "0");
+        newId = `CECC${year}-${paddedNum}`;
+
+        try {
+          const checkRes = await instance.get(`/users/check/${newId}`);
+          if (!checkRes.data.exists) {
+            isUnique = true;
+          }
+        } catch (err) {
+          isUnique = true;
+        }
       }
+
+      setPatientId(newId);
     };
-    generateNextPatientId();
+
+    generatePatientId();
   }, []);
 
   // --- WIZARD NAVIGATION LOGIC ---
