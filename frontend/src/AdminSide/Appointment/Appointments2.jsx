@@ -281,9 +281,6 @@ const Appointments = () => {
           <h1 className="text-4xl font-bold text-gray-700 tracking-tight mb-1">
             Appointments
           </h1>
-          <p className="text-gray-500 font-medium">
-            Welcome back, manage your patient schedules efficiently.
-          </p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}

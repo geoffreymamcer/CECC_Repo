@@ -21,7 +21,6 @@ ChartJS.register(
 );
 
 const SalesBreakdown = () => {
-  // --- NEW --- State for dynamic data
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -29,9 +28,6 @@ const SalesBreakdown = () => {
   useEffect(() => {
     const fetchBreakdownData = async () => {
       try {
-        // 👇 START OF CHANGE 🚀
-        // Use the central 'api' instance.
-        // It handles the base URL and auth token automatically.
         const response = await instance.get(
           "/invoices/analytics/sales-breakdown"
         );

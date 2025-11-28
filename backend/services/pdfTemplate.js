@@ -13,7 +13,7 @@ const BORDER_COLOR = "#EAEAEA";
 
 // --- CONFIGURATION ---
 // Change this string to modify what appears for empty fields globally
-const FALLBACK = "Nothing follows";
+const FALLBACK = "N/A";
 
 // --- HELPER FUNCTIONS ---
 function formatBooleanData(dataObject) {

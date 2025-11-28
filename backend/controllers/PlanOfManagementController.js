@@ -1,10 +1,5 @@
-// controllers/PlanOfManagementController.js
 import PlanOfManagement from "../models/PlanOfManagement.js";
-// --- REMOVED --- The Profile model is no longer needed in this file.
-
-// --- REMOVED --- The createPlanOfManagement function is obsolete.
-
-// --- MODIFIED --- Fetches a single plan of management record by its own unique _id.
+import User from "../models/User.js";
 export const getPlanOfManagementByRecordId = async (req, res) => {
   try {
     const { recordId } = req.params;
@@ -20,7 +15,6 @@ export const getPlanOfManagementByRecordId = async (req, res) => {
   }
 };
 
-// --- MODIFIED --- Updates a single plan of management record by its own unique _id.
 export const updatePlanOfManagementByRecordId = async (req, res) => {
   try {
     const { recordId } = req.params;
@@ -32,15 +26,40 @@ export const updatePlanOfManagementByRecordId = async (req, res) => {
     });
 
     if (!plan) {
-      return res
-        .status(404)
-        .json({
-          message: "Could not find Plan of Management record to update.",
-        });
+      return res.status(404).json({
+        message: "Could not find Plan of Management record to update.",
+      });
     }
 
     res.status(200).json(plan);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const getLatestPlanForPatient = async (req, res) => {
+  try {
+    const patientId = req.user.patientId || req.user.id || req.user._id;
+
+    if (!patientId) {
+      return res
+        .status(400)
+        .json({ message: "Patient ID not found in token." });
+    }
+
+    const latestPlan = await PlanOfManagement.findOne({ patientId })
+      .sort({ createdAt: -1 })
+      .populate("visitId");
+
+    if (!latestPlan) {
+      return res
+        .status(404)
+        .json({ message: "No prescription records found." });
+    }
+
+    res.status(200).json(latestPlan);
+  } catch (error) {
+    console.error("Error fetching latest plan:", error);
+    res.status(500).json({ message: "Server error fetching prescription." });
   }
 };

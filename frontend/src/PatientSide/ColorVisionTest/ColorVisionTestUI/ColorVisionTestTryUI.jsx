@@ -13,9 +13,6 @@ import { ishiharaTestPlatesConsistent } from "./questionsList"; // Ensure this i
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import instance from "../../../api/axios";
 
-// --- HELPER FUNCTIONS ---
-
-// Function to shuffle the plates array
 function shuffleArray(array) {
   const arr = array.slice();
   for (let i = arr.length - 1; i > 0; i--) {
@@ -25,7 +22,6 @@ function shuffleArray(array) {
   return arr;
 }
 
-// This function is now adapted from analyzeTestResult.js
 function determineVisionStatus(results) {
   const normalVisionPercentage =
     (results.normalVisionCount / results.totalQuestions) * 100;
@@ -40,9 +36,6 @@ function determineVisionStatus(results) {
     }
     return "Mild Color Vision Deficiency";
   } else {
-    // Note: The AI evaluation does not explicitly check for total color blindness.
-    // This condition is included from your file but may not be triggered
-    // unless the AI prompt is modified to classify "Total Color Blindness".
     if (results.totalColorBlindnessCount >= results.totalQuestions * 0.8) {
       return "Total Color Blindness";
     } else if (results.protanopiaCount > results.deuteranopiaCount) {
@@ -54,47 +47,38 @@ function determineVisionStatus(results) {
   }
 }
 
-// --- MAIN COMPONENT ---
-
 const IshiharaTest = () => {
-  // --- STATE MANAGEMENT ---
   const [plates, setPlates] = useState([]);
   const [currentPlateIndex, setCurrentPlateIndex] = useState(0);
   const [currentUserInput, setCurrentUserInput] = useState("");
-  const [testAnswers, setTestAnswers] = useState([]); // Stores raw answers locally
-  const [testResults, setTestResults] = useState([]); // Stores final, evaluated results
+  const [testAnswers, setTestAnswers] = useState([]);
+  const [testResults, setTestResults] = useState([]);
   const [isCompleted, setIsCompleted] = useState(false);
   const [showResults, setShowResults] = useState(false);
 
-  // State for API and submission process
-  const [isLoading, setIsLoading] = useState(false); // Used for the final evaluation
+  const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [visionStatus, setVisionStatus] = useState("");
 
-  // Initialize Gemini AI
   const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
 
-  // Verify API key is available
   useEffect(() => {
     if (!process.env.REACT_APP_GEMINI_API_KEY) {
       console.error("Warning: REACT_APP_GEMINI_API_KEY is not set");
     }
   }, []);
 
-  // --- COMPONENT LIFECYCLE & INITIALIZATION ---
   useEffect(() => {
     const shuffled = shuffleArray(ishiharaTestPlatesConsistent);
     setPlates(shuffled);
   }, []);
 
-  // New function to evaluate all answers in a single API call
   const evaluateAllAnswersWithGemini = async (answers) => {
     setIsLoading(true);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
-    // Create a detailed prompt with all user answers
     const answersPrompt = answers
       .map(
         (answer) => `
@@ -119,6 +103,7 @@ const IshiharaTest = () => {
       - If it matches or is a semantic equivalent of the "Normal Vision" answer, classify it as "Normal".
       - If it matches or is a semantic equivalent of the "Protanopia" answer, classify it as "Protanopia".
       - If it matches or is a semantic equivalent of the "Deuteranopia" answer, classify it as "Deuteranopia".
+      - If the user's answered using their own language like filipino, indonesian, bisaya, tagalog, cebuano, etc, and this translates to the correct number or thought for normal vision, classify it as "Normal".
       - Otherwise, classify it as "Incorrect".
 
       Your task is to return a valid JSON array where each object corresponds to an answer from the input and contains three keys:
@@ -167,7 +152,6 @@ const IshiharaTest = () => {
 
       setTestResults(finalResults);
 
-      // Calculate counts from the AI-evaluated results
       const resultCounts = {
         normalVisionCount: finalResults.filter((r) => r.evaluation === "Normal")
           .length,
@@ -177,11 +161,10 @@ const IshiharaTest = () => {
         deuteranopiaCount: finalResults.filter(
           (r) => r.evaluation === "Deuteranopia"
         ).length,
-        totalColorBlindnessCount: 0, // The current AI prompt does not classify this
+        totalColorBlindnessCount: 0,
         totalQuestions: plates.length,
       };
 
-      // Use the new function to determine the final status
       const finalVisionStatus = determineVisionStatus(resultCounts);
       setVisionStatus(finalVisionStatus);
     } catch (error) {

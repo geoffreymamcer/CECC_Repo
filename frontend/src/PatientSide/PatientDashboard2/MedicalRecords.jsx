@@ -24,22 +24,41 @@ const MedicalRecords = () => {
 
   // Data States
   const [invoices, setInvoices] = useState([]);
-  const [visits, setVisits] = useState([]); // For Test Results/Clinical Reports
-  const [appointments, setAppointments] = useState([]); // For Visit History
+  const [visits, setVisits] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [latestRx, setLatestRx] = useState(null);
+  const [rxLoading, setRxLoading] = useState(false);
 
   // UI States
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [appointmentsLoading, setAppointmentsLoading] = useState(false);
-  const [downloadingId, setDownloadingId] = useState(null); // Stores the ID/URL of file currently downloading
+  const [downloadingId, setDownloadingId] = useState(null);
 
-  // --- 1. Initial Data Fetch (Invoices & Clinical Reports) ---
+  useEffect(() => {
+    const fetchLatestRx = async () => {
+      if (activeTab !== "prescriptions" || latestRx) return;
+
+      setRxLoading(true);
+      try {
+        const response = await instance.get("/plan-of-management/my-latest");
+        setLatestRx(response.data);
+      } catch (err) {
+        console.warn("No active prescription found or error fetching:", err);
+        setLatestRx(null);
+      } finally {
+        setRxLoading(false);
+      }
+    };
+
+    fetchLatestRx();
+  }, [activeTab, latestRx]);
+
   useEffect(() => {
     const fetchBaseRecords = async () => {
       setLoading(true);
       setError(null);
       try {
-        // Fetch receipts and clinical reports in parallel
         const [invoicesRes, visitsRes] = await Promise.all([
           instance.get("/invoices/patient").catch((err) => ({ error: err })),
           instance.get("/visits/my-visits").catch((err) => ({ error: err })),
@@ -249,45 +268,131 @@ const MedicalRecords = () => {
           </div>
         )}
 
-        {/* 3. Prescriptions Tab (Static Demo Data for Now) */}
         {activeTab === "prescriptions" && (
           <div className="animate-fadeIn">
-            <div className="bg-[#7F0000]/5 p-6 rounded-3xl border border-[#7F0000]/10 mb-4">
-              <div className="flex justify-between items-center mb-6">
-                <h4 className="font-bold text-[#7F0000]">
-                  Current Prescription
-                </h4>
-                <span className="text-xs bg-white px-3 py-1 rounded-full border border-[#7F0000]/20 text-[#7F0000] font-bold">
-                  Active
-                </span>
-              </div>
+            {rxLoading ? (
+              <LoadingState text="Loading prescription..." />
+            ) : !latestRx ? (
+              <EmptyState text="No active prescription found." />
+            ) : (
+              <div className="bg-[#7F0000]/5 p-6 rounded-3xl border border-[#7F0000]/10 mb-4">
+                <div className="flex justify-between items-center mb-6">
+                  <h4 className="font-bold text-[#7F0000]">
+                    Prescription Details
+                  </h4>
+                  <span className="text-xs bg-white px-3 py-1 rounded-full border border-[#7F0000]/20 text-[#7F0000] font-bold">
+                    {new Date(latestRx.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="bg-white p-4 rounded-xl shadow-sm">
-                  <p className="text-gray-400 text-xs font-bold uppercase mb-1">
-                    Right Eye (OD)
-                  </p>
-                  <div className="flex justify-between font-mono text-gray-800 font-bold">
-                    <span>SPH: -2.50</span>
-                    <span>CYL: -1.00</span>
-                    <span>AX: 180</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  {/* Right Eye (OD) */}
+                  <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <p className="text-gray-400 text-xs font-bold uppercase mb-2">
+                      Right Eye (OD)
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="bg-gray-50 rounded p-1">
+                        <span className="block text-[10px] text-gray-500">
+                          SPH
+                        </span>
+                        <span className="font-bold text-gray-800">
+                          {latestRx.opticalManagement?.finalRx?.od?.sphere ||
+                            "--"}
+                        </span>
+                      </div>
+                      <div className="bg-gray-50 rounded p-1">
+                        <span className="block text-[10px] text-gray-500">
+                          CYL
+                        </span>
+                        <span className="font-bold text-gray-800">
+                          {latestRx.opticalManagement?.finalRx?.od?.cylinder ||
+                            "--"}
+                        </span>
+                      </div>
+                      <div className="bg-gray-50 rounded p-1">
+                        <span className="block text-[10px] text-gray-500">
+                          AXIS
+                        </span>
+                        <span className="font-bold text-gray-800">
+                          {latestRx.opticalManagement?.finalRx?.od?.axis ||
+                            "--"}
+                        </span>
+                      </div>
+                    </div>
+                    {latestRx.opticalManagement?.finalRx?.od?.add && (
+                      <div className="mt-2 text-center">
+                        <span className="text-xs text-gray-500 mr-2">ADD:</span>
+                        <span className="font-bold">
+                          {latestRx.opticalManagement.finalRx.od.add}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Left Eye (OS) */}
+                  <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <p className="text-gray-400 text-xs font-bold uppercase mb-2">
+                      Left Eye (OS)
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="bg-gray-50 rounded p-1">
+                        <span className="block text-[10px] text-gray-500">
+                          SPH
+                        </span>
+                        <span className="font-bold text-gray-800">
+                          {latestRx.opticalManagement?.finalRx?.os?.sphere ||
+                            "--"}
+                        </span>
+                      </div>
+                      <div className="bg-gray-50 rounded p-1">
+                        <span className="block text-[10px] text-gray-500">
+                          CYL
+                        </span>
+                        <span className="font-bold text-gray-800">
+                          {latestRx.opticalManagement?.finalRx?.os?.cylinder ||
+                            "--"}
+                        </span>
+                      </div>
+                      <div className="bg-gray-50 rounded p-1">
+                        <span className="block text-[10px] text-gray-500">
+                          AXIS
+                        </span>
+                        <span className="font-bold text-gray-800">
+                          {latestRx.opticalManagement?.finalRx?.os?.axis ||
+                            "--"}
+                        </span>
+                      </div>
+                    </div>
+                    {latestRx.opticalManagement?.finalRx?.os?.add && (
+                      <div className="mt-2 text-center">
+                        <span className="text-xs text-gray-500 mr-2">ADD:</span>
+                        <span className="font-bold">
+                          {latestRx.opticalManagement.finalRx.os.add}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm">
-                  <p className="text-gray-400 text-xs font-bold uppercase mb-1">
-                    Left Eye (OS)
-                  </p>
-                  <div className="flex justify-between font-mono text-gray-800 font-bold">
-                    <span>SPH: -2.75</span>
-                    <span>CYL: -0.75</span>
-                    <span>AX: 170</span>
-                  </div>
+
+                <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                  {latestRx.opticalManagement?.lensType && (
+                    <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs rounded-full font-medium">
+                      {latestRx.opticalManagement.lensType}
+                    </span>
+                  )}
+                  {latestRx.opticalManagement?.materials && (
+                    <span className="px-3 py-1 bg-purple-50 text-purple-700 text-xs rounded-full font-medium">
+                      {latestRx.opticalManagement.materials}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-4 text-xs text-gray-500 italic text-center">
+                  * For official signed copies, please visit the clinic.
                 </div>
               </div>
-              <div className="mt-4 text-xs text-gray-500 italic text-center">
-                * For updated prescriptions, please request a new eye exam.
-              </div>
-            </div>
+            )}
           </div>
         )}
 

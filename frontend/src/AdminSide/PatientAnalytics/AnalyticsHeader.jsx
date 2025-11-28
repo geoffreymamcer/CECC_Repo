@@ -8,9 +8,6 @@ const AnalyticsHeader = () => {
         <FaChartLine className="mr-3 text-deep-red" />
         Patient Analytics
       </h1>
-      <p className="text-gray-600 mt-2">
-        Insights into patient demographics, conditions, and clinic performance
-      </p>
     </div>
   );
 };
