@@ -6,6 +6,10 @@ import Appointment from "../models/Appointment.js";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const geoCache = new Map();
+const cleanString = (str) => {
+  if (!str) return "";
+  return str.replace(/\(.*\)/g, "").trim();
+};
 
 export const getEyeConditionDistribution = async (req, res) => {
   try {
@@ -141,7 +145,6 @@ export const getAgeGroupDistribution = async (req, res) => {
 
 export const getGeographicDistribution = async (req, res) => {
   try {
-    // 1. Aggregate by Barangay, City, and Province
     const locationCounts = await Profile.aggregate([
       {
         $match: {
@@ -164,15 +167,21 @@ export const getGeographicDistribution = async (req, res) => {
 
     const geocodedLocations = [];
 
-    // 2. Loop sequentially instead of Promise.all to respect API Rate Limits
+    // Use a loop for sequential processing to respect API limits
     for (const item of locationCounts) {
-      const { barangay, city, province } = item._id;
+      const rawBarangay = item._id.barangay;
+      const rawCity = item._id.city;
+      const rawProvince = item._id.province;
 
-      // Create cache key
-      const cacheKey = `${barangay}, ${city}, ${province || ""}`.toLowerCase();
-      const displayLabel = `${barangay}, ${city}`;
+      // Clean the names for the search query (e.g., "Lucena City (Capital)" -> "Lucena City")
+      const barangay = cleanString(rawBarangay);
+      const city = cleanString(rawCity);
+      const province = cleanString(rawProvince);
 
-      // Check Cache First
+      const cacheKey = `${barangay}, ${city}, ${province}`.toLowerCase();
+      const displayLabel = `${rawBarangay}, ${rawCity}`; // Keep original for display
+
+      // 1. Check Cache
       if (geoCache.has(cacheKey)) {
         geocodedLocations.push({
           city: displayLabel,
@@ -180,38 +189,103 @@ export const getGeographicDistribution = async (req, res) => {
           patients: item.patientCount,
           ...geoCache.get(cacheKey),
         });
-        continue; // Skip the API call if cached
+        continue;
       }
 
       try {
-        // Construct Query
-        const query = `${barangay}, ${city}, ${province || ""}, Philippines`;
-
-        // 3. ADD DELAY: Wait 1 second before hitting the API
+        // 2. Add Delay (1 second)
         await sleep(1000);
 
+        // 3. Construct Query
+        // We try to be specific: "Barangay, City, Province, Philippines"
+        const query = `${barangay}, ${city}, ${province}, Philippines`;
+
+        let coordinates = null;
+        let found = false;
+
+        // --- ATTEMPT 1: Full Specific Search ---
         const geoResponse = await axios.get(
           `https://nominatim.openstreetmap.org/search`,
           {
             params: {
               q: query,
               format: "json",
-              addressdetails: 1,
+              addressdetails: 1, // Important: Allows us to verify the address
               limit: 1,
             },
-            headers: {
-              // Nominatim requires a valid User-Agent identifying your app
-              "User-Agent": "CECC-Clinic-App/1.0 (contact@example.com)",
-            },
+            headers: { "User-Agent": "CECC-Clinic-App/1.0" },
           }
         );
 
         if (geoResponse.data && geoResponse.data.length > 0) {
-          const { lat, lon } = geoResponse.data[0];
-          const coordinates = { lat: parseFloat(lat), lng: parseFloat(lon) };
+          const result = geoResponse.data[0];
+          const address = result.address || {};
 
-          geoCache.set(cacheKey, coordinates); // Save to cache
+          // VERIFICATION: Check if the result is actually in the City or Province we asked for.
+          // This prevents "Lucena Street, Manila" from being accepted when we wanted "Lucena City".
+          const resultCity = (
+            address.city ||
+            address.town ||
+            address.municipality ||
+            ""
+          ).toLowerCase();
+          const resultState = (
+            address.state ||
+            address.region ||
+            ""
+          ).toLowerCase();
+          const targetCity = city.toLowerCase();
 
+          // We check if the returned city includes our target (or vice versa)
+          const isCityMatch =
+            resultCity.includes(targetCity) || targetCity.includes(resultCity);
+
+          if (isCityMatch) {
+            coordinates = {
+              lat: parseFloat(result.lat),
+              lng: parseFloat(result.lon),
+            };
+            found = true;
+          } else {
+            console.log(
+              `Mismatch detected: Requested "${city}" but got "${resultCity}". Retrying with fallback...`
+            );
+          }
+        }
+
+        // --- ATTEMPT 2: Fallback (City Only) ---
+        // If specific barangay failed or returned the wrong city (Manila instead of Lucena), try just the City.
+        if (!found) {
+          await sleep(1000); // Delay again
+
+          // Structured query is safer for City-level searches
+          const cityQuery = `${city}, ${province}, Philippines`;
+
+          const cityResponse = await axios.get(
+            `https://nominatim.openstreetmap.org/search`,
+            {
+              params: {
+                q: cityQuery,
+                format: "json",
+                limit: 1,
+              },
+              headers: { "User-Agent": "CECC-Clinic-App/1.0" },
+            }
+          );
+
+          if (cityResponse.data && cityResponse.data.length > 0) {
+            const result = cityResponse.data[0];
+            coordinates = {
+              lat: parseFloat(result.lat),
+              lng: parseFloat(result.lon),
+            };
+            found = true;
+            // Note: We are mapping it to the City center because the specific Barangay wasn't found/verified.
+          }
+        }
+
+        if (found && coordinates) {
+          geoCache.set(cacheKey, coordinates);
           geocodedLocations.push({
             city: displayLabel,
             fullAddress: cacheKey,
@@ -219,48 +293,16 @@ export const getGeographicDistribution = async (req, res) => {
             ...coordinates,
           });
         } else {
-          // Fallback: If specific barangay fails, try finding just the City
-          // This ensures the patient is at least mapped to the correct city
-          console.log(
-            `Detailed search failed for ${cacheKey}, trying City only...`
-          );
-
-          await sleep(1000); // Wait another second for the fallback request
-
-          const cityQuery = `${city}, ${province || ""}, Philippines`;
-          const cityResponse = await axios.get(
-            `https://nominatim.openstreetmap.org/search`,
-            {
-              params: { q: cityQuery, format: "json", limit: 1 },
-              headers: { "User-Agent": "CECC-Clinic-App/1.0" },
-            }
-          );
-
-          if (cityResponse.data && cityResponse.data.length > 0) {
-            const { lat, lon } = cityResponse.data[0];
-            const coordinates = { lat: parseFloat(lat), lng: parseFloat(lon) };
-
-            // Note: We don't cache this as the specific key because it's not exact,
-            // but we display it.
-            geocodedLocations.push({
-              city: displayLabel,
-              fullAddress: cacheKey,
-              patients: item.patientCount,
-              ...coordinates,
-            });
-          } else {
-            // Totally failed
-            geocodedLocations.push({
-              city: displayLabel,
-              patients: item.patientCount,
-              lat: null,
-              lng: null,
-            });
-          }
+          // Final Fallback: Return null coordinates so it doesn't break the UI
+          geocodedLocations.push({
+            city: displayLabel,
+            patients: item.patientCount,
+            lat: null,
+            lng: null,
+          });
         }
       } catch (geoError) {
-        console.error(`Geocoding failed for: ${cacheKey}`, geoError.message);
-        // Push with null so we don't crash frontend calculations
+        console.error(`Geocoding error for: ${cacheKey}`, geoError.message);
         geocodedLocations.push({
           city: displayLabel,
           patients: item.patientCount,
@@ -270,7 +312,7 @@ export const getGeographicDistribution = async (req, res) => {
       }
     }
 
-    // 4. Filter and Calculate Percentages
+    // Filter valid locations and calculate percentages
     const validLocations = geocodedLocations.filter(
       (loc) => loc.lat && loc.lng
     );
