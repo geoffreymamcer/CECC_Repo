@@ -1,10 +1,12 @@
 import express from "express";
-import { 
-  createColorVisionTest, 
+import {
+  createColorVisionTest,
   getAllColorVisionTests,
-  getPatientColorVisionTests, 
+  getPatientColorVisionTests,
   getColorVisionTest,
-  updateFollowUpTests
+  updateFollowUpTests,
+  generateTestPDF,
+  getAdminPatientColorVisionTests,
 } from "../controllers/colorVisionTestController.js";
 import { auth, requireAdmin } from "../middleware/auth.js";
 
@@ -15,11 +17,18 @@ router.get("/admin/all", auth, requireAdmin, getAllColorVisionTests);
 router.patch("/:id/followup", auth, requireAdmin, updateFollowUpTests);
 
 // Patient routes
-router.route("/")
+router
+  .route("/")
   .post(auth, createColorVisionTest)
   .get(auth, getPatientColorVisionTests);
 
-router.route("/:id")
-  .get(auth, getColorVisionTest);
+router.route("/:id").get(auth, getColorVisionTest);
+router.get("/:id/pdf", auth, generateTestPDF);
+router.get(
+  "/admin/patient/:patientId",
+  auth,
+  requireAdmin,
+  getAdminPatientColorVisionTests
+);
 
 export default router;

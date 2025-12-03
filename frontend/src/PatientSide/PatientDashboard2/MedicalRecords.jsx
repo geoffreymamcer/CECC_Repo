@@ -29,6 +29,8 @@ const MedicalRecords = () => {
   const [latestRx, setLatestRx] = useState(null);
   const [rxLoading, setRxLoading] = useState(false);
 
+  const [colorVisionTests, setColorVisionTests] = useState([]);
+
   // UI States
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -59,19 +61,26 @@ const MedicalRecords = () => {
       setLoading(true);
       setError(null);
       try {
-        const [invoicesRes, visitsRes] = await Promise.all([
+        // 2️⃣ START MODIFICATION: Fetch Color Vision Tests alongside other records
+        const [invoicesRes, visitsRes, cvtRes] = await Promise.all([
           instance.get("/invoices/patient").catch((err) => ({ error: err })),
           instance.get("/visits/my-visits").catch((err) => ({ error: err })),
+          instance.get("/colorvisiontest").catch((err) => ({ error: err })),
         ]);
 
         if (invoicesRes.error) console.warn("Could not load invoices");
         if (visitsRes.error) console.warn("Could not load clinical reports");
+        if (cvtRes.error) console.warn("Could not load color vision tests");
 
         setInvoices(invoicesRes.data || []);
 
         const allVisits = visitsRes.data || [];
         allVisits.sort((a, b) => new Date(b.visitDate) - new Date(a.visitDate));
         setVisits(allVisits);
+
+        const allCvt = cvtRes.data || [];
+        allCvt.sort((a, b) => new Date(b.testDate) - new Date(a.testDate));
+        setColorVisionTests(allCvt);
       } catch (err) {
         console.error("Error fetching medical records:", err);
         setError("Some records could not be loaded.");
@@ -212,58 +221,130 @@ const MedicalRecords = () => {
           </div>
         )}
 
-        {/* 2. Test Results Tab */}
         {activeTab === "test-results" && (
           <div className="space-y-3 animate-fadeIn">
             {loading ? (
-              <LoadingState text="Loading reports..." />
-            ) : visits.length === 0 ? (
-              <EmptyState text="No clinical reports found." />
+              <LoadingState text="Loading records..." />
+            ) : visits.length === 0 && colorVisionTests.length === 0 ? (
+              <EmptyState text="No results found." />
             ) : (
-              visits.map((visit) => {
-                const viewUrl = `/visits/my-visits/${visit._id}/pdf/view`;
-                const dlUrl = `/visits/my-visits/${visit._id}/pdf/download`;
-                const fName = `report-${formatDate(visit.visitDate)}.pdf`;
-
-                return (
-                  <div
-                    key={visit._id}
-                    className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all"
-                  >
-                    <div className="flex justify-between items-start md:items-center flex-col md:flex-row gap-4">
-                      <div>
-                        <h4 className="font-bold text-gray-800">
-                          Clinical Report
-                        </h4>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Visit Date: {formatDate(visit.visitDate)}
-                        </p>
-                      </div>
-                      <div className="flex gap-2 w-full md:w-auto">
-                        <ActionButton
-                          icon={<FaEye />}
-                          label="View"
-                          onClick={() =>
-                            handlePdfAction("view", viewUrl, fName)
-                          }
-                          isLoading={downloadingId === viewUrl}
-                          disabled={!!downloadingId}
-                        />
-                        <ActionButton
-                          icon={<FaDownload />}
-                          label="Save"
-                          variant="outline"
-                          onClick={() =>
-                            handlePdfAction("download", dlUrl, fName)
-                          }
-                          isLoading={downloadingId === dlUrl}
-                          disabled={!!downloadingId}
-                        />
-                      </div>
+              <>
+                {/* 3️⃣ START MODIFICATION: Render Color Vision Tests */}
+                {colorVisionTests.length > 0 && (
+                  <>
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-2 mb-2">
+                      Color Vision Tests
                     </div>
-                  </div>
-                );
-              })
+                    {colorVisionTests.map((test) => {
+                      // This endpoint matches your backend route: router.get("/:id/pdf", ...)
+                      const pdfEndpoint = `/colorvisiontest/${test._id}/pdf`;
+                      const fileName = `Ishihara_Report_${formatDate(
+                        test.testDate
+                      )}.pdf`;
+
+                      return (
+                        <div
+                          key={test._id}
+                          className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all border-l-4 border-l-[#7F0000]"
+                        >
+                          <div className="flex justify-between items-start md:items-center flex-col md:flex-row gap-4">
+                            <div>
+                              <h4 className="font-bold text-gray-800">
+                                Ishihara Assessment
+                              </h4>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Date: {formatDate(test.testDate)} • Result:{" "}
+                                <span className="font-semibold text-[#7F0000]">
+                                  {test.testResult}
+                                </span>
+                              </p>
+                            </div>
+                            <div className="flex gap-2 w-full md:w-auto">
+                              <ActionButton
+                                icon={<FaEye />}
+                                label="View"
+                                onClick={() =>
+                                  handlePdfAction("view", pdfEndpoint, fileName)
+                                }
+                                isLoading={downloadingId === pdfEndpoint}
+                                disabled={!!downloadingId}
+                              />
+                              <ActionButton
+                                icon={<FaDownload />}
+                                label="Save"
+                                variant="outline"
+                                onClick={() =>
+                                  handlePdfAction(
+                                    "download",
+                                    pdfEndpoint,
+                                    fileName
+                                  )
+                                }
+                                isLoading={downloadingId === pdfEndpoint}
+                                disabled={!!downloadingId}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+                {/* 3️⃣ END MODIFICATION */}
+
+                {/* Existing Clinical Reports */}
+                {visits.length > 0 && (
+                  <>
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-6 mb-2">
+                      Clinical Reports
+                    </div>
+                    {visits.map((visit) => {
+                      const viewUrl = `/visits/my-visits/${visit._id}/pdf/view`;
+                      const dlUrl = `/visits/my-visits/${visit._id}/pdf/download`;
+                      const fName = `report-${formatDate(visit.visitDate)}.pdf`;
+
+                      return (
+                        <div
+                          key={visit._id}
+                          className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all border-l-4 border-l-blue-500"
+                        >
+                          <div className="flex justify-between items-start md:items-center flex-col md:flex-row gap-4">
+                            <div>
+                              <h4 className="font-bold text-gray-800">
+                                Clinical Visit Report
+                              </h4>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Visit Date: {formatDate(visit.visitDate)}
+                              </p>
+                            </div>
+                            <div className="flex gap-2 w-full md:w-auto">
+                              <ActionButton
+                                icon={<FaEye />}
+                                label="View"
+                                onClick={() =>
+                                  handlePdfAction("view", viewUrl, fName)
+                                }
+                                isLoading={downloadingId === viewUrl}
+                                disabled={!!downloadingId}
+                              />
+                              <ActionButton
+                                icon={<FaDownload />}
+                                label="Save"
+                                variant="outline"
+                                onClick={() =>
+                                  handlePdfAction("download", dlUrl, fName)
+                                }
+                                isLoading={downloadingId === dlUrl}
+                                disabled={!!downloadingId}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </>
             )}
           </div>
         )}

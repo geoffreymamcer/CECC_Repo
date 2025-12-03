@@ -20,8 +20,7 @@ import { ishiharaTestPlatesConsistent } from "./questionsList";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import instance from "../../../api/axios";
 import DistanceMonitor from "./DistanceMonitor";
-
-// --- HELPERS ---
+import html2canvas from "html2canvas";
 
 const numberWords = {
   one: "1",
@@ -49,7 +48,6 @@ const checkAnswerLocally = (userInput, correctAnswer) => {
       .toLowerCase()
       .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "") // Remove punctuation
       .trim();
-
   let cleanInput = normalize(userInput);
   let cleanCorrect = normalize(correctAnswer);
 
@@ -157,9 +155,14 @@ const IshiharaTest = () => {
   const [isCalibrated, setIsCalibrated] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const startTimeRef = useRef(null);
+  const monitorRef = useRef(null);
+
+  const testContainerRef = useRef(null);
 
   const [isDistanceCorrect, setIsDistanceCorrect] = useState(true); // Default true to prevent flicker on load
   const [distanceStatus, setDistanceStatus] = useState("OK");
+
+  const [isCheckingScreening, setIsCheckingScreening] = useState(false);
 
   const handleDistanceChange = useCallback((isValid, status) => {
     setIsDistanceCorrect(isValid);
@@ -297,7 +300,52 @@ const IshiharaTest = () => {
     }
   };
 
-  const handleNext = () => {
+  const checkScreeningWithAI = async (currentAnswers) => {
+    setIsCheckingScreening(true);
+
+    // Safety check: Fallback to continuing test if API fails
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+
+      const screeningData = currentAnswers.map((a) => ({
+        plate: a.plate.plateNumber,
+        userAnswer: a.userAnswer,
+        timeTaken: (a.timeTaken / 1000).toFixed(1) + "s",
+        correctAnswer: a.plate.normalVisionAnswer,
+      }));
+
+      const prompt = `
+        Act as a strict Optometrist. Analyze the first 7 screening plates of an Ishihara test.
+        
+        **Rules for Passing:**
+        1. The user must identify the "Normal Vision" number correctly on ALL 7 plates.
+        2. Minor typos or spelling (e.g., "twlv" instead of "12") are ACCEPTABLE if the intent is clear.
+        3. Hesitation: If the average time taken is > 6 seconds, they FAIL screening (Suspected deficiency).
+        4. "I don't see anything" is an immediate FAIL.
+
+        **Input Data:** ${JSON.stringify(screeningData)}
+
+        **Output:** Return ONLY a JSON object: { "passed": boolean, "reason": string }
+      `;
+
+      const result = await model.generateContent(prompt);
+      const text = result.response
+        .text()
+        .replace(/```json|```/g, "")
+        .trim();
+      const analysis = JSON.parse(text);
+
+      return analysis.passed; // Returns true or false
+    } catch (error) {
+      console.error("Screening Check Failed:", error);
+      return false; // Fail safe: If AI breaks, continue the test.
+    } finally {
+      setIsCheckingScreening(false);
+    }
+  };
+
+  const handleNext = async () => {
+    // 3️⃣ Make handleNext ASYNC
     if (!currentUserInput.trim()) {
       alert("Please enter or say what you see.");
       return;
@@ -306,68 +354,76 @@ const IshiharaTest = () => {
     const currentPlate = plates[currentPlateIndex];
     const timeTaken = Date.now() - (startTimeRef.current || Date.now());
 
+    let snapshot = null;
+    if (testContainerRef.current) {
+      try {
+        // Capture the specific container with the plate and input
+        const canvas = await html2canvas(testContainerRef.current, {
+          useCORS: true, // Needed if images are served from different origin
+          scale: 0.8, // Reduce scale slightly to save data size
+          ignoreElements: (element) => element.tagName === "VIDEO", // Optional: Ignore raw video element if causing issues, but usually we want context
+        });
+        snapshot = canvas.toDataURL("image/jpeg", 0.6); // Compress JPEG quality 0.6
+      } catch (err) {
+        console.error("Snapshot failed:", err);
+      }
+    }
+
     const newAnswer = {
       plate: currentPlate,
       userAnswer: currentUserInput,
       timeTaken: timeTaken,
+      userSnapshot: snapshot,
     };
 
     const updatedAnswers = [...testAnswers, newAnswer];
     setTestAnswers(updatedAnswers);
     setCurrentUserInput("");
 
-    // 2️⃣ START MODIFICATION: Tier 1 & Tier 2 Stopping Logic
-
-    // --- TIER 1 CHECK (Plate 7 / Index 6) ---
-    // Rule: If first 7 are perfect and fast, stop (Screening Passed).
+    // --- TIER 1 CHECKPOINT (Plate 7 / Index 6) ---
     if (currentPlateIndex === 6) {
-      const screeningAnswers = updatedAnswers.slice(0, 7);
+      // 4️⃣ REPLACE LOCAL LOGIC WITH AI CALL
+      console.log("Plate 7 reached. Pausing for AI Screening Check...");
 
-      const hasErrors = screeningAnswers.some((ans) => {
-        // Strict check: User input must match Normal Vision answer locally
-        return !checkAnswerLocally(
-          ans.userAnswer,
-          ans.plate.normalVisionAnswer
-        );
-      });
+      const passedScreening = await checkScreeningWithAI(updatedAnswers);
 
-      const totalTime = screeningAnswers.reduce(
-        (sum, a) => sum + a.timeTaken,
-        0
-      );
-      const avgTime = totalTime / 7;
-      const hasHesitation = avgTime > 6000;
-
-      if (!hasErrors && !hasHesitation) {
-        console.log("Tier 1 (Screening) Passed. Stopping.");
+      if (passedScreening) {
+        console.log("Screening Passed via AI. Stopping Test.");
+        // We set status manually here because we aren't running the full evaluation loop yet
+        setVisionStatus("Normal Color Vision");
+        // Populate results for the report
+        const passedResults = updatedAnswers.map((a) => ({
+          plateNumber: a.plate.plateNumber,
+          userAnswer: a.userAnswer,
+          evaluation: "Normal",
+          isCorrect: true,
+          timeTaken: a.timeTaken,
+          reasoning: "Passed Screening Phase",
+        }));
+        setTestResults(passedResults);
+        setSubmitSuccess(false); // Trigger save effect
         setIsCompleted(true);
         return;
+      } else {
+        console.log(
+          "Screening Failed/Suspicious. Continuing to Diagnostic Phase."
+        );
+        // Proceed to Plate 8...
       }
     }
 
-    // --- TIER 2 CHECK (Plate 25 / Index 24) ---
-    // Rule: If we reach Plate 25, we have finished all Numeric plates.
-    // Plates 26-38 are "Winding Lines" intended for illiterates.
-    // Since user has been typing/speaking numbers for 25 plates, they are literate.
-    // We have enough data to classify Protan/Deutan (Plates 22-25) or confirm Normal (slow).
+    // --- TIER 2 CHECKPOINT (Plate 25 / Index 24) ---
     if (currentPlateIndex === 24) {
-      console.log(
-        "Tier 2 (Diagnosis) Complete. Stopping before Winding Lines."
-      );
-      // We stop here regardless of result. The AI will analyze the 25 plates.
-      // Going further adds no diagnostic value for this input method.
+      console.log("Tier 2 (Diagnosis) Complete. Stopping.");
       setIsCompleted(true);
       return;
     }
 
-    // 2️⃣ END MODIFICATION
-
+    // Move to next plate
     if (currentPlateIndex < plates.length - 1) {
       setCurrentPlateIndex(currentPlateIndex + 1);
-
-      // Reset Phase and Timer
       setTestPhase("viewing");
-      setTimeLeft(5); // Reset to 5 seconds
+      setTimeLeft(5);
       setCurrentUserInput("");
     } else {
       setIsCompleted(true);
@@ -404,29 +460,64 @@ const IshiharaTest = () => {
           if (!token) throw new Error("Authentication missing.");
 
           const payload = {
-            plateResults: testResults.map((r) => ({
-              plateNumber: r.plateNumber,
-              userAnswer: r.userAnswer,
-              imageSrc: r.imageSrc,
-              question: r.question,
-              evaluation: r.evaluation,
-              reasoning: r.reasoning,
-              isCorrect: r.isCorrect,
-              responseTime: r.timeTaken ? r.timeTaken / 1000 : 0,
-              inputMethod: "text",
-              normalVisionAnswer: r.normalVisionAnswer,
-              protanopiaAnswer: r.protanopiaAnswer,
-              deuteranopiaAnswer: r.deuteranopiaAnswer,
-            })),
+            plateResults: testResults.map((r) => {
+              const originalAnswer = testAnswers.find(
+                (a) => a.plate.plateNumber === r.plateNumber
+              );
+
+              return {
+                plateNumber: r.plateNumber,
+                userAnswer: r.userAnswer,
+                // We don't even need to send imageSrc anymore, but keeping it
+                // as the original path string is fine. The backend ignores it for PDF.
+                imageSrc: r.imageSrc,
+                question: r.question,
+                evaluation: r.evaluation,
+                reasoning: r.reasoning,
+                isCorrect: r.isCorrect,
+                responseTime: r.timeTaken ? r.timeTaken / 1000 : 0,
+                inputMethod: "text",
+                normalVisionAnswer: r.normalVisionAnswer,
+                protanopiaAnswer: r.protanopiaAnswer,
+                deuteranopiaAnswer: r.deuteranopiaAnswer,
+                // We ONLY send the user snapshot (face/UI)
+                userSnapshot: originalAnswer
+                  ? originalAnswer.userSnapshot
+                  : null,
+              };
+            }),
             correctPlates,
             totalPlates,
             accuracy,
             testResult: visionStatus,
             testDate: new Date().toISOString(),
           };
+          // 1️⃣ END MODIFICATION
 
           const response = await instance.post("/colorvisiontest", payload);
           setSubmitSuccess(true);
+
+          try {
+            const pdfResponse = await instance.get(
+              `/colorvisiontest/${response.data._id}/pdf`,
+              {
+                responseType: "blob",
+              }
+            );
+            const url = window.URL.createObjectURL(
+              new Blob([pdfResponse.data])
+            );
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute(
+              "download",
+              `Ishihara_Report_${response.data._id}.pdf`
+            );
+            document.body.appendChild(link);
+            link.click();
+          } catch (pdfErr) {
+            console.error("Auto-PDF generation failed", pdfErr);
+          }
         } catch (err) {
           console.error("Save Error:", err);
           setSubmitError(
@@ -516,7 +607,10 @@ const IshiharaTest = () => {
   const currentPlate = plates[currentPlateIndex];
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] flex flex-col">
+    <div
+      ref={testContainerRef}
+      className="min-h-screen w-full bg-gray-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] flex flex-col"
+    >
       <div className="w-full max-w-5xl mx-auto px-4 py-6 flex justify-between items-center">
         <button
           onClick={() => (window.location.href = "/user-dashboard")}
@@ -534,7 +628,10 @@ const IshiharaTest = () => {
       <div className="fixed bottom-4 right-4 z-50 md:top-24 md:right-8 md:bottom-auto">
         {/* Only show monitor during the active test */}
         {!isCompleted && isCalibrated && (
-          <DistanceMonitor onDistanceChange={handleDistanceChange} />
+          <DistanceMonitor
+            ref={monitorRef}
+            onDistanceChange={handleDistanceChange}
+          />
         )}
       </div>
 
@@ -542,6 +639,17 @@ const IshiharaTest = () => {
         <div className="w-full max-w-2xl">
           {!isCompleted ? (
             <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden relative animate-fadeIn">
+              {isCheckingScreening && (
+                <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center p-8 text-center animate-fadeIn">
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-100 border-t-[#7F0000] mb-4"></div>
+                  <h3 className="text-xl font-bold text-gray-800">
+                    Analyzing Responses...
+                  </h3>
+                  <p className="text-gray-500">
+                    Checking for screening criteria.
+                  </p>
+                </div>
+              )}
               <div className="px-8 pt-8 pb-2">
                 <div className="flex justify-between items-end mb-2">
                   <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">

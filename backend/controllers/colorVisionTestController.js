@@ -1,6 +1,7 @@
 import ColorVisionTest from "../models/ColorVisionTest.js";
 import User from "../models/User.js";
 import asyncHandler from "express-async-handler";
+import { generateIshiharaPDF } from "../services/colorVisionPdfService.js";
 
 // @desc    Create a new color vision test result
 // @route   POST /api/colorvisiontest
@@ -193,10 +194,73 @@ const updateFollowUpTests = asyncHandler(async (req, res) => {
   res.status(200).json(colorVisionTest);
 });
 
+const generateTestPDF = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Fetch the test with full details
+  const test = await ColorVisionTest.findById(id);
+
+  if (!test) {
+    res.status(404);
+    throw new Error("Test not found");
+  }
+
+  // Check authorization (Patient owns test OR Admin)
+  const patientID = req.user.patientId || req.user.id || req.user._id;
+
+  // Check if user is owner OR has admin privileges (checking both boolean and role string)
+  const isPatient = test.patientID.toString() === patientID.toString();
+  const isAdmin = req.user.isAdmin === true || req.user.role === "admin";
+  const isOwner = req.user.isOwner === true || req.user.role === "owner";
+
+  if (!isPatient && !isAdmin && !isOwner) {
+    res.status(401);
+    throw new Error("Not authorized to view this report");
+  }
+
+  try {
+    // Delegate logic to the service
+    const pdfBuffer = await generateIshiharaPDF(test);
+
+    // Set headers for file download
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Length": pdfBuffer.length,
+      "Content-Disposition": `attachment; filename="Ishihara_Report_${test.patientName.replace(
+        /\s+/g,
+        "_"
+      )}_${new Date().toISOString().split("T")[0]}.pdf"`,
+    });
+
+    // Send the buffer
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error("Controller PDF Error:", error);
+    res.status(500);
+    throw new Error("Could not generate PDF report at this time.");
+  }
+});
+const getAdminPatientColorVisionTests = asyncHandler(async (req, res) => {
+  const { patientId } = req.params;
+
+  console.log(`Admin fetching color vision tests for patient ID: ${patientId}`);
+
+  // Fetch tests where patientID matches
+  const colorVisionTests = await ColorVisionTest.find({
+    patientID: patientId,
+  }).sort({
+    testDate: -1,
+  });
+
+  res.status(200).json(colorVisionTests);
+});
+
 export {
   createColorVisionTest,
   getAllColorVisionTests,
   getPatientColorVisionTests,
   getColorVisionTest,
   updateFollowUpTests,
+  generateTestPDF,
+  getAdminPatientColorVisionTests,
 };

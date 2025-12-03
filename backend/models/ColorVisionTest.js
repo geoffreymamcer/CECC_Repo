@@ -51,6 +51,7 @@ const colorVisionTestSchema = new mongoose.Schema(
         isCorrect: { type: Boolean },
         responseTime: { type: Number }, // in seconds
         inputMethod: { type: String, enum: ["voice", "text", "timeout"] },
+        userSnapshot: { type: String },
       },
     ],
     followUpTests: {

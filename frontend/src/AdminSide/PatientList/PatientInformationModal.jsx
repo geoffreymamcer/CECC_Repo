@@ -34,6 +34,8 @@ const PatientInformationModal = ({
   // Centralized states
   const [patientDetails, setPatientDetails] = useState(null);
   const [invoices, setInvoices] = useState([]);
+  const [colorVisionTests, setColorVisionTests] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
@@ -277,12 +279,15 @@ const PatientInformationModal = ({
 
     try {
       // The 'api' instance handles the Authorization header automatically
-      const [profileRes, visitsRes, invoicesRes, userExistsRes] =
+      const [profileRes, visitsRes, invoicesRes, userExistsRes, cvtRes] =
         await Promise.all([
           instance.get(`/profiles/id/${patientId}`),
           instance.get(`/visits/patient/${patientId}`),
           instance.get(`/invoices/patient/${patientId}`),
           instance.get(`/users/exists/${patientId}`),
+          instance
+            .get(`/colorvisiontest/admin/patient/${patientId}`)
+            .catch((err) => ({ data: [] })),
         ]);
       setHasAccount(userExistsRes.data.exists);
       const profileData = profileRes.data;
@@ -348,6 +353,10 @@ const PatientInformationModal = ({
       }
 
       setInvoices(invoicesRes.data || []);
+      const sortedCvt = (cvtRes.data || []).sort(
+        (a, b) => new Date(b.testDate) - new Date(a.testDate)
+      );
+      setColorVisionTests(sortedCvt);
     } catch (err) {
       console.error("Error fetching initial patient data:", err);
       setError("Failed to fetch patient data.");
@@ -1077,6 +1086,7 @@ const PatientInformationModal = ({
               <DownloadablesTab
                 patient={patientDetails}
                 visitList={visitList}
+                colorVisionTests={colorVisionTests}
               />
             )}
           </div>

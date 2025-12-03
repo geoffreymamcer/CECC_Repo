@@ -1,12 +1,28 @@
 // src/components/DistanceMonitor.jsx
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import Webcam from "react-webcam";
 import { FiUserCheck, FiAlertCircle, FiLoader, FiUsers } from "react-icons/fi"; // Added FiUsers
 
-const DistanceMonitor = ({ onDistanceChange }) => {
+const DistanceMonitor = forwardRef(({ onDistanceChange }, ref) => {
   const webcamRef = useRef(null);
   const [status, setStatus] = useState("Loading AI...");
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    captureSnapshot: () => {
+      if (webcamRef.current) {
+        // Capture low-res image to save bandwidth/DB space (320x240 is sufficient for verification)
+        return webcamRef.current.getScreenshot({ width: 320, height: 240 });
+      }
+      return null;
+    },
+  }));
 
   const loadScript = (url) => {
     return new Promise((resolve, reject) => {
@@ -165,6 +181,7 @@ const DistanceMonitor = ({ onDistanceChange }) => {
         <Webcam
           ref={webcamRef}
           mirrored={true}
+          screenshotFormat="image/jpeg"
           className="absolute inset-0 w-full h-full object-cover opacity-80"
           width={640}
           height={480}
@@ -180,6 +197,6 @@ const DistanceMonitor = ({ onDistanceChange }) => {
       </div>
     </div>
   );
-};
+});
 
 export default DistanceMonitor;
