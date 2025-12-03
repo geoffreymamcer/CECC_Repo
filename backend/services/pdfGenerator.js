@@ -1,7 +1,8 @@
-import puppeteer from "puppeteer-core";
+import puppeteerCore from "puppeteer-core";
+import puppeteer from "puppeteer"; // Import standard puppeteer for local use
 import chromium from "@sparticuz/chromium";
 import { getFullHtml } from "./pdfTemplate.js";
-import fs from "fs"; // --- 1. NEW --- Import the 'fs' module
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -14,16 +15,15 @@ function getImageAsBase64(filePath) {
     return `data:image/png;base64,${Buffer.from(file).toString("base64")}`;
   } catch (error) {
     console.error("Could not read logo file for PDF header:", error);
-    return ""; // Return an empty string if the logo can't be loaded
+    return "";
   }
 }
 
 export async function generateVisitReport(visit, patient) {
   let browser = null;
   try {
-    // --- 3. THE FIX ---
     const logoPath = path.join(__dirname, "../../assets/clinic-logo.png");
-    const logoBase64 = getImageAsBase64(logoPath); // Convert the image to a Data URI
+    const logoBase64 = getImageAsBase64(logoPath);
 
     const clinicInfo = {
       name: "Candelaria Eye Care Clinic",
@@ -32,14 +32,31 @@ export async function generateVisitReport(visit, patient) {
       contact: "candelariaeyecare@gmail.com | 0917 123 4567",
     };
 
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
+    // --- DETECT ENVIRONMENT ---
+    // Render automatically sets 'RENDER' to true.
+    // Usually NODE_ENV is set to 'production' in deployments.
+    const isProduction =
+      process.env.NODE_ENV === "production" || process.env.RENDER;
+
+    if (isProduction) {
+      // --- PRODUCTION (RENDER) SETTINGS ---
+      browser = await puppeteerCore.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+        ignoreHTTPSErrors: true,
+      });
+    } else {
+      // --- LOCAL DEVELOPMENT SETTINGS ---
+      browser = await puppeteer.launch({
+        headless: "new",
+        args: ["--no-sandbox", "--disable-setuid-sandbox"], // Standard args for stability
+      });
+    }
+
     const page = await browser.newPage();
 
-    // Pass clinicInfo to the template function (no logo path needed here anymore)
     const htmlContent = getFullHtml(patient, visit, clinicInfo);
 
     await page.setContent(htmlContent, { waitUntil: "networkidle0" });
@@ -49,7 +66,6 @@ export async function generateVisitReport(visit, patient) {
       printBackground: true,
       margin: { top: "130px", bottom: "70px", left: "50px", right: "50px" },
       displayHeaderFooter: true,
-      // --- 4. THE FIX --- Use the Base64 string as the image source
       headerTemplate: `
           <div style="width: 100%; border-bottom: 1px solid #EAEAEA; padding: 0 50px; box-sizing: border-box; font-family: Helvetica, Arial, sans-serif;">
               <div style="display: flex; justify-content: space-between; align-items: flex-start; padding-top: 40px;">
