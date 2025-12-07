@@ -31,13 +31,17 @@ const AddProductSuccessModal = ({
       onClick={handleOverlayClick}
     >
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0 animate-modal-in">
-        <div className="h-2 bg-green-600 rounded-t-xl"></div>
+        {/* 1️⃣ START MODIFICATION: Changed to deep-red */}
+        <div className="h-2 bg-deep-red rounded-t-xl"></div>
+        {/* 1️⃣ END MODIFICATION */}
 
         <div className="p-6 text-center">
           <div className="flex justify-center mb-4">
-            <div className="bg-green-100 p-3 rounded-full">
-              <CheckCircle className="text-green-600" size={48} />
+            {/* 2️⃣ START MODIFICATION: Changed background and icon color to red theme */}
+            <div className="bg-red-50 p-3 rounded-full">
+              <CheckCircle className="text-deep-red" size={48} />
             </div>
+            {/* 2️⃣ END MODIFICATION */}
           </div>
 
           <h2 className="text-xl font-bold text-gray-800 mb-2">
@@ -49,7 +53,7 @@ const AddProductSuccessModal = ({
               <img
                 src={productImage}
                 alt={productName}
-                className="w-16 h-16 object-cover rounded-lg mr-3"
+                className="w-16 h-16 object-cover rounded-lg mr-3 border border-gray-100"
               />
             ) : (
               <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
@@ -73,13 +77,15 @@ const AddProductSuccessModal = ({
           </div>
 
           <div className="flex justify-center space-x-3">
+            {/* 3️⃣ START MODIFICATION: Updated primary button colors */}
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
+              className="px-4 py-2 bg-deep-red text-white rounded-lg hover:bg-dark-red transition-colors flex items-center shadow-md shadow-red-900/10"
             >
               <Eye size={16} className="mr-2" />
               View in Inventory
             </button>
+            {/* 3️⃣ END MODIFICATION */}
 
             <button
               onClick={onClose}
@@ -128,39 +134,4 @@ const AddProductSuccessModal = ({
   );
 };
 
-// Alternative simpler version without product details
-const SimpleSuccessModal = ({
-  isOpen,
-  onClose,
-  message = "Product added successfully!",
-}) => {
-  useEffect(() => {
-    if (isOpen) {
-      const timer = setTimeout(() => {
-        onClose();
-      }, 2000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full transform transition-all duration-300 scale-95 opacity-0 animate-modal-in">
-        <div className="p-6 text-center">
-          <CheckCircle
-            className="text-green-600 mx-auto mb-4 animate-checkmark"
-            size={64}
-          />
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">Success!</h3>
-          <p className="text-gray-600">{message}</p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export default AddProductSuccessModal;
-export { SimpleSuccessModal };

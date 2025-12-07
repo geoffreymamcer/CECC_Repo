@@ -11,6 +11,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiActivity,
+  FiAlertCircle,
 } from "react-icons/fi";
 import { FaUserMd } from "react-icons/fa";
 import "../PatientDashboard2/PatientDashboard2.css";
@@ -35,12 +36,44 @@ const Appointments = () => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [activeStep, setActiveStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasUpcomingAppointment, setHasUpcomingAppointment] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, APPOINTMENT_LOADING_DURATION);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const checkExistingAppointments = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const res = await instance.get("/appointments/my-appointments");
+        const now = new Date();
+        now.setHours(0, 0, 0, 0); // Start of today
+
+        // Check if there is any appointment that is NOT cancelled or completed, AND is in the future/today
+        const existing = res.data.find((appt) => {
+          const apptDate = new Date(appt.appointmentDate);
+          const isActiveStatus = ["scheduled", "pending", "confirmed"].includes(
+            appt.status
+          );
+          // It's a conflict if it's active AND (date is today or future)
+          return isActiveStatus && apptDate >= now;
+        });
+
+        if (existing) {
+          setHasUpcomingAppointment(true);
+        }
+      } catch (error) {
+        console.error("Failed to check existing appointments", error);
+      }
+    };
+
+    checkExistingAppointments();
   }, []);
 
   const reasons = [
@@ -142,7 +175,7 @@ const Appointments = () => {
 
   const confirmAppointment = () => {
     setShowConfirmation(false);
-    navigate("/user-dashboard");
+    window.location.reload();
   };
 
   const getDisplayReason = () => {
@@ -574,13 +607,33 @@ const Appointments = () => {
                 onClick={confirmAppointment}
                 className="w-full py-3.5 bg-deep-red text-white rounded-xl font-bold hover:bg-red-900 transition-colors shadow-lg shadow-red-200"
               >
-                Done
+                Go to Dashboard
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {hasUpcomingAppointment && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full animate-scaleIn text-center shadow-2xl border border-red-100">
+            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl shadow-inner">
+              <FiAlertCircle />
+            </div>
+            <h3 className="text-2xl font-extrabold text-gray-800 mb-2">
+              Active Appointment Found
+            </h3>
+            <p className="text-gray-500 mb-8">
+              You already have an upcoming appointment scheduled. You cannot
+              book a new one until the current one is completed or cancelled.
+            </p>
+
+            <div className="flex flex-col gap-3">
               <button
                 onClick={() => window.location.reload()}
-                className="w-full py-3.5 text-gray-500 font-bold hover:text-gray-800 transition-colors"
+                className="w-full py-3.5 bg-deep-red text-white rounded-xl font-bold hover:bg-red-900 transition-colors shadow-lg shadow-red-200"
               >
-                Book Another
+                Go to Dashboard
               </button>
             </div>
           </div>

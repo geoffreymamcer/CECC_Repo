@@ -6,7 +6,6 @@ import {
   FiArrowRight,
   FiHome,
   FiEye,
-  FiCheckCircle,
   FiActivity,
   FiRefreshCcw,
   FiMic,
@@ -21,63 +20,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import instance from "../../../api/axios";
 import DistanceMonitor from "./DistanceMonitor";
 import html2canvas from "html2canvas";
-
-const numberWords = {
-  one: "1",
-  two: "2",
-  three: "3",
-  four: "4",
-  five: "5",
-  six: "6",
-  seven: "7",
-  eight: "8",
-  nine: "9",
-  ten: "10",
-  eleven: "11",
-  twelve: "12",
-  nothing: "nothing",
-  none: "nothing",
-};
-const checkAnswerLocally = (userInput, correctAnswer) => {
-  if (!userInput || !correctAnswer) return false;
-
-  // 1. Normalize strings
-  const normalize = (str) =>
-    str
-      .toString()
-      .toLowerCase()
-      .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "") // Remove punctuation
-      .trim();
-  let cleanInput = normalize(userInput);
-  let cleanCorrect = normalize(correctAnswer);
-
-  // 2. Dynamic Word Replacement
-  // This handles "I see twelve" -> "I see 12"
-  Object.keys(numberWords).forEach((word) => {
-    // Regex matches the whole word only (\b) to avoid replacing inside other words
-    const regex = new RegExp(`\\b${word}\\b`, "g");
-    cleanInput = cleanInput.replace(regex, numberWords[word]);
-  });
-
-  // 3. Extract Digits
-  const inputNum = cleanInput.match(/\d+/);
-  const correctNum = cleanCorrect.match(/\d+/);
-
-  // 4. Comparison Logic
-  if (inputNum && correctNum) {
-    // Both have numbers? Compare the numbers (e.g. "12" === "12")
-    return inputNum[0] === correctNum[0];
-  } else if (
-    cleanInput.includes("nothing") &&
-    cleanCorrect.includes("nothing")
-  ) {
-    // Handle "nothing" case explicitly
-    return true;
-  }
-
-  // Fallback: If no numbers found (e.g. "Line"), compare normalized strings
-  return cleanInput === cleanCorrect;
-};
 
 function determineVisionStatus(resultsArray) {
   const plate1 = resultsArray.find((r) => r.plateNumber === 1);
@@ -149,6 +91,9 @@ const IshiharaTest = () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [visionStatus, setVisionStatus] = useState("");
 
+  const [cameraError, setCameraError] = useState(null);
+  const [isCheckingCamera, setIsCheckingCamera] = useState(false);
+
   const [testPhase, setTestPhase] = useState("viewing"); // 'viewing' | 'answering'
   const [timeLeft, setTimeLeft] = useState(5); // 5 Seconds exposure time
 
@@ -205,7 +150,7 @@ const IshiharaTest = () => {
 
   const evaluateAllAnswersWithGemini = async (answers) => {
     setIsLoading(true);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     // 1️⃣ START MODIFICATION: Updated Prompt for Tier 2 Logic
     const answersPrompt = answers
@@ -305,7 +250,7 @@ const IshiharaTest = () => {
 
     // Safety check: Fallback to continuing test if API fails
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+      const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
       const screeningData = currentAnswers.map((a) => ({
         plate: a.plate.plateNumber,
@@ -554,6 +499,39 @@ const IshiharaTest = () => {
     return () => clearTimeout(timer);
   }, [timeLeft, testPhase, isCompleted, isCalibrated, isDistanceCorrect]);
 
+  const checkCameraAvailability = async () => {
+    setIsCheckingCamera(true);
+    setCameraError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach((track) => track.stop());
+
+      // Proceed to test
+      setIsCalibrated(true);
+    } catch (err) {
+      console.error("Camera Check Failed:", err);
+      if (
+        err.name === "NotAllowedError" ||
+        err.name === "PermissionDeniedError"
+      ) {
+        setCameraError(
+          "Camera permission denied. Please allow access to continue."
+        );
+      } else if (
+        err.name === "NotFoundError" ||
+        err.name === "DevicesNotFoundError"
+      ) {
+        setCameraError(
+          "No camera detected. A camera is required for this clinical test."
+        );
+      } else {
+        setCameraError("Camera error: Unable to access video device.");
+      }
+    } finally {
+      setIsCheckingCamera(false);
+    }
+  };
+
   // --- UI RENDER (Unchanged) ---
   if (!isCalibrated) {
     return (
@@ -565,9 +543,26 @@ const IshiharaTest = () => {
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
             Device Calibration
           </h2>
-          <p className="text-gray-500 mb-8">
-            To ensure clinical accuracy, please prepare your environment.
-          </p>
+
+          {cameraError ? (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+              <div className="flex justify-center mb-2 text-red-600">
+                <FiAlertTriangle size={32} />
+              </div>
+              <p className="text-red-700 font-bold mb-1">Camera Required</p>
+              <p className="text-red-600 text-sm">{cameraError}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-4 text-xs text-red-700 underline hover:text-red-900"
+              >
+                Refresh Page to Retry
+              </button>
+            </div>
+          ) : (
+            <p className="text-gray-500 mb-8">
+              To ensure clinical accuracy, please prepare your environment.
+            </p>
+          )}
           <div className="space-y-4 text-left mb-8">
             <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
               <FiMaximize className="w-5 h-5 text-[#7F0000] mt-1 shrink-0" />
@@ -591,10 +586,17 @@ const IshiharaTest = () => {
             </div>
           </div>
           <button
-            onClick={() => setIsCalibrated(true)}
-            className="w-full py-4 bg-[#7F0000] text-white rounded-xl font-bold shadow-lg shadow-red-900/20 hover:bg-[#600000] transition-all"
+            onClick={checkCameraAvailability}
+            disabled={isCheckingCamera || !!cameraError}
+            className={`w-full py-4 rounded-xl font-bold shadow-lg transition-all ${
+              cameraError
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : isCheckingCamera
+                ? "bg-gray-800 text-white cursor-wait"
+                : "bg-[#7F0000] text-white hover:bg-[#600000] shadow-red-900/20"
+            }`}
           >
-            I'm Ready
+            {isCheckingCamera ? "Verifying Camera..." : "I'm Ready"}
           </button>
         </div>
       </div>

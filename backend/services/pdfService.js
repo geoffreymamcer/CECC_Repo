@@ -2,6 +2,7 @@ import puppeteerCore from "puppeteer-core";
 import puppeteer from "puppeteer"; // Standard puppeteer
 import chromium from "@sparticuz/chromium";
 import { getInvoiceHtml } from "./invoiceTemplate.js";
+import { getServiceInvoiceHtml } from "./serviceInvoiceTemplate.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -45,7 +46,14 @@ const generateInvoicePDF = async (invoiceData) => {
 
     const logoPath = path.join(__dirname, "../assets/clinic-logo.png");
     const logoBase64 = getImageAsBase64(logoPath);
-    const htmlContent = getInvoiceHtml(invoiceData, logoBase64);
+
+    let htmlContent;
+
+    if (invoiceData.isServiceInvoice === true) {
+      htmlContent = getServiceInvoiceHtml(invoiceData, logoBase64);
+    } else {
+      htmlContent = getInvoiceHtml(invoiceData, logoBase64);
+    }
 
     await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 

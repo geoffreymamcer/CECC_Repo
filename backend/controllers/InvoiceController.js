@@ -239,15 +239,20 @@ export const deleteInvoice = async (req, res) => {
 export const createInvoice = async (req, res) => {
   try {
     const invoiceData = { ...req.body };
+
+    // 1. Assign Creator
     if (req.user?._id) {
       invoiceData.createdBy = String(req.user._id);
     }
+
+    // 2. Fetch Patient Details to freeze snapshot in Invoice
     const profile = await Profile.findById(invoiceData.patientId);
     if (!profile) {
       return res
         .status(404)
         .json({ message: "Profile not found for provided patientId" });
     }
+
     invoiceData.patientName = [
       profile.firstName,
       profile.middleName,
@@ -255,13 +260,15 @@ export const createInvoice = async (req, res) => {
     ]
       .filter(Boolean)
       .join(" ");
-    invoiceData.patientAddress = profile.address || "";
+    invoiceData.patientAddress =
+      profile.address || profile.addressCombined || "";
     invoiceData.patientPhoneNumber =
       profile.contact || profile.phone_number || "";
 
-    // Create the invoice. We will NOT generate the PDF here.
+    // 3. Create the Invoice Document
     const invoice = await Invoice.create(invoiceData);
 
+    // 4. Create Notification for Patient
     const notificationPayload = {
       recipient: invoice.patientId,
       title: "New Invoice Created",
@@ -271,16 +278,62 @@ export const createInvoice = async (req, res) => {
       type: "invoice",
       link: "/user-dashboard?tab=receipts",
     };
-    // Save to database
+
+    // Save notification to DB
     await Notification.create(notificationPayload);
-    // Emit real-time event if user is online
-    const recipientSocketId = req.onlineUsers.get(invoice.patientId);
-    if (recipientSocketId) {
-      req.io
-        .to(recipientSocketId)
-        .emit("new_notification", notificationPayload);
+
+    // Emit real-time socket event if user is online
+    // Ensure req.onlineUsers exists (middleware)
+    if (req.onlineUsers) {
+      const recipientSocketId = req.onlineUsers.get(invoice.patientId);
+      if (recipientSocketId) {
+        req.io
+          .to(recipientSocketId)
+          .emit("new_notification", notificationPayload);
+      }
     }
 
+    // 5. Inventory Management (Conditional)
+    // We loop through items to see if they exist in the Inventory.
+    // If they do (Product), we reduce stock. If not (Service), we ignore.
+    try {
+      if (invoiceData.items && invoiceData.items.length > 0) {
+        // Process updates in parallel
+        await Promise.all(
+          invoiceData.items.map(async (item) => {
+            // Try to find the product by name
+            const product = await Product.findOne({
+              productName: item.itemName,
+            });
+
+            // If found, it's a Product Invoice item -> Reduce Stock
+            if (product) {
+              const qtyToReduce = parseInt(item.qty) || 0;
+              const newStock = product.availableStocks - qtyToReduce;
+
+              // Calculate new status
+              let newStatus = "in stock";
+              if (newStock <= 0) newStatus = "out of stock";
+              else if (newStock <= 5) newStatus = "low";
+
+              await Product.findByIdAndUpdate(product._id, {
+                availableStocks: Math.max(0, newStock), // Prevent negative stock
+                stocksStatus: newStatus,
+              });
+            }
+            // If product is null, it's likely a Service (e.g., "Consultation") -> Do nothing
+          })
+        );
+      }
+    } catch (stockError) {
+      // Log error but don't fail the request. The invoice is already created.
+      console.error(
+        "Warning: Failed to update inventory stocks:",
+        stockError.message
+      );
+    }
+
+    // 6. Return Success
     res.status(201).json(invoice);
   } catch (error) {
     console.error("Error creating invoice:", error);

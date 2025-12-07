@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import instance from "../../api/axios";
 import { FaUserMd, FaTimes, FaEdit, FaTrash } from "react-icons/fa";
 import { IoMdPerson, IoMdCall, IoMdMail, IoMdHome } from "react-icons/io";
-
+import ServiceInvoiceModal from "./ServiceInvoiceModal";
 import NewVisitModal from "./NewVisitModal";
 import InvoiceInputModal from "./InvoiceModal";
 
@@ -58,6 +58,8 @@ const PatientInformationModal = ({
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showNewVisitModal, setShowNewVisitModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  const [showServiceInvoiceModal, setShowServiceInvoiceModal] = useState(false);
 
   const currentUser = "Dr. Philip Richard Budiongan";
 
@@ -233,6 +235,18 @@ const PatientInformationModal = ({
   const [clinicalExaminationData, setClinicalExaminationData] = useState(
     initialClinicalExamState
   );
+
+  const refreshInvoices = async () => {
+    try {
+      setIsLoadingInvoices(true);
+      const res = await instance.get(`/invoices/patient/${patientId}`);
+      setInvoices(res.data || []);
+    } catch (err) {
+      console.error("Failed to refresh invoices", err);
+    } finally {
+      setIsLoadingInvoices(false);
+    }
+  };
 
   // Memoized derived helpers
   const filteredProvinces = useMemo(() => {
@@ -1079,7 +1093,8 @@ const PatientInformationModal = ({
                 handleViewPDF={handleViewPDF}
                 handleDownloadPDF={handleDownloadPDF}
                 setShowInvoiceModal={setShowInvoiceModal}
-                pdfLoadingState={pdfLoadingState} // Pass the state as a prop
+                setShowServiceInvoiceModal={setShowServiceInvoiceModal} // Added prop
+                pdfLoadingState={pdfLoadingState}
               />
             )}
             {activeTab === "downloadables" && (
@@ -1156,6 +1171,17 @@ const PatientInformationModal = ({
       {showInvoiceModal && (
         <InvoiceInputModal
           onClose={() => setShowInvoiceModal(false)}
+          currentUser={currentUser}
+          patientId={patientId}
+        />
+      )}
+
+      {showServiceInvoiceModal && (
+        <ServiceInvoiceModal
+          onClose={() => {
+            setShowServiceInvoiceModal(false);
+            refreshInvoices(); // Refresh list on close
+          }}
           currentUser={currentUser}
           patientId={patientId}
         />

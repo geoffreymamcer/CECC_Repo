@@ -1,5 +1,11 @@
-import React from "react";
-import { FaFileInvoice, FaEye, FaDownload } from "react-icons/fa";
+import React, { useState } from "react";
+import {
+  FaFileInvoice,
+  FaEye,
+  FaDownload,
+  FaStethoscope,
+  FaBoxOpen,
+} from "react-icons/fa";
 
 const Spinner = () => (
   <svg
@@ -31,7 +37,22 @@ const InvoiceTab = ({
   handleDownloadPDF,
   setShowInvoiceModal,
   pdfLoadingState,
+  setShowServiceInvoiceModal,
 }) => {
+  const [showTypeSelection, setShowTypeSelection] = useState(false);
+
+  const handleCreateClick = () => {
+    setShowTypeSelection(true);
+  };
+
+  const handleSelectType = (type) => {
+    setShowTypeSelection(false);
+    if (type === "product") {
+      setShowInvoiceModal(true);
+    } else {
+      setShowServiceInvoiceModal(true);
+    }
+  };
   const totalInvoiced = invoices.reduce(
     (sum, inv) => sum + (inv.totalAmount || 0),
     0
@@ -40,19 +61,68 @@ const InvoiceTab = ({
   const outstandingBalance = totalInvoiced - amountPaid;
 
   return (
-    <div className="bg-gray-50 rounded-xl p-5 animate-fadeIn">
+    <div className="bg-gray-50 rounded-xl p-5 animate-fadeIn relative">
       <div className="flex justify-between items-center mb-4">
         <h4 className="font-bold text-gray-800 flex items-center">
           <FaFileInvoice className="mr-2 text-deep-red" />
           Invoice Details
         </h4>
         <button
-          onClick={() => setShowInvoiceModal(true)}
+          onClick={handleCreateClick}
           className="px-3 py-2 bg-gradient-to-r from-deep-red to-dark-red text-white rounded-xl hover:opacity-90 transition-all text-sm"
         >
           + Create Invoice
         </button>
       </div>
+
+      {showTypeSelection && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl transform transition-all scale-100">
+            <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">
+              Select Invoice Type
+            </h3>
+
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => handleSelectType("product")}
+                className="flex flex-col items-center justify-center p-6 border-2 border-gray-100 rounded-xl hover:border-deep-red hover:bg-red-50 transition-all group"
+              >
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-deep-red transition-colors">
+                  <FaBoxOpen className="text-deep-red group-hover:text-white text-xl" />
+                </div>
+                <span className="font-bold text-gray-700 group-hover:text-deep-red">
+                  Product Invoice
+                </span>
+                <span className="text-xs text-gray-500 mt-1 text-center">
+                  Frames, Lenses, Items
+                </span>
+              </button>
+
+              <button
+                onClick={() => handleSelectType("service")}
+                className="flex flex-col items-center justify-center p-6 border-2 border-gray-100 rounded-xl hover:border-blue-600 hover:bg-blue-50 transition-all group"
+              >
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-blue-600 transition-colors">
+                  <FaStethoscope className="text-blue-600 group-hover:text-white text-xl" />
+                </div>
+                <span className="font-bold text-gray-700 group-hover:text-blue-600">
+                  Service Invoice
+                </span>
+                <span className="text-xs text-gray-500 mt-1 text-center">
+                  Checkups, Consultations
+                </span>
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowTypeSelection(false)}
+              className="w-full mt-6 py-2 text-gray-500 hover:text-gray-700 font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

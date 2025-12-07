@@ -4,10 +4,15 @@ import { FiCalendar, FiClock, FiX } from "react-icons/fi";
 const RescheduleModal = ({ appointment, onClose, onReschedule }) => {
   const [selectedDate, setSelectedDate] = useState(appointment.date);
   const [selectedTime, setSelectedTime] = useState(appointment.time);
-  
+
   const availableTimes = [
-    "9:00 AM", "10:00 AM", "11:00 AM", 
-    "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM"
+    "9:00 AM",
+    "10:00 AM",
+    "11:00 AM",
+    "1:00 PM",
+    "2:00 PM",
+    "3:00 PM",
+    "4:00 PM",
   ];
 
   const handleSubmit = (e) => {
@@ -15,13 +20,13 @@ const RescheduleModal = ({ appointment, onClose, onReschedule }) => {
     onReschedule({
       ...appointment,
       date: selectedDate,
-      time: selectedTime
+      time: selectedTime,
     });
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div 
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[999] p-4">
+      <div
         className="bg-white rounded-xl max-w-md w-full animate-fadeIn shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
@@ -31,7 +36,7 @@ const RescheduleModal = ({ appointment, onClose, onReschedule }) => {
             <FiCalendar className="mr-2 text-dark-red" />
             Reschedule Appointment
           </h3>
-          <button 
+          <button
             onClick={onClose}
             className="p-1 rounded-full hover:bg-gray-200 transition-colors"
           >
@@ -41,11 +46,14 @@ const RescheduleModal = ({ appointment, onClose, onReschedule }) => {
 
         {/* Current Appointment Info */}
         <div className="p-4 border-b border-gray-200">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Current Appointment</h4>
+          <h4 className="text-sm font-medium text-gray-700 mb-2">
+            Current Appointment
+          </h4>
           <div className="flex justify-between">
             <span className="text-gray-600">Date & Time:</span>
             <span className="font-medium">
-              {new Date(appointment.date).toLocaleDateString()} at {appointment.time}
+              {new Date(appointment.date).toLocaleDateString()} at{" "}
+              {appointment.time}
             </span>
           </div>
           <div className="flex justify-between mt-1">
@@ -102,7 +110,8 @@ const RescheduleModal = ({ appointment, onClose, onReschedule }) => {
             {selectedDate && (
               <div className="mt-2">
                 <h4 className="text-xs font-medium text-gray-700 mb-2">
-                  Available Time Slots for {new Date(selectedDate).toLocaleDateString()}
+                  Available Time Slots for{" "}
+                  {new Date(selectedDate).toLocaleDateString()}
                 </h4>
                 <div className="grid grid-cols-3 gap-2">
                   {availableTimes.map((time, index) => (
@@ -111,9 +120,9 @@ const RescheduleModal = ({ appointment, onClose, onReschedule }) => {
                       type="button"
                       onClick={() => setSelectedTime(time)}
                       className={`py-2 px-2 text-sm rounded border transition-all ${
-                        selectedTime === time 
-                          ? 'bg-dark-red text-white border-dark-red' 
-                          : 'bg-white border-gray-300 hover:border-dark-red'
+                        selectedTime === time
+                          ? "bg-dark-red text-white border-dark-red"
+                          : "bg-white border-gray-300 hover:border-dark-red"
                       }`}
                     >
                       {time}
@@ -146,6 +155,5 @@ const RescheduleModal = ({ appointment, onClose, onReschedule }) => {
     </div>
   );
 };
-
 
 export default RescheduleModal;

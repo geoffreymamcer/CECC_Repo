@@ -48,9 +48,7 @@ const invoiceSchema = new mongoose.Schema(
     },
     totalAmount: { type: Number, min: 0, default: 0 },
 
-    // --- REMOVED --- These fields are no longer needed
-    // pdfData: { type: Buffer },
-    // pdfGeneratedAt: { type: Date, default: Date.now },
+    isServiceInvoice: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

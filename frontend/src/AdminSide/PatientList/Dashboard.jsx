@@ -10,8 +10,6 @@ import {
   Activity,
   Clock,
   ArrowUpRight,
-  Search,
-  MoreVertical,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import PatientVisitsChart from "./PatientVisitsChart";
@@ -197,13 +195,7 @@ const Dashboard = () => {
                 color: "text-deep-red",
                 bg: "bg-red-50",
               },
-              {
-                label: "Pending Lab Results",
-                value: kpiData.pendingLabResults,
-                icon: FileText,
-                color: "text-amber-600",
-                bg: "bg-amber-50",
-              },
+
               isOwner && {
                 label: "Revenue Today",
                 value: `₱${kpiData.revenueToday.toLocaleString()}`,
@@ -265,7 +257,7 @@ const Dashboard = () => {
                     Appointments
                   </h2>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-auto max-h-[400px]">
                   <table className="w-full">
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-100">

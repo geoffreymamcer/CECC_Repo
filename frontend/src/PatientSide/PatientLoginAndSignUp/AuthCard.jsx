@@ -46,7 +46,11 @@ export default function AuthCard() {
 
           <Title
             small={false}
-            text={isSignup ? "Create Account" : "Patient Portal"}
+            text={
+              isSignup
+                ? "Create Account"
+                : "Candelaria Eye Care Clinic Patient Portal"
+            }
           />
 
           <div className="transition-all duration-500 ease-in-out">

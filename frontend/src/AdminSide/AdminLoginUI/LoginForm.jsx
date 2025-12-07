@@ -82,19 +82,6 @@ const LoginForm = () => {
             autoComplete="current-password"
           />
 
-          {/* Action Row */}
-          <div className="flex items-center justify-between mt-2 mb-8">
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-4 h-4 text-[#b30000] border-gray-300 rounded focus:ring-[#b30000] transition duration-150 ease-in-out"
-              />
-              <span className="ml-2 text-sm text-gray-500 hover:text-gray-700">
-                Remember for 30 days
-              </span>
-            </label>
-          </div>
-
           {/* Submit Button */}
           <button
             type="submit"

@@ -28,7 +28,6 @@ export const getAllAppointments = async (req, res) => {
   }
 };
 
-// Create new appointment
 export const createAppointment = async (req, res) => {
   try {
     const {
@@ -38,12 +37,9 @@ export const createAppointment = async (req, res) => {
       notes,
       visitStatus,
       additionalNotes,
-      // 👇 🤖 EMOJI: Extract fullName from body (sent by Admin Frontend)
       fullName: manualFullName,
-      // 👆 🤖 EMOJI: End extraction
     } = req.body;
 
-    // Get user data from the authenticated user
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({
@@ -52,26 +48,18 @@ export const createAppointment = async (req, res) => {
       });
     }
 
-    // 👇 🤖 EMOJI: START LOGIC FIX
-    // Determine who the appointment is for.
     let finalFullName;
     let finalPatientId;
     let finalPhoneNumber;
 
-    // Check if the logged-in user is an Admin/Owner booking for someone else
     const isAdminBooking =
       (user.role === "admin" || user.role === "owner") && manualFullName;
 
     if (isAdminBooking) {
-      // CASE 1: Admin is booking for a patient manually
       finalFullName = manualFullName;
-      // Since this is a manual entry, we assign a placeholder ID or the Admin's ID depending on your preference.
-      // Here using "WALK-IN" or similar ensures it doesn't mess up the Admin's personal medical history.
       finalPatientId = "WALK-IN-" + Date.now();
-      // Admin modal doesn't capture phone number yet, so we default it or use Admin's to satisfy Schema requirements
       finalPhoneNumber = "N/A (Walk-in)";
     } else {
-      // CASE 2: Patient is booking for themselves (Standard Logic)
       finalFullName = `${user.firstName} ${
         user.middleName ? user.middleName + " " : ""
       }${user.lastName}`.trim();
@@ -79,16 +67,11 @@ export const createAppointment = async (req, res) => {
       finalPatientId = user.patientId || user._id;
       finalPhoneNumber = user.phone_number;
     }
-    // 👆 🤖 EMOJI: END LOGIC FIX
-
-    console.log(
-      `Creating appointment for: ${finalFullName} (ID: ${finalPatientId})`
-    );
 
     const appointment = await Appointment.create({
-      patientId: finalPatientId, // Used the variable determined above
-      fullName: finalFullName, // Used the variable determined above
-      phoneNumber: finalPhoneNumber, // Used the variable determined above
+      patientId: finalPatientId,
+      fullName: finalFullName,
+      phoneNumber: finalPhoneNumber,
       appointmentDate,
       appointmentTime,
       serviceType,
@@ -96,9 +79,6 @@ export const createAppointment = async (req, res) => {
       notes: notes || additionalNotes || "",
     });
 
-    // --- EMAIL NOTIFICATION LOGIC ---
-    // Only send patient confirmation email if it was the patient booking for themselves.
-    // (Because if Admin books for "John Doe", we don't have John's email in this payload)
     if (!isAdminBooking) {
       try {
         await sendAppointmentConfirmationEmail({
@@ -111,31 +91,45 @@ export const createAppointment = async (req, res) => {
       } catch (emailError) {
         console.error("Failed to send email:", emailError.message);
       }
-    }
 
-    // ... [Notification logic remains the same] ...
-    const adminRecipientIds = ["6869154e483aab1aa36acf26", "CECC25-0004"];
+      // 1️⃣ START MODIFICATION: Notify Admins on Patient Booking
+      // If a patient booked this, notify the admins/owner
+      try {
+        // Find all users with role 'admin' or 'owner'
+        // Ensure you have these roles defined in your User model
+        const admins = await User.find({ role: { $in: ["admin", "owner"] } });
 
-    for (const adminId of adminRecipientIds) {
-      const notificationPayload = {
-        recipient: adminId,
-        title: "New Appointment Booked",
-        message: `${finalFullName} has booked an appointment for ${serviceType} on ${new Date(
-          appointmentDate
-        ).toLocaleDateString()}.`,
-        type: "appointment",
-        link: "/cecc-admin-dashboard?tab=Appointments",
-      };
+        for (const admin of admins) {
+          const notificationPayload = {
+            recipient: admin._id, // Send to this specific admin's ID
+            title: "New Appointment Request",
+            message: `${finalFullName} has requested an appointment for ${serviceType} on ${new Date(
+              appointmentDate
+            ).toLocaleDateString()}.`,
+            type: "appointment",
+            link: "/cecc-admin-dashboard?tab=Appointments", // Link to admin dashboard tab
+          };
 
-      await Notification.create(notificationPayload);
+          // Save to DB
+          await Notification.create(notificationPayload);
 
-      const recipientSocketId = req.onlineUsers.get(adminId);
-      if (recipientSocketId) {
-        req.io
-          .to(recipientSocketId)
-          .emit("new_notification", notificationPayload);
+          // Emit real-time event if admin is online
+          // Assuming req.onlineUsers is a Map<userId, socketId> available in your request context
+          if (req.onlineUsers && req.onlineUsers.has(admin._id.toString())) {
+            const adminSocketId = req.onlineUsers.get(admin._id.toString());
+            req.io
+              .to(adminSocketId)
+              .emit("new_notification", notificationPayload);
+          }
+        }
+      } catch (notifyError) {
+        console.error("Failed to notify admins:", notifyError);
+        // Don't fail the request just because notification failed
       }
+      // 1️⃣ END MODIFICATION
     }
+
+    // ... (rest of admin notification logic for MANUAL bookings if needed, usually redundant if handled above)
 
     res.status(201).json({
       status: "success",
@@ -186,7 +180,6 @@ export const getPatientAppointments = async (req, res) => {
   }
 };
 
-// Update (reschedule) appointment date and/or time
 export const updateAppointment = async (req, res) => {
   try {
     const { appointmentId } = req.params;
@@ -197,9 +190,7 @@ export const updateAppointment = async (req, res) => {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
-    // 👇 START OF CHANGE 🚀
     // --- SECURITY CHECK ---
-    // Allow if the user is an admin/owner OR if they are the patient who owns the appointment.
     const userIsOwner = appointment.patientId === req.user.id;
     const userIsAdmin = req.user.role === "admin" || req.user.role === "owner";
 
@@ -208,7 +199,6 @@ export const updateAppointment = async (req, res) => {
         message: "Forbidden: You can only modify your own appointments.",
       });
     }
-    // 👆 END OF CHANGE
 
     const updateFields = {};
     if (appointmentDate) updateFields.appointmentDate = appointmentDate;
@@ -220,6 +210,37 @@ export const updateAppointment = async (req, res) => {
       { new: true }
     );
 
+    if (userIsOwner && !userIsAdmin) {
+      try {
+        const admins = await User.find({ role: { $in: ["admin", "owner"] } });
+
+        for (const admin of admins) {
+          const notificationPayload = {
+            recipient: admin._id,
+            title: "Appointment Rescheduled",
+            message: `${
+              appointment.fullName
+            } has rescheduled their appointment to ${new Date(
+              updatedAppointment.appointmentDate
+            ).toLocaleDateString()} at ${updatedAppointment.appointmentTime}.`,
+            type: "reschedule",
+            link: "/cecc-admin-dashboard?tab=Appointments",
+          };
+
+          await Notification.create(notificationPayload);
+
+          if (req.onlineUsers && req.onlineUsers.has(admin._id.toString())) {
+            const adminSocketId = req.onlineUsers.get(admin._id.toString());
+            req.io
+              .to(adminSocketId)
+              .emit("new_notification", notificationPayload);
+          }
+        }
+      } catch (notifyError) {
+        console.error("Failed to notify admins of reschedule:", notifyError);
+      }
+    }
+
     res
       .status(200)
       .json({ status: "success", appointment: updatedAppointment });
@@ -229,20 +250,16 @@ export const updateAppointment = async (req, res) => {
   }
 };
 
-// Update appointment status
 export const updateAppointmentStatus = async (req, res) => {
   try {
     const { appointmentId } = req.params;
-    const { status } = req.body;
+    const { status, cancellationReason } = req.body; // Added cancellationReason extraction
 
     const appointment = await Appointment.findById(appointmentId);
     if (!appointment) {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
-    // 👇 START OF CHANGE 🚀
-    // --- SECURITY CHECK ---
-    // Allow if the user is an admin/owner OR if they are the patient who owns the appointment.
     const userIsOwner = appointment.patientId === req.user.id;
     const userIsAdmin = req.user.role === "admin" || req.user.role === "owner";
 
@@ -251,13 +268,48 @@ export const updateAppointmentStatus = async (req, res) => {
         message: "Forbidden: You can only modify your own appointments.",
       });
     }
-    // 👆 END OF CHANGE
 
     const updatedAppointment = await Appointment.findByIdAndUpdate(
       appointmentId,
       { status },
       { new: true }
     );
+
+    // 2️⃣ START MODIFICATION: Notify Admins on Patient Cancellation
+    // If the status is being set to 'cancelled' AND it was done by the patient (not admin)
+    if (status === "cancelled" && userIsOwner && !userIsAdmin) {
+      try {
+        const admins = await User.find({ role: { $in: ["admin", "owner"] } });
+
+        for (const admin of admins) {
+          const notificationPayload = {
+            recipient: admin._id,
+            title: "Appointment Cancelled",
+            message: `${
+              appointment.fullName
+            } has cancelled their appointment scheduled for ${new Date(
+              appointment.appointmentDate
+            ).toLocaleDateString()}. Reason: ${
+              cancellationReason || "No reason provided"
+            }`,
+            type: "cancellation",
+            link: "/cecc-admin-dashboard?tab=Appointments",
+          };
+
+          await Notification.create(notificationPayload);
+
+          if (req.onlineUsers && req.onlineUsers.has(admin._id.toString())) {
+            const adminSocketId = req.onlineUsers.get(admin._id.toString());
+            req.io
+              .to(adminSocketId)
+              .emit("new_notification", notificationPayload);
+          }
+        }
+      } catch (notifyError) {
+        console.error("Failed to notify admins of cancellation:", notifyError);
+      }
+    }
+    // 2️⃣ END MODIFICATION
 
     res
       .status(200)
@@ -272,11 +324,10 @@ export const getUpcomingAppointments = async (req, res) => {
   try {
     const now = new Date();
 
-    // Find all appointments that are scheduled for the future and are not cancelled
     const upcomingAppointments = await Appointment.find({
       appointmentDate: { $gte: now },
-      status: { $nin: ["cancelled", "completed"] }, // Exclude cancelled and completed
-    }).sort({ appointmentDate: 1, appointmentTime: 1 }); // Sort by soonest first
+      status: { $nin: ["cancelled", "completed"] },
+    }).sort({ appointmentDate: 1, appointmentTime: 1 });
 
     res.status(200).json(upcomingAppointments);
   } catch (error) {

@@ -34,8 +34,8 @@ const WelcomeBanner = ({ user }) => {
             {greeting}, {user?.firstName || "Patient"}!
           </h1>
           <p className="text-white/80 text-lg max-w-2xl">
-            Here's your eye health summary for today. You have full access to
-            your records, test results, and appointments.
+            You have full access to your records, test results, and
+            appointments.
           </p>
         </div>
         <div className="hidden md:block bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">

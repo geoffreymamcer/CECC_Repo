@@ -27,44 +27,36 @@ const Appointments = () => {
   });
   const [loading, setLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [appointments, setAppointments] = useState({
-    today: [],
-    tomorrow: [],
-  });
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [appointments, setAppointments] = useState([]);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState("today"); // 'today' or 'tomorrow' for mobile view toggling
 
-  const allAppointmentsForCalendar = useMemo(() => {
-    return [...appointments.today, ...appointments.tomorrow];
-  }, [appointments]);
+  const formatDateForAPI = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = async (dateToFetch = selectedDate) => {
     setLoading(true);
     setError("");
     try {
-      const today = new Date().toISOString().split("T")[0];
-      const tomorrow = new Date(new Date().setDate(new Date().getDate() + 1))
-        .toISOString()
-        .split("T")[0];
+      const dateStr = formatDateForAPI(dateToFetch);
 
-      const [todayRes, tomorrowRes] = await Promise.all([
-        instance.get(`/appointments?date=${today}`),
-        instance.get(`/appointments?date=${tomorrow}`),
-      ]);
+      // Fetch only for the selected date using your existing backend filter
+      const res = await instance.get(`/appointments?date=${dateStr}`);
 
       const mapAppointmentData = (app) => ({
         id: app._id,
-        name: app.fullName,
+        name: app.fullName || app.patientName,
         date: app.appointmentDate,
         time: app.appointmentTime,
         reason: app.serviceType,
         status: app.status || "scheduled",
       });
 
-      setAppointments({
-        today: (todayRes.data || []).map(mapAppointmentData),
-        tomorrow: (tomorrowRes.data || []).map(mapAppointmentData),
-      });
+      setAppointments((res.data || []).map(mapAppointmentData));
     } catch (err) {
       console.error("Failed to fetch appointments:", err);
       setError("Failed to fetch appointments. Please try again.");
@@ -73,9 +65,10 @@ const Appointments = () => {
     }
   };
 
+  // Trigger fetch whenever selectedDate changes
   useEffect(() => {
     fetchAppointments();
-  }, []);
+  }, [selectedDate]);
 
   useEffect(() => {
     if (isInitialLoad && loading) {
@@ -94,16 +87,27 @@ const Appointments = () => {
     });
   };
 
+  const handleDateClick = (day) => {
+    const currentContext = new Date();
+    const newDate = new Date(
+      currentContext.getFullYear(),
+      currentContext.getMonth(),
+      day
+    );
+
+    newDate.setHours(0, 0, 0, 0);
+
+    setSelectedDate(newDate);
+  };
+
   const renderCalendar = () => {
-    const date = new Date();
+    const date = new Date(); // Current context
     const daysInMonth = new Date(
       date.getFullYear(),
       date.getMonth() + 1,
       0
     ).getDate();
     const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-    const today = new Date().getDate();
-    const currentMonth = new Date().getMonth();
 
     const days = [];
     for (let i = 0; i < firstDay; i++) {
@@ -111,25 +115,27 @@ const Appointments = () => {
     }
 
     for (let i = 1; i <= daysInMonth; i++) {
-      const isToday = i === today;
-      const hasAppointment = allAppointmentsForCalendar.some((app) => {
-        const appDate = new Date(app.date);
-        return appDate.getDate() === i && appDate.getMonth() === currentMonth;
-      });
+      // Check if this day matches the Selected Date
+      const isSelected =
+        i === selectedDate.getDate() &&
+        new Date().getMonth() === selectedDate.getMonth();
+
+      // Check if this day is Today (for visual reference)
+      const isToday =
+        i === new Date().getDate() &&
+        new Date().getMonth() === selectedDate.getMonth();
 
       days.push(
         <div
           key={i}
-          className={`h-10 w-10 flex items-center justify-center rounded-full text-sm font-medium transition-all duration-300 cursor-default
+          onClick={() => handleDateClick(i)}
+          className={`h-10 w-10 flex items-center justify-center rounded-full text-sm font-medium transition-all duration-300 cursor-pointer
             ${
-              isToday
-                ? "bg-deep-red text-white shadow-lg shadow-red-200"
-                : "text-gray-700 hover:bg-red-50"
-            }
-            ${
-              hasAppointment && !isToday
-                ? "border-2 border-deep-red text-deep-red font-bold"
-                : ""
+              isSelected
+                ? "bg-deep-red text-white shadow-lg shadow-red-200 scale-110 font-bold"
+                : isToday
+                ? "border-2 border-deep-red text-deep-red font-bold" // Outline for today if not selected
+                : "text-gray-700 hover:bg-red-50 hover:text-deep-red"
             }
           `}
         >
@@ -164,6 +170,10 @@ const Appointments = () => {
       setError("Failed to add appointment.");
     }
   };
+
+  if (appointmentData.date === formatDateForAPI(selectedDate)) {
+    fetchAppointments();
+  }
 
   const updateAppointmentStatus = async (id, status) => {
     try {
@@ -320,22 +330,14 @@ const Appointments = () => {
 
             <div className="mt-8 pt-6 border-t border-gray-100">
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
-                Quick Stats
+                Stats for Selected Date
               </h3>
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl mb-2">
                 <span className="text-sm font-medium text-gray-600">
-                  Total Today
+                  Total Patients
                 </span>
                 <span className="text-lg font-bold text-deep-red">
-                  {appointments.today.length}
-                </span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
-                <span className="text-sm font-medium text-gray-600">
-                  Pending Tomorrow
-                </span>
-                <span className="text-lg font-bold text-gray-800">
-                  {appointments.tomorrow.length}
+                  {appointments.length}
                 </span>
               </div>
             </div>
@@ -344,30 +346,6 @@ const Appointments = () => {
 
         {/* Right Column: Appointment Lists */}
         <div className="xl:col-span-8">
-          {/* Mobile Tabs */}
-          <div className="flex xl:hidden mb-6 bg-white p-1 rounded-xl shadow-sm border border-gray-100">
-            <button
-              onClick={() => setActiveTab("today")}
-              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
-                activeTab === "today"
-                  ? "bg-deep-red text-white shadow-md"
-                  : "text-gray-500 hover:bg-gray-50"
-              }`}
-            >
-              Today
-            </button>
-            <button
-              onClick={() => setActiveTab("tomorrow")}
-              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
-                activeTab === "tomorrow"
-                  ? "bg-deep-red text-white shadow-md"
-                  : "text-gray-500 hover:bg-gray-50"
-              }`}
-            >
-              Tomorrow
-            </button>
-          </div>
-
           {isInitialLoad && loading ? (
             <div className="flex flex-col items-center justify-center h-96 bg-white rounded-3xl shadow-sm border border-gray-100">
               <Loader2 className="h-12 w-12 text-deep-red animate-spin mb-4" />
@@ -379,29 +357,22 @@ const Appointments = () => {
             </div>
           ) : (
             <div className="space-y-8 animate-fadeIn">
-              {/* Today's Section */}
-              <div
-                className={`${
-                  activeTab === "today" ? "block" : "hidden xl:block"
-                }`}
-              >
+              <div>
                 <div className="flex items-center gap-3 mb-5">
                   <div className="h-8 w-1 bg-deep-red rounded-full"></div>
                   <h3 className="text-xl font-bold text-gray-800">
-                    Today's Schedule
-                    <span className="ml-3 text-sm font-medium text-gray-400">
-                      {new Date().toLocaleDateString("en-US", {
-                        weekday: "long",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </span>
+                    Schedule for{" "}
+                    {selectedDate.toLocaleDateString("en-US", {
+                      weekday: "long",
+                      month: "long",
+                      day: "numeric",
+                    })}
                   </h3>
                 </div>
 
-                {appointments.today.length > 0 ? (
+                {appointments.length > 0 ? (
                   <div className="grid grid-cols-1 gap-4">
-                    {appointments.today.map((app) => (
+                    {appointments.map((app) => (
                       <AppointmentCard key={app.id} appointment={app} />
                     ))}
                   </div>
@@ -411,34 +382,8 @@ const Appointments = () => {
                       <FaCalendarAlt size={24} />
                     </div>
                     <p className="text-gray-500 font-medium">
-                      No appointments for today.
+                      No appointments scheduled for this date.
                     </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Tomorrow's Section */}
-              <div
-                className={`${
-                  activeTab === "tomorrow" ? "block" : "hidden xl:block"
-                }`}
-              >
-                <div className="flex items-center gap-3 mb-5 mt-8">
-                  <div className="h-8 w-1 bg-gray-300 rounded-full"></div>
-                  <h3 className="text-xl font-bold text-gray-800">
-                    Upcoming Tomorrow
-                  </h3>
-                </div>
-
-                {appointments.tomorrow.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {appointments.tomorrow.map((app) => (
-                      <AppointmentCard key={app.id} appointment={app} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-8 text-center text-gray-400 bg-gray-50/50 rounded-2xl border border-gray-100">
-                    No upcoming appointments for tomorrow.
                   </div>
                 )}
               </div>

@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from "react";
 import { Search, Plus, Eye } from "lucide-react";
 import StatsOverview from "./StatsOverview";
-import SearchBar from "./SearchBar";
 import ProductCard from "./ProductCard";
 import InventoryModal from "./InventoryModal";
 import AddProductModal from "./AddProductModal";
 import instance from "../../api/axios";
+import AddProductSuccessModal from "./SuccessModal";
 
 // --- Loading Configuration (in milliseconds) ---
 // Adjust this value to control the loading state duration across all environments
@@ -28,6 +28,12 @@ const Inventory = () => {
     totalProducts: 0,
     lowStockItems: 0,
     totalValue: 0,
+  });
+
+  const [successModalData, setSuccessModalData] = useState({
+    isOpen: false,
+    productName: "",
+    productImage: "",
   });
 
   // Add debouncing for search
@@ -140,7 +146,14 @@ const Inventory = () => {
       if (response.status === 201) {
         console.log("Product added successfully:", response.data);
         setProducts((prev) => [...prev, response.data]);
-        fetchStats(); // Refresh stats
+        fetchStats();
+
+        setSuccessModalData({
+          isOpen: true,
+          productName: response.data.productName,
+          productImage: response.data.productImage,
+        });
+        setIsAddProductModalOpen(false);
       } else {
         console.error("Failed to add product:", response.data);
         alert("Failed to add product. Please try again.");
@@ -265,6 +278,15 @@ const Inventory = () => {
         isOpen={isAddProductModalOpen}
         onClose={() => setIsAddProductModalOpen(false)}
         onAddProduct={handleAddProduct}
+      />
+
+      <AddProductSuccessModal
+        isOpen={successModalData.isOpen}
+        onClose={() =>
+          setSuccessModalData({ ...successModalData, isOpen: false })
+        }
+        productName={successModalData.productName}
+        productImage={successModalData.productImage}
       />
     </div>
   );
