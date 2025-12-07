@@ -417,7 +417,7 @@ const Dashboard = () => {
                                 <td className="py-4 px-6 text-gray-600 text-sm">
                                   {date}
                                 </td>
-                                <td className="py-4 px-6 text-gray-600 text-xs uppercase tracking-wide bg-gray-100 rounded inline-block mt-2 px-2 py-1">
+                                <td className="py-4 px-6 text-gray-600 text-xs uppercase tracking-wide bg-gray-100 rounded inline-block mt-2 ">
                                   Cash
                                 </td>
                               </tr>
