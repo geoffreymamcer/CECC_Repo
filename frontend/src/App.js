@@ -6,6 +6,7 @@ import PatientProtectedRoute from "./PatientSide/PatientDashboard/PatientProtect
 const AdminLoginLayout = lazy(() =>
   import("./AdminSide/AdminLoginUI/LoginLayout")
 );
+const LandingPage = lazy(() => import("./LandingPage/LandingPage"));
 const PatientLoginLayout = lazy(() =>
   import("./PatientSide/PatientLoginAndSignUp/PatientLoginLayout")
 );
@@ -63,7 +64,8 @@ function App() {
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/cecc-admin-login" element={<AdminLoginLayout />} />
-          <Route path="/" element={<PatientLoginLayout />} />
+          <Route path="/login" element={<PatientLoginLayout />} />
+          <Route path="/" element={<LandingPage />} />
 
           <Route path="/color-vision-test" element={<IshiharaTest />} />
           <Route path="/appointment" element={<Appointments />} />
