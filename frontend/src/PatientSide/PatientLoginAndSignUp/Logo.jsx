@@ -1,5 +1,5 @@
 import React from "react";
-import logo from "./LoginAndSignUpAssets/cecc.png";
+import logo from "./LoginAndSignUpAssets/CECC.png";
 
 export default function Logo({ size = "large" }) {
   const sizeClasses =
