@@ -139,6 +139,7 @@ const Inventory = () => {
         stocksStatus: productData.stocksStatus || "in stock",
         productImage: productData.productImage || "",
         isPrescriptionTableRequired: productData.isPrescriptionTableRequired,
+        tags: productData.tags || [], // Ensure tags are included
       };
 
       console.log("Sending new product data:", newProduct);

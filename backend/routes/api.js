@@ -19,6 +19,7 @@ import planOfManagementRoutes from "./planOfManagementRoutes.js";
 import analyticsRoutes from "./analyticsRoutes.js";
 import notificationRoutes from "./notificationRoutes.js";
 import messageRoutes from "./messageRoutes.js";
+import serviceRoutes from "./serviceRoutes.js";
 
 const router = express.Router();
 
@@ -74,6 +75,12 @@ router.use("/testresults", testResultRoutes);
 
 // Invoice routes
 router.use("/invoices", invoiceRoutes);
+
+router.use("/services", serviceRoutes);
+
+// Diagnosis routes
+import diagnosisRoutes from "./diagnosisRoutes.js";
+router.use("/diagnoses", diagnosisRoutes);
 
 // Test route
 router.get("/data", (req, res) => {

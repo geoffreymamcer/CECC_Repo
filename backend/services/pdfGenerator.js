@@ -22,7 +22,7 @@ function getImageAsBase64(filePath) {
 export async function generateVisitReport(visit, patient) {
   let browser = null;
   try {
-    const logoPath = path.join(__dirname, "../../assets/clinic-logo.png");
+    const logoPath = path.join(__dirname, "../assets/clinic-logo.png");
     const logoBase64 = getImageAsBase64(logoPath);
 
     const clinicInfo = {

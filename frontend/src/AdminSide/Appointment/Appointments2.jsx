@@ -153,27 +153,42 @@ const Appointments = () => {
 
   const handleAddAppointment = async (e) => {
     e.preventDefault();
-    try {
-      const payload = {
-        fullName: appointmentData.name,
-        appointmentDate: appointmentData.date,
-        appointmentTime: appointmentData.time,
-        serviceType: appointmentData.reason,
-        status: "scheduled",
-      };
-      await instance.post("/appointments", payload);
-      fetchAppointments();
-      setShowAddModal(false);
-      setAppointmentData({ name: "", date: "", time: "", reason: "" });
-    } catch (err) {
-      console.error("Failed to add appointment:", err);
-      setError("Failed to add appointment.");
-    }
+    const payload = {
+      fullName: appointmentData.name,
+      appointmentDate: appointmentData.date,
+      appointmentTime: appointmentData.time,
+      serviceType: appointmentData.reason,
+      status: "confirmed", // Admin bookings are confirmed by default
+    };
+
+    const submitBooking = async (data) => {
+      try {
+        await instance.post("/appointments", data);
+        fetchAppointments();
+        setShowAddModal(false);
+        setAppointmentData({ name: "", date: "", time: "", reason: "" });
+        setError(""); // Clear any previous errors
+      } catch (err) {
+        if (err.response && err.response.status === 409) {
+          // Soft Limit Warning
+          const { message } = err.response.data;
+          const confirmOverbook = window.confirm(
+            `${message}\n\nClick OK to force this booking (Overbook).`
+          );
+          if (confirmOverbook) {
+            submitBooking({ ...data, forceBooking: true });
+          }
+        } else {
+          console.error("Failed to add appointment:", err);
+          setError("Failed to add appointment.");
+        }
+      }
+    };
+
+    submitBooking(payload);
   };
 
-  if (appointmentData.date === formatDateForAPI(selectedDate)) {
-    fetchAppointments();
-  }
+
 
   const updateAppointmentStatus = async (id, status) => {
     try {
@@ -246,20 +261,41 @@ const Appointments = () => {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
-          <button
-            onClick={() => updateAppointmentStatus(appointment.id, "present")}
-            className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-colors shadow-sm"
-            title="Mark Present"
-          >
-            <FaCheck size={14} />
-          </button>
-          <button
-            onClick={() => updateAppointmentStatus(appointment.id, "absent")}
-            className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition-colors shadow-sm"
-            title="Mark Absent"
-          >
-            <FaTimes size={14} />
-          </button>
+          {appointment.status === "pending" ? (
+            <>
+              <button
+                onClick={() => updateAppointmentStatus(appointment.id, "confirmed")}
+                className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-colors shadow-sm"
+                title="Confirm Appointment"
+              >
+                <FaCheck size={14} />
+              </button>
+              <button
+                onClick={() => updateAppointmentStatus(appointment.id, "cancelled")}
+                className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition-colors shadow-sm"
+                title="Decline Appointment"
+              >
+                <FaTimes size={14} />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => updateAppointmentStatus(appointment.id, "present")}
+                className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-colors shadow-sm"
+                title="Mark Present"
+              >
+                <FaCheck size={14} />
+              </button>
+              <button
+                onClick={() => updateAppointmentStatus(appointment.id, "absent")}
+                className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition-colors shadow-sm"
+                title="Mark Absent"
+              >
+                <FaTimes size={14} />
+              </button>
+            </>
+          )}
         </div>
       </div>
 

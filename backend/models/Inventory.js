@@ -7,6 +7,10 @@ const ProductListSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    tags: {
+      type: [String],
+      default: [],
+    },
     productType: {
       type: String,
       required: true,

@@ -5,6 +5,9 @@ import {
   getAgeGroupDistribution,
   getGeographicDistribution,
   getSummaryCardStats,
+  getClinicalCorrelation,
+  getPeakHours,
+  getServiceDistribution,
 } from "../controllers/AnalyticsController.js";
 import { auth } from "../middleware/auth.js";
 import { adminAuth } from "../middleware/adminAuth.js";
@@ -25,5 +28,10 @@ router.get(
   getGeographicDistribution
 );
 router.get("/summary-cards", [auth, adminAuth], getSummaryCardStats);
+
+// Deep Analytics Routes
+router.get("/clinical-correlation", [auth, adminAuth], getClinicalCorrelation);
+router.get("/peak-hours", [auth, adminAuth], getPeakHours);
+router.get("/service-distribution", [auth, adminAuth], getServiceDistribution);
 
 export default router;

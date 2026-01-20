@@ -47,7 +47,8 @@ const invoiceSchema = new mongoose.Schema(
       // ... validation is unchanged
     },
     totalAmount: { type: Number, min: 0, default: 0 },
-
+    amountPaid: { type: Number, min: 0, default: 0 },
+    discountType: { type: String, default: "None" },
     isServiceInvoice: { type: Boolean, default: false },
   },
   { timestamps: true }
@@ -112,7 +113,18 @@ invoiceSchema.pre("validate", async function (next) {
       for (const item of this.items) {
         sum += Number(item.price) || 0;
       }
-      this.totalAmount = sum;
+      if (
+        this.discountType === "PWD" ||
+        this.discountType === "Senior Citizen"
+      ) {
+        const discountAmount = sum * 0.2;
+        this.totalAmount = Math.max(0, sum - discountAmount);
+      } else {
+        this.totalAmount = sum;
+      }
+
+      // Auto-set amountPaid to totalAmount (since we removed partial pay input)
+      this.amountPaid = this.totalAmount;
     }
     next();
   } catch (err) {

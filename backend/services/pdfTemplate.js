@@ -12,16 +12,31 @@ const LABEL_COLOR = "#2D3748";
 const BORDER_COLOR = "#EAEAEA";
 
 // --- CONFIGURATION ---
-// Change this string to modify what appears for empty fields globally
 const FALLBACK = "N/A";
 
 // --- HELPER FUNCTIONS ---
+function hasValue(val) {
+  if (val === null || val === undefined) return false;
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    return trimmed !== "" && trimmed !== "N/A" && trimmed !== "undefined";
+  }
+  if (typeof val === "number") return true;
+  if (typeof val === "boolean") return val;
+  if (typeof val === "object" && !Array.isArray(val)) {
+    return Object.values(val).some((v) => hasValue(v));
+  }
+  return false;
+}
+
 function formatBooleanData(dataObject) {
-  if (!dataObject || typeof dataObject !== "object") return FALLBACK;
+  if (!dataObject || typeof dataObject !== "object") return "";
   const trueKeys = Object.keys(dataObject).filter(
     (key) => key !== "others" && dataObject[key] === true
   );
-  const formattedKeys = trueKeys
+  if (trueKeys.length === 0) return "";
+
+  return trueKeys
     .map(
       (key) =>
         key.charAt(0).toUpperCase() +
@@ -31,16 +46,21 @@ function formatBooleanData(dataObject) {
           .trim()
     )
     .join(", ");
-  return formattedKeys.length > 0 ? formattedKeys : FALLBACK;
 }
 
 function formatDate(dateString) {
-  if (!dateString) return FALLBACK;
+  if (!hasValue(dateString)) return "";
   return new Date(dateString).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
+}
+
+function renderInfoItem(label, value, fullWidth = false) {
+  if (!hasValue(value)) return "";
+  const className = fullWidth ? "info-item full-width" : "info-item";
+  return `<div class="${className}"><span class="label">${label}:</span><span class="value">${value}</span></div>`;
 }
 
 // --- HTML TEMPLATE FOR PATIENT INFO ---
@@ -49,18 +69,13 @@ function generatePatientInformationHtml(patient) {
     .filter(Boolean)
     .join(" ");
 
-  // Logic to handle address: if parts are missing, we still try to join,
-  // but if the result is empty string, we return FALLBACK
   const addressParts = [
     patient.street_subdivision,
     patient.barangay,
     patient.city,
     patient.province,
     patient.region,
-  ].filter(Boolean);
-
-  const fullAddress =
-    addressParts.length > 0 ? addressParts.join(", ") : FALLBACK;
+  ].filter(hasValue);
 
   return `
     <div class="header-content">
@@ -68,212 +83,198 @@ function generatePatientInformationHtml(patient) {
             <h1>Patient Information Report</h1>
             <p>Date of Report: ${formatDate(new Date())}</p>
         </div>
-        <div class="profile-placeholder">Profile Picture</div>
     </div>
     
     <div class="patient-identifier">
         <h2>${fullName}</h2>
-        <p>Patient ID: ${patient.patientId || FALLBACK}</p>
+        <p>Patient ID: ${patient.patientId || ""}</p>
     </div>
 
     <div class="section-header">Identity Details</div>
     <div class="grid-container">
-        <div class="info-item"><span class="label">Date of Birth:</span><span class="value">${formatDate(
-          patient.dob
-        )}</span></div>
-        <div class="info-item"><span class="label">Age:</span><span class="value">${
-          patient.age ? `${patient.age} (${patient.ageCategory})` : FALLBACK
-        }</span></div>
-        <div class="info-item"><span class="label">Gender:</span><span class="value">${
-          patient.gender || FALLBACK
-        }</span></div>
-        <div class="info-item"><span class="label">Civil Status:</span><span class="value">${
-          patient.civilStatus || FALLBACK
-        }</span></div>
-        <div class="info-item full-width"><span class="label">Occupation:</span><span class="value">${
-          patient.occupation || FALLBACK
-        }</span></div>
+        ${renderInfoItem("Date of Birth", formatDate(patient.dob))}
+        ${renderInfoItem(
+          "Age",
+          patient.age ? `${patient.age} (${patient.ageCategory})` : ""
+        )}
+        ${renderInfoItem("Gender", patient.gender)}
+        ${renderInfoItem("Civil Status", patient.civilStatus)}
+        ${renderInfoItem("Occupation", patient.occupation, true)}
     </div>
 
-    <div class="section-header">Contact Information</div>
-    <div class="grid-container">
-        <div class="info-item"><span class="label">Phone Number:</span><span class="value">${
-          patient.contact || patient.phone_number || FALLBACK
-        }</span></div>
-        <div class="info-item"><span class="label">Email Address:</span><span class="value">${
-          patient.email || FALLBACK
-        }</span></div>
-        <div class="info-item full-width"><span class="label">Referred By:</span><span class="value">${
-          patient.referralBy || FALLBACK
-        }</span></div>
-    </div>
+    ${
+      hasValue(patient.contact) ||
+      hasValue(patient.email) ||
+      hasValue(patient.referralBy)
+        ? `<div class="section-header">Contact Information</div>
+       <div class="grid-container">
+          ${renderInfoItem(
+            "Phone Number",
+            patient.contact || patient.phone_number
+          )}
+          ${renderInfoItem("Email Address", patient.email)}
+          ${renderInfoItem("Referred By", patient.referralBy, true)}
+       </div>`
+        : ""
+    }
     
-    <div class="section-header">Address Information</div>
-    <div class="grid-container">
-        <div class="info-item"><span class="label">Street / Subdivision:</span><span class="value">${
-          patient.street_subdivision || FALLBACK
-        }</span></div>
-        <div class="info-item"><span class="label">Barangay:</span><span class="value">${
-          patient.barangay || FALLBACK
-        }</span></div>
-        <div class="info-item"><span class="label">City / Municipality:</span><span class="value">${
-          patient.city || FALLBACK
-        }</span></div>
-        <div class="info-item"><span class="label">Province:</span><span class="value">${
-          patient.province || FALLBACK
-        }</span></div>
-        <div class="info-item full-width"><span class="label">Region:</span><span class="value">${
-          patient.region || FALLBACK
-        }</span></div>
-    </div>
+    ${
+      addressParts.length > 0
+        ? `<div class="section-header">Address Information</div>
+       <div class="grid-container">
+          ${renderInfoItem("Full Address", addressParts.join(", "), true)}
+       </div>`
+        : ""
+    }
 `;
 }
 
 // --- HTML TEMPLATE FOR CASE HISTORY ---
 function generateCaseHistoryHtml(caseHistory) {
-  return `
-        <div class="page-break"></div>
-        <h1 class="page-title">Case History</h1>
+  if (!caseHistory || !hasValue(caseHistory)) return "";
 
-        <div class="section-header">Chief Complaint</div>
-        <div class="complaint-grid">
-            <div class="info-item"><span class="label">Complaints:</span><span class="value">${formatBooleanData(
-              caseHistory.chiefComplaint
-            )}</span></div>
-            <div class="info-item"><span class="label">Others:</span><span class="value">${
-              caseHistory.chiefComplaint?.others || FALLBACK
-            }</span></div>
-        </div>
-        <div class="info-grid sub-section">
-            <div class="info-item"><span class="label">Frequency:</span><span class="value">${
-              caseHistory.historyOfChiefComplaint?.frequency || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Onset:</span><span class="value">${
-              caseHistory.historyOfChiefComplaint?.onset || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Location:</span><span class="value">${
-              caseHistory.historyOfChiefComplaint?.location || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Duration:</span><span class="value">${
-              caseHistory.historyOfChiefComplaint?.duration || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Relief:</span><span class="value">${
-              caseHistory.historyOfChiefComplaint?.relief || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Quality:</span><span class="value">${
-              caseHistory.historyOfChiefComplaint?.quality || FALLBACK
-            }</span></div>
-        </div>
+  const renderSection = (title, contentFunc) => {
+    const content = contentFunc();
+    if (!content.trim()) return "";
+    return `<div class="section-header">${title}</div>${content}`;
+  };
 
-        <div class="section-header">Associated Complaint</div>
-        <div class="complaint-grid">
-            <div class="info-item"><span class="label">Complaints:</span><span class="value">${formatBooleanData(
-              caseHistory.associatedComplaint
-            )}</span></div>
-            <div class="info-item"><span class="label">Others:</span><span class="value">${
-              caseHistory.associatedComplaint?.others || FALLBACK
-            }</span></div>
-        </div>
-        <div class="info-grid sub-section">
-            <div class="info-item"><span class="label">Frequency:</span><span class="value">${
-              caseHistory.historyOfAssociatedComplaint?.frequency || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Onset:</span><span class="value">${
-              caseHistory.historyOfAssociatedComplaint?.onset || FALLBACK
-            }</span></div>
-        </div>
+  const getChiefComplaintContent = () => {
+    const complaints = formatBooleanData(caseHistory.chiefComplaint);
+    const others = caseHistory.chiefComplaint?.others;
+    if (!complaints && !hasValue(others)) return "";
 
-        <div class="section-header">Medical & Family History</div>
-        <div class="complaint-grid">
-            <div class="info-item"><span class="label">Patient Medical History:</span><span class="value">${formatBooleanData(
-              caseHistory.medicalHistory
-            )}</span></div>
-            <div class="info-item"><span class="label">Others:</span><span class="value">${
-              caseHistory.medicalHistory?.others || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Family Medical History:</span><span class="value">${formatBooleanData(
-              caseHistory.familyHistory
-            )}</span></div>
-            <div class="info-item"><span class="label">Others:</span><span class="value">${
-              caseHistory.familyHistory?.others || FALLBACK
-            }</span></div>
-        </div>
+    let html = `<div class="complaint-grid">`;
+    if (complaints)
+      html += `<div class="info-item"><span class="label">Complaints:</span><span class="value">${complaints}</span></div>`;
+    if (hasValue(others))
+      html += `<div class="info-item"><span class="label">Others:</span><span class="value">${others}</span></div>`;
+    html += `</div>`;
 
-        <div class="section-header">Ocular History & Conditions</div>
-        <div class="complaint-grid">
-            <div class="info-item"><span class="label">Patient Ocular Condition:</span><span class="value">${formatBooleanData(
-              caseHistory.ocularCondition
-            )}</span></div>
-            <div class="info-item"><span class="label">Others:</span><span class="value">${
-              caseHistory.ocularCondition?.others || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Family Ocular Condition:</span><span class="value">${formatBooleanData(
-              caseHistory.familyOcularCondition
-            )}</span></div>
-            <div class="info-item"><span class="label">Others:</span><span class="value">${
-              caseHistory.familyOcularCondition?.others || FALLBACK
-            }</span></div>
-        </div>
-        <div class="info-grid sub-section">
-             <div class="info-item"><span class="label">Spectacle Rx:</span><span class="value">${
-               caseHistory.ocularHistory?.spectacleRx || FALLBACK
-             }</span></div>
-            <div class="info-item"><span class="label">Spectacle Year:</span><span class="value">${
-              caseHistory.ocularHistory?.spectacleYear || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Contact Lens:</span><span class="value">${
-              caseHistory.ocularHistory?.contactLens || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Eye Surgery:</span><span class="value">${
-              caseHistory.ocularHistory?.eyeSurgery || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Systemic Surgery:</span><span class="value">${
-              caseHistory.ocularHistory?.systemicSurgery || FALLBACK
-            }</span></div>
-        </div>
+    const history = caseHistory.historyOfChiefComplaint || {};
+    if (hasValue(history)) {
+      html += `<div class="info-grid sub-section">`;
+      html += renderInfoItem("Frequency", history.frequency);
+      html += renderInfoItem("Onset", history.onset);
+      html += renderInfoItem("Location", history.location);
+      html += renderInfoItem("Duration", history.duration);
+      html += renderInfoItem("Relief", history.relief);
+      html += renderInfoItem("Quality", history.quality);
+      html += `</div>`;
+    }
+    return html;
+  };
 
-        <div class="section-header">Lifestyle, Usage & Eyeglass History</div>
-        <div class="info-grid">
-            <div class="info-item"><span class="label">Is Working:</span><span class="value">${
-              caseHistory.occupationalHistory?.working ? "Yes" : "No"
-            }</span></div>
-            <div class="info-item"><span class="label">Is Student:</span><span class="value">${
-              caseHistory.occupationalHistory?.student ? "Yes" : "No"
-            }</span></div>
-            <div class="info-item full-width"><span class="label">Occupation Details:</span><span class="value">${
-              caseHistory.occupationalHistory?.details || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Cellphone Use:</span><span class="value">${
-              caseHistory.digitalHistory?.cellphone || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Laptop Use:</span><span class="value">${
-              caseHistory.digitalHistory?.laptop || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Desktop Use:</span><span class="value">${
-              caseHistory.digitalHistory?.desktop || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Television Use:</span><span class="value">${
-              caseHistory.digitalHistory?.television || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Previous Power:</span><span class="value">${
-              caseHistory.eyeglassHistory?.power || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Previous Lens Type:</span><span class="value">${
-              caseHistory.eyeglassHistory?.lensType || FALLBACK
-            }</span></div>
-        </div>
-    `;
+  // 1️⃣ START MODIFICATION: Changed 'page-break' to 'major-section' to allow continuous scrolling
+  let html = `<div class="major-section"><h1 class="page-title">Case History</h1>`;
+  // 1️⃣ END MODIFICATION
+
+  let hasContent = false;
+
+  const sections = [
+    { title: "Chief Complaint", fn: getChiefComplaintContent },
+    {
+      title: "Associated Complaint",
+      fn: () => {
+        const complaints = formatBooleanData(caseHistory.associatedComplaint);
+        const others = caseHistory.associatedComplaint?.others;
+        if (!complaints && !hasValue(others)) return "";
+        let h = `<div class="complaint-grid">
+            ${renderInfoItem("Complaints", complaints)}
+            ${renderInfoItem("Others", others)}
+         </div>`;
+        const hist = caseHistory.historyOfAssociatedComplaint;
+        if (hasValue(hist)) {
+          h += `<div class="info-grid sub-section">
+                ${renderInfoItem("Frequency", hist.frequency)}
+                ${renderInfoItem("Onset", hist.onset)}
+             </div>`;
+        }
+        return h;
+      },
+    },
+    {
+      title: "Medical & Family History",
+      fn: () => {
+        const pmh = formatBooleanData(caseHistory.medicalHistory);
+        const pmhO = caseHistory.medicalHistory?.others;
+        const fmh = formatBooleanData(caseHistory.familyHistory);
+        const fmhO = caseHistory.familyHistory?.others;
+
+        if (!pmh && !hasValue(pmhO) && !fmh && !hasValue(fmhO)) return "";
+
+        return `<div class="complaint-grid">
+            ${renderInfoItem("Patient Medical History", pmh)}
+            ${renderInfoItem("Others", pmhO)}
+            ${renderInfoItem("Family Medical History", fmh)}
+            ${renderInfoItem("Others", fmhO)}
+         </div>`;
+      },
+    },
+    {
+      title: "Ocular History",
+      fn: () => {
+        const h = caseHistory.ocularHistory;
+        if (!hasValue(h)) return "";
+        return `<div class="info-grid sub-section">
+            ${renderInfoItem("Spectacle Rx", h.spectacleRx)}
+            ${renderInfoItem("Spectacle Year", h.spectacleYear)}
+            ${renderInfoItem("Contact Lens", h.contactLens)}
+            ${renderInfoItem("Eye Surgery", h.eyeSurgery)}
+            ${renderInfoItem("Systemic Surgery", h.systemicSurgery)}
+        </div>`;
+      },
+    },
+    {
+      title: "Occupational & Digital",
+      fn: () => {
+        const occ = caseHistory.occupationalHistory;
+        const dig = caseHistory.digitalHistory;
+        if (!hasValue(occ) && !hasValue(dig)) return "";
+
+        let out = `<div class="info-grid">`;
+        if (occ) {
+          if (occ.working) out += renderInfoItem("Is Working", "Yes");
+          if (occ.student) out += renderInfoItem("Is Student", "Yes");
+          out += renderInfoItem("Details", occ.details, true);
+        }
+        if (dig) {
+          out += renderInfoItem("Cellphone", dig.cellphone);
+          out += renderInfoItem("Laptop", dig.laptop);
+          out += renderInfoItem("Desktop", dig.desktop);
+        }
+        out += `</div>`;
+        return out;
+      },
+    },
+  ];
+
+  sections.forEach((s) => {
+    const c = s.fn();
+    if (c && c.indexOf("span") > -1) {
+      html += `<div class="section-header">${s.title}</div>${c}`;
+      hasContent = true;
+    }
+  });
+
+  // Only return the HTML if there is actual content inside the section
+  return hasContent ? html + "</div>" : "";
 }
 
 function generateEyeDataTableHtml(title, dataRows) {
-  // Generate the HTML for each row
-  const rowsHtml = dataRows
+  const validRows = dataRows.filter(
+    (row) => hasValue(row.od) || hasValue(row.os)
+  );
+
+  if (validRows.length === 0) return "";
+
+  const rowsHtml = validRows
     .map(
       (row) => `
         <div class="table-row">
             <span class="label">${row.label}</span>
-            <span class="value">${row.od || FALLBACK}</span>
-            <span class="value">${row.os || FALLBACK}</span>
+            <span class="value">${row.od || "-"}</span>
+            <span class="value">${row.os || "-"}</span>
         </div>
     `
     )
@@ -285,8 +286,8 @@ function generateEyeDataTableHtml(title, dataRows) {
             <div class="eye-data-table">
                 <div class="table-header">
                     <span class="label">Test</span>
-                    <span class="value">OD (Right Eye)</span>
-                    <span class="value">OS (Left Eye)</span>
+                    <span class="value">OD (Right)</span>
+                    <span class="value">OS (Left)</span>
                 </div>
                 ${rowsHtml}
             </div>
@@ -295,42 +296,62 @@ function generateEyeDataTableHtml(title, dataRows) {
 }
 
 function generateClinicalExaminationHtml(clinicalExam) {
-  if (!clinicalExam) return "";
+  if (!clinicalExam || !hasValue(clinicalExam)) return "";
 
-  const withoutGlassesRows = [
-    {
-      label: "Unaided (SC)",
-      od: clinicalExam.visualAcuity?.withoutGlasses?.od?.sc,
-      os: clinicalExam.visualAcuity?.withoutGlasses?.os?.sc,
-    },
-    {
-      label: "Pinhole (PH)",
-      od: clinicalExam.visualAcuity?.withoutGlasses?.od?.ph,
-      os: clinicalExam.visualAcuity?.withoutGlasses?.os?.ph,
-    },
-    {
-      label: "Near",
-      od: clinicalExam.visualAcuity?.withoutGlasses?.od?.near,
-      os: clinicalExam.visualAcuity?.withoutGlasses?.os?.near,
-    },
-  ];
-  const withGlassesRows = [
-    {
-      label: "Aided (SC)",
-      od: clinicalExam.visualAcuity?.withGlasses?.od?.sc,
-      os: clinicalExam.visualAcuity?.withGlasses?.os?.sc,
-    },
-    {
-      label: "Pinhole (PH)",
-      od: clinicalExam.visualAcuity?.withGlasses?.od?.ph,
-      os: clinicalExam.visualAcuity?.withGlasses?.os?.ph,
-    },
-    {
-      label: "Near",
-      od: clinicalExam.visualAcuity?.withGlasses?.od?.near,
-      os: clinicalExam.visualAcuity?.withGlasses?.os?.near,
-    },
-  ];
+  // 1️⃣ START MODIFICATION: Use 'major-section' instead of 'page-break'
+  let html = `<div class="major-section"><h1 class="page-title">Clinical Examination</h1>`;
+  // 1️⃣ END MODIFICATION
+  let hasContent = false;
+
+  const va = clinicalExam.visualAcuity;
+  if (hasValue(va)) {
+    let vaContent = "";
+    if (hasValue(va.chartUsed) || hasValue(va.testDistanceUsed)) {
+      vaContent += `<div class="info-grid">
+            ${renderInfoItem("Chart Used", va.chartUsed)}
+            ${renderInfoItem("Test Distance", va.testDistanceUsed)}
+         </div>`;
+    }
+
+    const without = [
+      {
+        label: "Unaided",
+        od: va.withoutGlasses?.od?.sc,
+        os: va.withoutGlasses?.os?.sc,
+      },
+      {
+        label: "Pinhole",
+        od: va.withoutGlasses?.od?.ph,
+        os: va.withoutGlasses?.os?.ph,
+      },
+      {
+        label: "Near",
+        od: va.withoutGlasses?.od?.near,
+        os: va.withoutGlasses?.os?.near,
+      },
+    ];
+    vaContent += generateEyeDataTableHtml("Without Glasses", without);
+
+    const withG = [
+      {
+        label: "Aided",
+        od: va.withGlasses?.od?.sc,
+        os: va.withGlasses?.os?.sc,
+      },
+      {
+        label: "Pinhole",
+        od: va.withGlasses?.od?.ph,
+        os: va.withGlasses?.os?.ph,
+      },
+    ];
+    vaContent += generateEyeDataTableHtml("With Glasses", withG);
+
+    if (vaContent) {
+      html += `<div class="section-header">Visual Acuity</div>${vaContent}`;
+      hasContent = true;
+    }
+  }
+
   const arRows = [
     {
       label: "Sphere",
@@ -348,63 +369,13 @@ function generateClinicalExaminationHtml(clinicalExam) {
       os: clinicalExam.autorefractometer?.os?.axis,
     },
   ];
-  const akRows = [
-    {
-      label: "K1",
-      od: clinicalExam.autokeratometer?.od?.k1,
-      os: clinicalExam.autokeratometer?.os?.k1,
-    },
-    {
-      label: "K2",
-      od: clinicalExam.autokeratometer?.od?.k2,
-      os: clinicalExam.autokeratometer?.os?.k2,
-    },
-    {
-      label: "Axis",
-      od: clinicalExam.autokeratometer?.od?.axis,
-      os: clinicalExam.autokeratometer?.os?.axis,
-    },
-  ];
-  const pupilSizeRows = [
-    {
-      label: "MPD",
-      od: clinicalExam.pdPupilSize?.od?.mpd,
-      os: clinicalExam.pdPupilSize?.os?.mpd,
-    },
-    {
-      label: "Pupil Size",
-      od: clinicalExam.pdPupilSize?.od?.pupilSize,
-      os: clinicalExam.pdPupilSize?.os?.pupilSize,
-    },
-    {
-      label: "HVID",
-      od: clinicalExam.pdPupilSize?.od?.hvid,
-      os: clinicalExam.pdPupilSize?.os?.hvid,
-    },
-  ];
-  const pupilExamRows = [
-    {
-      label: "RAPD",
-      od: clinicalExam.pupilExamination?.od?.rapd,
-      os: clinicalExam.pupilExamination?.os?.rapd,
-    },
-    {
-      label: "Direct",
-      od: clinicalExam.pupilExamination?.od?.direct,
-      os: clinicalExam.pupilExamination?.os?.direct,
-    },
-    {
-      label: "Consensual",
-      od: clinicalExam.pupilExamination?.od?.consensual,
-      os: clinicalExam.pupilExamination?.os?.consensual,
-    },
-    {
-      label: "PERRLA",
-      od: clinicalExam.pupilExamination?.od?.perrla,
-      os: clinicalExam.pupilExamination?.os?.perrla,
-    },
-  ];
-  const manifestRows = [
+  const arHtml = generateEyeDataTableHtml("Autorefractometer", arRows);
+  if (arHtml) {
+    html += `<div class="section-header">Objective Refraction</div>${arHtml}`;
+    hasContent = true;
+  }
+
+  const manRows = [
     {
       label: "Sphere",
       od: clinicalExam.manifestRefraction?.od?.sphere,
@@ -430,296 +401,123 @@ function generateClinicalExaminationHtml(clinicalExam) {
       od: clinicalExam.manifestRefraction?.od?.add,
       os: clinicalExam.manifestRefraction?.os?.add,
     },
-    {
-      label: "NVA",
-      od: clinicalExam.manifestRefraction?.od?.nva,
-      os: clinicalExam.manifestRefraction?.os?.nva,
-    },
   ];
+  const manHtml = generateEyeDataTableHtml("Manifest Refraction", manRows);
+  if (manHtml) {
+    html += `<div class="section-header">Subjective Refraction</div>${manHtml}`;
+    hasContent = true;
+  }
 
-  return `
-        <div class="page-break"></div>
-        <h1 class="page-title">Clinical Examination</h1>
+  if (hasValue(clinicalExam.medsUsed)) {
+    html += `<div class="section-header">Additional</div>
+      <div class="info-grid">
+         ${renderInfoItem("Meds Type", clinicalExam.medsUsed.type)}
+         ${renderInfoItem("Others", clinicalExam.medsUsed.comboTCOthers)}
+      </div>`;
+    hasContent = true;
+  }
 
-        <div class="section-header">Visual Acuity</div>
-        <div class="info-grid">
-            <div class="info-item"><span class="label">Chart Used:</span><span class="value">${
-              clinicalExam.visualAcuity?.chartUsed || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Test Distance:</span><span class="value">${
-              clinicalExam.visualAcuity?.testDistanceUsed || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Other Distance:</span><span class="value">${
-              clinicalExam.visualAcuity?.testDistanceOther || FALLBACK
-            }</span></div>
-        </div>
-        ${generateEyeDataTableHtml("Without Glasses", withoutGlassesRows)}
-        ${generateEyeDataTableHtml("With Present Glasses", withGlassesRows)}
-        <div class="info-grid sub-section">
-             <div class="info-item"><span class="label">Dominant Eye (Far):</span><span class="value">${
-               clinicalExam.visualAcuity?.dominantEye?.far?.od ||
-               clinicalExam.visualAcuity?.dominantEye?.far?.os ||
-               FALLBACK
-             }</span></div>
-             <div class="info-item"><span class="label">Dominant Eye (Near):</span><span class="value">${
-               clinicalExam.visualAcuity?.dominantEye?.near?.od ||
-               clinicalExam.visualAcuity?.dominantEye?.near?.os ||
-               FALLBACK
-             }</span></div>
-        </div>
-
-        <div class="section-header">Objective Refraction</div>
-        ${generateEyeDataTableHtml("Autorefractometer (AR)", arRows)}
-        ${generateEyeDataTableHtml("Autokeratometer (AK)", akRows)}
-
-        <div class="section-header">Pupil Assessment</div>
-        ${generateEyeDataTableHtml("PD / Pupil Size", pupilSizeRows)}
-        ${generateEyeDataTableHtml("Pupil Examination", pupilExamRows)}
-        
-        <div class="section-header">Subjective Refraction</div>
-        ${generateEyeDataTableHtml("Manifest Refraction", manifestRows)}
-        
-        <div class="section-header">Additional Results & Medications</div>
-        <div class="info-grid">
-            <div class="info-item full-width"><span class="label">ARK Results:</span><span class="value">${
-              clinicalExam.arkResults || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Meds Used (Type):</span><span class="value">${
-              clinicalExam.medsUsed?.type || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Meds Used (Other):</span><span class="value">${
-              clinicalExam.medsUsed?.comboTCOthers || FALLBACK
-            }</span></div>
-        </div>
-    `;
+  return hasContent ? html + "</div>" : "";
 }
 
 function generateBinocularTestsHtml(binocularTests) {
-  if (!binocularTests) return "";
+  if (!hasValue(binocularTests)) return "";
 
-  const monocularNpaRows = [
-    {
-      label: "NPA",
-      od: binocularTests.monocularTests?.npa?.od,
-      os: binocularTests.monocularTests?.npa?.os,
-    },
-  ];
-  const monocularDuctionRows = [
-    {
-      label: "Duction",
-      od: binocularTests.monocularTests?.ocularMotilityDuction?.od,
-      os: binocularTests.monocularTests?.ocularMotilityDuction?.os,
-    },
-  ];
+  const bTests = binocularTests.binocularTests || {};
+  let content = "";
 
+  if (hasValue(bTests)) {
+    content += `<div class="info-grid">`;
+    Object.keys(bTests).forEach((key) => {
+      if (key.includes("angleEst")) return;
+      if (hasValue(bTests[key])) {
+        const label = key
+          .replace(/([A-Z])/g, " $1")
+          .replace(/^./, (str) => str.toUpperCase());
+        content += renderInfoItem(label, bTests[key]);
+      }
+    });
+    content += `</div>`;
+  }
+
+  if (!content.includes("class=")) return "";
+
+  // 1️⃣ START MODIFICATION: Use 'major-section' instead of 'page-break'
   return `
-        <div class="page-break"></div>
-        <h1 class="page-title">Binocular Vision Tests</h1>
-
-        <div class="section-header">Binocular Tests</div>
-        <div class="info-grid">
-            <div class="info-item"><span class="label">Stereo Acuity (Langs):</span><span class="value">${
-              binocularTests.binocularTests?.stereoAcuityLangs || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Stereo Acuity (Circles):</span><span class="value">${
-              binocularTests.binocularTests?.stereoAcuityCircles || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Ocular Motility (Version):</span><span class="value">${
-              binocularTests.binocularTests?.ocularMotilityVersion || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">NPC:</span><span class="value">${
-              binocularTests.binocularTests?.npc || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Worth 4 Light (6m):</span><span class="value">${
-              binocularTests.binocularTests?.w4l6m || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Worth 4 Light (33cm):</span><span class="value">${
-              binocularTests.binocularTests?.w4l33cm || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Maddox Wing:</span><span class="value">${
-              binocularTests.binocularTests?.maddoxWing || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Cover Test (6m):</span><span class="value">${
-              binocularTests.binocularTests?.ct6m || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Cover Test (33cm):</span><span class="value">${
-              binocularTests.binocularTests?.ct33cm || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Bagolini (6m):</span><span class="value">${
-              binocularTests.binocularTests?.bagolini6m || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Bagolini (33cm):</span><span class="value">${
-              binocularTests.binocularTests?.bagolini33cm || FALLBACK
-            }</span></div>
-            <div class="info-item full-width"><span class="label">Other Tests:</span><span class="value">${
-              binocularTests.binocularTests?.otherTests || FALLBACK
-            }</span></div>
+        <div class="major-section">
+            <h1 class="page-title">Binocular Vision Tests</h1>
+            <div class="section-header">Tests</div>
+            ${content}
         </div>
-
-        <div class="section-header">Angle Estimation</div>
-        <div class="info-grid sub-section">
-            <div class="info-item full-width section-title"><span class="label">@ 6 meters</span></div>
-            <div class="info-item"><span class="label">Hirschberg's:</span><span class="value">${
-              binocularTests.binocularTests?.angleEst6m?.hirschbergs || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Krimsky:</span><span class="value">${
-              binocularTests.binocularTests?.angleEst6m?.krimsky || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">PCT:</span><span class="value">${
-              binocularTests.binocularTests?.angleEst6m?.pct || FALLBACK
-            }</span></div>
-        </div>
-        <div class="info-grid sub-section">
-            <div class="info-item full-width section-title"><span class="label">@ 33 centimeters</span></div>
-            <div class="info-item"><span class="label">Hirschberg's:</span><span class="value">${
-              binocularTests.binocularTests?.angleEst33cm?.hirschbergs ||
-              FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Krimsky:</span><span class="value">${
-              binocularTests.binocularTests?.angleEst33cm?.krimsky || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">PCT:</span><span class="value">${
-              binocularTests.binocularTests?.angleEst33cm?.pct || FALLBACK
-            }</span></div>
-        </div>
-        
-        <div class="section-header">Monocular Tests</div>
-        ${generateEyeDataTableHtml(
-          "Near Point of Accommodation",
-          monocularNpaRows
-        )}
-        ${generateEyeDataTableHtml("Ocular Motility", monocularDuctionRows)}
     `;
+  // 1️⃣ END MODIFICATION
 }
 
 function generateSlitLampFunduscopyHtml(slitLampData) {
-  if (!slitLampData) return "";
+  if (!hasValue(slitLampData)) return "";
 
-  const slitLampRows = [
-    {
-      label: "Lids & Lashes",
-      od: slitLampData.slitLamp?.od?.lidsLashes,
-      os: slitLampData.slitLamp?.os?.lidsLashes,
-    },
-    {
-      label: "Conjunctiva",
-      od: slitLampData.slitLamp?.od?.conjunctiva,
-      os: slitLampData.slitLamp?.os?.conjunctiva,
-    },
-    {
-      label: "Sclera",
-      od: slitLampData.slitLamp?.od?.sclera,
-      os: slitLampData.slitLamp?.os?.sclera,
-    },
-    {
-      label: "Cornea",
-      od: slitLampData.slitLamp?.od?.cornea,
-      os: slitLampData.slitLamp?.os?.cornea,
-    },
-    {
-      label: "Anterior Chamber (AC)",
-      od: slitLampData.slitLamp?.od?.ac,
-      os: slitLampData.slitLamp?.os?.ac,
-    },
-    {
-      label: "Iris",
-      od: slitLampData.slitLamp?.od?.iris,
-      os: slitLampData.slitLamp?.os?.iris,
-    },
-    {
-      label: "Pupil",
-      od: slitLampData.slitLamp?.od?.pupil,
-      os: slitLampData.slitLamp?.os?.pupil,
-    },
-    {
-      label: "Lens",
-      od: slitLampData.slitLamp?.od?.lens,
-      os: slitLampData.slitLamp?.os?.lens,
-    },
-    {
-      label: "IOP",
-      od: slitLampData.slitLamp?.od?.iop,
-      os: slitLampData.slitLamp?.os?.iop,
-    },
-    {
-      label: "IOP Type",
-      od: slitLampData.slitLamp?.od?.iopType,
-      os: slitLampData.slitLamp?.os?.iopType,
-    },
-    {
-      label: "IOP Time",
-      od: slitLampData.slitLamp?.od?.iopTime,
-      os: slitLampData.slitLamp?.os?.iopTime,
-    },
-  ];
+  const slod = slitLampData.slitLamp?.od || {};
+  const slos = slitLampData.slitLamp?.os || {};
 
-  const funduscopyRows = [
-    {
-      label: "Retina",
-      od: slitLampData.funduscopy?.od?.retina,
-      os: slitLampData.funduscopy?.os?.retina,
-    },
-    {
-      label: "Macula",
-      od: slitLampData.funduscopy?.od?.macula,
-      os: slitLampData.funduscopy?.os?.macula,
-    },
-    {
-      label: "Vessels",
-      od: slitLampData.funduscopy?.od?.vessels,
-      os: slitLampData.funduscopy?.os?.vessels,
-    },
-    {
-      label: "AVR (A/V Ratio)",
-      od: slitLampData.funduscopy?.od?.avr,
-      os: slitLampData.funduscopy?.os?.avr,
-    },
-    {
-      label: "Optic Disc",
-      od: slitLampData.funduscopy?.od?.opticDisc,
-      os: slitLampData.funduscopy?.os?.opticDisc,
-    },
-    {
-      label: "CDR (Cup/Disc Ratio)",
-      od: slitLampData.funduscopy?.od?.cdr,
-      os: slitLampData.funduscopy?.os?.cdr,
-    },
-    {
-      label: "Others",
-      od: slitLampData.funduscopy?.od?.others,
-      os: slitLampData.funduscopy?.os?.others,
-    },
-  ];
+  const keys = Object.keys(slod);
+  const slitLampRows = keys.map((key) => ({
+    label: key.charAt(0).toUpperCase() + key.slice(1),
+    od: slod[key],
+    os: slos[key],
+  }));
 
+  const slHtml = generateEyeDataTableHtml(
+    "Anterior Segment (Slit Lamp)",
+    slitLampRows
+  );
+
+  const fdod = slitLampData.funduscopy?.od || {};
+  const fdos = slitLampData.funduscopy?.os || {};
+  const fKeys = Object.keys(fdod);
+  const fundusRows = fKeys.map((key) => ({
+    label: key.charAt(0).toUpperCase() + key.slice(1),
+    od: fdod[key],
+    os: fdos[key],
+  }));
+
+  const fHtml = generateEyeDataTableHtml(
+    "Posterior Segment (Funduscopy)",
+    fundusRows
+  );
+
+  if (!slHtml && !fHtml) return "";
+
+  // 1️⃣ START MODIFICATION: Use 'major-section' instead of 'page-break'
   return `
-        <div class="page-break"></div>
-        <h1 class="page-title">Slit Lamp & Funduscopy</h1>
-
-        <div class="section-header">Slit Lamp Examination (Anterior Segment)</div>
-        ${generateEyeDataTableHtml("Anterior Segment Findings", slitLampRows)}
-
-        <div class="section-header">Funduscopy (Posterior Segment)</div>
-        ${generateEyeDataTableHtml(
-          "Posterior Segment Findings",
-          funduscopyRows
-        )}
+        <div class="major-section">
+            <h1 class="page-title">Slit Lamp & Funduscopy</h1>
+            ${
+              slHtml
+                ? `<div class="section-header">Slit Lamp</div>${slHtml}`
+                : ""
+            }
+            ${
+              fHtml
+                ? `<div class="section-header">Funduscopy</div>${fHtml}`
+                : ""
+            }
+        </div>
     `;
+  // 1️⃣ END MODIFICATION
 }
 
 function drawChecklist(items) {
-  if (!items || typeof items !== "object") return "";
-  const listHtml = Object.keys(items)
+  if (!hasValue(items)) return "";
+
+  const trueKeys = Object.keys(items).filter((k) => items[k] === true);
+  if (trueKeys.length === 0) return "";
+
+  const listHtml = trueKeys
     .map((key) => {
-      const label =
-        key.charAt(0).toUpperCase() +
-        key
-          .slice(1)
-          .replace(/([A-Z])/g, " $1")
-          .trim();
-      const icon = items[key]
-        ? '<span class="check-icon">✔</span>'
-        : '<span class="cross-icon">✖</span>';
-      return `<div class="check-item">${icon} ${label}</div>`;
+      const label = key
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, (str) => str.toUpperCase());
+      return `<div class="check-item"><span class="check-icon">✔</span> ${label}</div>`;
     })
     .join("");
 
@@ -727,311 +525,277 @@ function drawChecklist(items) {
 }
 
 function generateDiagnosticPlanHtml(diagnosticPlan) {
-  if (!diagnosticPlan) return "";
+  if (!hasValue(diagnosticPlan)) return "";
 
-  let planManagementHtml = "";
-  if (
-    diagnosticPlan.planManagement &&
-    diagnosticPlan.planManagement.length > 0
-  ) {
-    diagnosticPlan.planManagement.forEach((plan, index) => {
-      if (!plan.od && !plan.os) return; // Skip if plan is empty
-      const planRows = [
-        {
-          label: "Medication/Treatment:",
-          od: plan.od?.meds,
-          os: plan.os?.meds,
-        },
-        { label: "Quantity:", od: plan.od?.quantity, os: plan.os?.quantity },
-        { label: "Frequency:", od: plan.od?.frequency, os: plan.os?.frequency },
-        { label: "Duration:", od: plan.od?.duration, os: plan.os?.duration },
-      ];
-      planManagementHtml += generateEyeDataTableHtml(
-        `Management Plan ${index + 1}`,
-        planRows
-      );
-    });
-  }
+  const checklist = drawChecklist(diagnosticPlan.diagnosticTests);
+  const interpretation = hasValue(diagnosticPlan.interpretationOfResults)
+    ? diagnosticPlan.interpretationOfResults
+    : "";
+  const assessment =
+    hasValue(diagnosticPlan.assessment?.primaryImpression) ||
+    hasValue(diagnosticPlan.assessment?.secondaryImpression);
 
+  if (!checklist && !interpretation && !assessment) return "";
+
+  // 1️⃣ START MODIFICATION: Use 'major-section' instead of 'page-break'
   return `
-        <div class="page-break"></div>
-        <h1 class="page-title">Diagnostic Tests & Assessment</h1>
-
-        <div class="section-header">Diagnostic Tests Performed</div>
-        ${drawChecklist(diagnosticPlan.diagnosticTests)}
-
-        <div class="section-header">Interpretation of Results</div>
-        <div class="paragraph-block">
-            <p>${diagnosticPlan.interpretationOfResults || FALLBACK}</p>
+        <div class="major-section">
+            <h1 class="page-title">Diagnostic & Assessment</h1>
+            ${
+              checklist
+                ? `<div class="section-header">Tests Performed</div>${checklist}`
+                : ""
+            }
+            ${
+              interpretation
+                ? `<div class="section-header">Results</div><div class="paragraph-block"><p>${interpretation}</p></div>`
+                : ""
+            }
+            ${
+              assessment
+                ? `<div class="section-header">Assessment</div><div class="info-grid">
+                ${renderInfoItem(
+                  "Primary",
+                  diagnosticPlan.assessment?.primaryImpression,
+                  true
+                )}
+                ${renderInfoItem(
+                  "Secondary",
+                  diagnosticPlan.assessment?.secondaryImpression,
+                  true
+                )}
+            </div>`
+                : ""
+            }
         </div>
-
-        <div class="section-header">Assessment</div>
-        <div class="info-grid">
-            <div class="info-item full-width">
-                <span class="label">Primary Impression:</span>
-                <span class="value">${
-                  diagnosticPlan.assessment?.primaryImpression || FALLBACK
-                }</span>
-            </div>
-            <div class="info-item full-width">
-                <span class="label">Secondary Impression:</span>
-                <span class="value">${
-                  diagnosticPlan.assessment?.secondaryImpression || FALLBACK
-                }</span>
-            </div>
-        </div>
-
-        <div class="section-header">Plan & Management</div>
-        ${
-          planManagementHtml ||
-          '<p class="paragraph-block">No management plan specified.</p>'
-        }
     `;
+  // 1️⃣ END MODIFICATION
 }
 
 function generatePlanOfManagementHtml(plan) {
-  if (!plan) return "";
+  if (!plan || !hasValue(plan)) return "";
 
-  const opticalRxRows = [
-    {
-      label: "Sphere",
-      od: plan.opticalManagement?.finalRx?.od?.sphere,
-      os: plan.opticalManagement?.finalRx?.os?.sphere,
-    },
-    {
-      label: "Cylinder",
-      od: plan.opticalManagement?.finalRx?.od?.cylinder,
-      os: plan.opticalManagement?.finalRx?.os?.cylinder,
-    },
-    {
-      label: "Axis",
-      od: plan.opticalManagement?.finalRx?.od?.axis,
-      os: plan.opticalManagement?.finalRx?.os?.axis,
-    },
-    {
-      label: "ADD",
-      od: plan.opticalManagement?.finalRx?.od?.add,
-      os: plan.opticalManagement?.finalRx?.os?.add,
-    },
-    {
-      label: "Prism",
-      od: plan.opticalManagement?.finalRx?.od?.prism,
-      os: plan.opticalManagement?.finalRx?.os?.prism,
-    },
-    {
-      label: "Base",
-      od: plan.opticalManagement?.finalRx?.od?.base,
-      os: plan.opticalManagement?.finalRx?.os?.base,
-    },
-    {
-      label: "MRP",
-      od: plan.opticalManagement?.finalRx?.od?.mrp,
-      os: plan.opticalManagement?.finalRx?.os?.mrp,
-    },
-    {
-      label: "IPD",
-      od: plan.opticalManagement?.finalRx?.od?.ipd,
-      os: plan.opticalManagement?.finalRx?.os?.ipd,
-    },
-    {
-      label: "VH",
-      od: plan.opticalManagement?.finalRx?.od?.vh,
-      os: plan.opticalManagement?.finalRx?.os?.vh,
-    },
-    {
-      label: "Panto",
-      od: plan.opticalManagement?.finalRx?.od?.panto,
-      os: plan.opticalManagement?.finalRx?.os?.panto,
-    },
-    {
-      label: "Wrap",
-      od: plan.opticalManagement?.finalRx?.od?.wrap,
-      os: plan.opticalManagement?.finalRx?.os?.wrap,
-    },
-  ];
+  // Check if there is ANY data in the plan before rendering the main header
+  const hasSlitLamp =
+    hasValue(plan.slitLampManagement?.od) ||
+    hasValue(plan.slitLampManagement?.os);
 
-  const contactLensRxRows = [
-    {
-      label: "Sphere",
-      od: plan.contactLensManagement?.finalRx?.od?.sphere,
-      os: plan.contactLensManagement?.finalRx?.os?.sphere,
-    },
-    {
-      label: "Cylinder",
-      od: plan.contactLensManagement?.finalRx?.od?.cylinder,
-      os: plan.contactLensManagement?.finalRx?.os?.cylinder,
-    },
-    {
-      label: "Axis",
-      od: plan.contactLensManagement?.finalRx?.od?.axis,
-      os: plan.contactLensManagement?.finalRx?.os?.axis,
-    },
-    {
-      label: "BC",
-      od: plan.contactLensManagement?.finalRx?.od?.bc,
-      os: plan.contactLensManagement?.finalRx?.os?.bc,
-    },
-    {
-      label: "DIA",
-      od: plan.contactLensManagement?.finalRx?.od?.dia,
-      os: plan.contactLensManagement?.finalRx?.os?.dia,
-    },
-    {
-      label: "OZD",
-      od: plan.contactLensManagement?.finalRx?.od?.ozd,
-      os: plan.contactLensManagement?.finalRx?.os?.ozd,
-    },
-    {
-      label: "SC",
-      od: plan.contactLensManagement?.finalRx?.od?.sc,
-      os: plan.contactLensManagement?.finalRx?.os?.sc,
-    },
-    {
-      label: "PC",
-      od: plan.contactLensManagement?.finalRx?.od?.pc,
-      os: plan.contactLensManagement?.finalRx?.os?.pc,
-    },
-    {
-      label: "CT",
-      od: plan.contactLensManagement?.finalRx?.od?.ct,
-      os: plan.contactLensManagement?.finalRx?.os?.ct,
-    },
-    {
-      label: "Material",
-      od: plan.contactLensManagement?.finalRx?.od?.material,
-      os: plan.contactLensManagement?.finalRx?.os?.material,
-    },
-    {
-      label: "Tint",
-      od: plan.contactLensManagement?.finalRx?.od?.tint,
-      os: plan.contactLensManagement?.finalRx?.os?.tint,
-    },
-  ];
+  const optical = plan.opticalManagement;
+  const hasOptical =
+    hasValue(optical?.finalRx?.od?.sphere) ||
+    hasValue(optical?.finalRx?.os?.sphere) ||
+    hasValue(optical?.frames) ||
+    hasValue(optical?.materials);
 
-  const patchingStatus =
-    [
-      plan.therapy?.patching?.patchREye ? "Right Eye" : "",
-      plan.therapy?.patching?.patchLEye ? "Left Eye" : "",
-    ]
-      .filter(Boolean)
-      .join(" & ") || FALLBACK;
+  const cl = plan.contactLensManagement;
+  const hasCL =
+    hasValue(cl?.finalRx?.od?.sphere) ||
+    hasValue(cl?.finalRx?.os?.sphere) ||
+    hasValue(cl?.brand);
 
-  return `
-        <div class="page-break"></div>
-        <h1 class="page-title">Plan of Management</h1>
+  const hasSolutions =
+    hasValue(plan.eyeCareSolutions?.lubricant) ||
+    hasValue(plan.eyeCareSolutions?.contactLensSolutions);
 
+  const hasTherapy =
+    hasValue(plan.therapy?.amblyopia) || hasValue(plan.therapy?.others);
+
+  const hasHygiene = Object.values(plan.ocularHygiene || {}).some(
+    (v) => v === true
+  );
+
+  const hasReferral =
+    hasValue(plan.referralAndFollowUp?.referralTo) ||
+    hasValue(plan.referralAndFollowUp?.nextAppointment);
+
+  // If absolutely no data in any subsection, return empty string
+  if (
+    !hasSlitLamp &&
+    !hasOptical &&
+    !hasCL &&
+    !hasSolutions &&
+    !hasTherapy &&
+    !hasHygiene &&
+    !hasReferral
+  ) {
+    return "";
+  }
+
+  // Start the Section
+  let html = `<div class="major-section"><h1 class="page-title">Plan of Management</h1>`;
+
+  // 1. Slit Lamp Management
+  if (hasSlitLamp) {
+    html += `
         <div class="section-header">Slit Lamp Management</div>
         <div class="info-grid">
-            <div class="info-item"><span class="label">OD (Right Eye):</span><span class="value">${
-              plan.slitLampManagement?.od || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">OS (Left Eye):</span><span class="value">${
-              plan.slitLampManagement?.os || FALLBACK
-            }</span></div>
-        </div>
+            ${renderInfoItem("OD (Right)", plan.slitLampManagement?.od)}
+            ${renderInfoItem("OS (Left)", plan.slitLampManagement?.os)}
+        </div>`;
+  }
 
-        <div class="section-header">Optical Management</div>
-        ${generateEyeDataTableHtml(
-          "Final Optical Prescription (Final Rx)",
-          opticalRxRows
-        )}
-        <div class="info-grid sub-section">
-            <div class="info-item"><span class="label">Materials:</span><span class="value">${
-              plan.opticalManagement?.materials || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Coating:</span><span class="value">${
-              plan.opticalManagement?.coating || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Tint:</span><span class="value">${
-              plan.opticalManagement?.tint || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Design:</span><span class="value">${
-              plan.opticalManagement?.design || FALLBACK
-            }</span></div>
-            <div class="info-item full-width"><span class="label">Frames:</span><span class="value">${
-              plan.opticalManagement?.frames || FALLBACK
-            }</span></div>
-            <div class="info-item full-width section-title"><span class="label">Frame Measurements</span></div>
-            <div class="info-item"><span class="label">A:</span><span class="value">${
-              plan.opticalManagement?.frameMeasurements?.a || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">B:</span><span class="value">${
-              plan.opticalManagement?.frameMeasurements?.b || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">ED:</span><span class="value">${
-              plan.opticalManagement?.frameMeasurements?.ed || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">DBL:</span><span class="value">${
-              plan.opticalManagement?.frameMeasurements?.dbl || FALLBACK
-            }</span></div>
-            <div class="info-item full-width"><span class="label">Glazing Instruction:</span><span class="value">${
-              plan.opticalManagement?.glazingInstruction || FALLBACK
-            }</span></div>
-        </div>
+  // 2. Optical Management
+  if (hasOptical) {
+    const opticalRxRows = [
+      {
+        label: "Sphere",
+        od: optical.finalRx?.od?.sphere,
+        os: optical.finalRx?.os?.sphere,
+      },
+      {
+        label: "Cylinder",
+        od: optical.finalRx?.od?.cylinder,
+        os: optical.finalRx?.os?.cylinder,
+      },
+      {
+        label: "Axis",
+        od: optical.finalRx?.od?.axis,
+        os: optical.finalRx?.os?.axis,
+      },
+      {
+        label: "ADD",
+        od: optical.finalRx?.od?.add,
+        os: optical.finalRx?.os?.add,
+      },
+      {
+        label: "Prism",
+        od: optical.finalRx?.od?.prism,
+        os: optical.finalRx?.os?.prism,
+      },
+      {
+        label: "PD",
+        od: optical.finalRx?.od?.ipd,
+        os: optical.finalRx?.os?.ipd,
+      },
+    ];
 
-        <div class="section-header">Contact Lens Management</div>
-        ${generateEyeDataTableHtml(
-          "Final Contact Lens Prescription (Final Rx)",
-          contactLensRxRows
-        )}
-        <div class="info-grid sub-section">
-            <div class="info-item"><span class="label">Design:</span><span class="value">${
-              plan.contactLensManagement?.design || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Brand:</span><span class="value">${
-              plan.contactLensManagement?.brand || FALLBACK
-            }</span></div>
-            <div class="info-item full-width"><span class="label">Others:</span><span class="value">${
-              plan.contactLensManagement?.others || FALLBACK
-            }</span></div>
-        </div>
+    html += `<div class="section-header">Optical Management</div>`;
+    html += generateEyeDataTableHtml(
+      "Final Optical Prescription",
+      opticalRxRows
+    );
 
-        <div class="section-header">Eye Care Solutions & Therapy</div>
-        <div class="info-grid">
-            <div class="info-item"><span class="label">Lubricant:</span><span class="value">${
-              plan.eyeCareSolutions?.lubricant || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Contact Lens Solutions:</span><span class="value">${
-              plan.eyeCareSolutions?.contactLensSolutions || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Eye Vitamins:</span><span class="value">${
-              plan.eyeCareSolutions?.eyeVitamins || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Lid Wipes:</span><span class="value">${
-              plan.eyeCareSolutions?.lidWipes || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Warm/Cold Compress:</span><span class="value">${
-              plan.eyeCareSolutions?.warmColdCompress || FALLBACK
-            }</span></div>
-             <div class="info-item full-width section-title"><span class="label">Therapy</span></div>
-            <div class="info-item"><span class="label">Amblyopia:</span><span class="value">${
-              plan.therapy?.amblyopia || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Patching:</span><span class="value">${patchingStatus}</span></div>
-            <div class="info-item"><span class="label">Time/Duration:</span><span class="value">${
-              plan.therapy?.time || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Other Details:</span><span class="value">${
-              plan.therapy?.others || FALLBACK
-            }</span></div>
-        </div>
-        
-        <div class="section-header">Ocular Hygiene Recommendations</div>
-        ${drawChecklist(plan.ocularHygiene)}
+    // Optical Details Grid
+    let detailsHtml = "";
+    detailsHtml += renderInfoItem("Materials", optical.materials);
+    detailsHtml += renderInfoItem("Coating", optical.coating);
+    detailsHtml += renderInfoItem("Tint", optical.tint);
+    detailsHtml += renderInfoItem("Design", optical.design);
+    detailsHtml += renderInfoItem("Frames", optical.frames, true); // Full width
 
-        <div class="section-header">Referral & Follow-Up</div>
-        <div class="info-grid">
-            <div class="info-item"><span class="label">Referral To:</span><span class="value">${
-              plan.referralAndFollowUp?.referralTo || FALLBACK
-            }</span></div>
-            <div class="info-item"><span class="label">Purpose:</span><span class="value">${
-              plan.referralAndFollowUp?.purpose || FALLBACK
-            }</span></div>
-            <div class="info-item full-width"><span class="label">Next Appointment:</span><span class="value">${
-              plan.referralAndFollowUp?.nextAppointment || FALLBACK
-            }</span></div>
-        </div>
-    `;
+    // Frame Measurements
+    if (hasValue(optical.frameMeasurements)) {
+      detailsHtml += renderInfoItem("Frame A", optical.frameMeasurements.a);
+      detailsHtml += renderInfoItem("Frame B", optical.frameMeasurements.b);
+      detailsHtml += renderInfoItem("Frame ED", optical.frameMeasurements.ed);
+      detailsHtml += renderInfoItem("Frame DBL", optical.frameMeasurements.dbl);
+    }
+    detailsHtml += renderInfoItem(
+      "Glazing Inst.",
+      optical.glazingInstruction,
+      true
+    );
+
+    if (detailsHtml) {
+      html += `<div class="info-grid sub-section">${detailsHtml}</div>`;
+    }
+  }
+
+  // 3. Contact Lens Management
+  if (hasCL) {
+    const clRxRows = [
+      {
+        label: "Sphere",
+        od: cl.finalRx?.od?.sphere,
+        os: cl.finalRx?.os?.sphere,
+      },
+      {
+        label: "Cylinder",
+        od: cl.finalRx?.od?.cylinder,
+        os: cl.finalRx?.os?.cylinder,
+      },
+      {
+        label: "Axis",
+        od: cl.finalRx?.od?.axis,
+        os: cl.finalRx?.os?.axis,
+      },
+      {
+        label: "BC",
+        od: cl.finalRx?.od?.bc,
+        os: cl.finalRx?.os?.bc,
+      },
+      {
+        label: "DIA",
+        od: cl.finalRx?.od?.dia,
+        os: cl.finalRx?.os?.dia,
+      },
+    ];
+
+    html += `<div class="section-header">Contact Lens Management</div>`;
+    html += generateEyeDataTableHtml("Final CL Prescription", clRxRows);
+
+    let clDetails = "";
+    clDetails += renderInfoItem("Design", cl.design);
+    clDetails += renderInfoItem("Brand", cl.brand);
+    clDetails += renderInfoItem("Others", cl.others, true);
+
+    if (clDetails) {
+      html += `<div class="info-grid sub-section">${clDetails}</div>`;
+    }
+  }
+
+  // 4. Solutions & Therapy
+  if (hasSolutions || hasTherapy) {
+    html += `<div class="section-header">Eye Care & Therapy</div><div class="info-grid">`;
+
+    // Solutions
+    html += renderInfoItem("Lubricant", plan.eyeCareSolutions?.lubricant);
+    html += renderInfoItem(
+      "CL Solution",
+      plan.eyeCareSolutions?.contactLensSolutions
+    );
+    html += renderInfoItem("Vitamins", plan.eyeCareSolutions?.eyeVitamins);
+    html += renderInfoItem("Lid Wipes", plan.eyeCareSolutions?.lidWipes);
+    html += renderInfoItem("Compress", plan.eyeCareSolutions?.warmColdCompress);
+
+    // Therapy
+    html += renderInfoItem("Amblyopia", plan.therapy?.amblyopia);
+
+    // Patching Logic
+    const patchR = plan.therapy?.patching?.patchREye;
+    const patchL = plan.therapy?.patching?.patchLEye;
+    if (patchR || patchL) {
+      const patchingStr = [patchR ? "Right Eye" : "", patchL ? "Left Eye" : ""]
+        .filter(Boolean)
+        .join(" & ");
+      html += renderInfoItem("Patching", patchingStr);
+    }
+
+    html += renderInfoItem("Duration", plan.therapy?.time);
+    html += renderInfoItem("Others", plan.therapy?.others);
+    html += `</div>`;
+  }
+
+  // 5. Ocular Hygiene
+  if (hasHygiene) {
+    html += `<div class="section-header">Ocular Hygiene</div>`;
+    html += drawChecklist(plan.ocularHygiene);
+  }
+
+  // 6. Referral
+  if (hasReferral) {
+    html += `<div class="section-header">Referral & Follow-Up</div><div class="info-grid">`;
+    html += renderInfoItem("Refer To", plan.referralAndFollowUp?.referralTo);
+    html += renderInfoItem("Purpose", plan.referralAndFollowUp?.purpose);
+    html += renderInfoItem(
+      "Next Visit",
+      plan.referralAndFollowUp?.nextAppointment,
+      true
+    );
+    html += `</div>`;
+  }
+
+  return html + "</div>";
 }
 
 // --- MAIN HTML ASSEMBLY ---
@@ -1043,74 +807,28 @@ export function getFullHtml(patient, visit, clinicInfo) {
             <meta charset="utf-8" />
             <title>Patient Report</title>
             <style>
-                :root {
-                    --primary-color: #7F0000;
-                    --header-color: #1A202C;
-                    --text-color: #4A5568;
-                    --label-color: #2D3748;
-                    --border-color: #EAEAEA;
-                }
+                :root { --primary-color: #7F0000; --header-color: #1A202C; --text-color: #4A5568; --label-color: #2D3748; --border-color: #EAEAEA; }
                 html { -webkit-print-color-adjust: exact; }
                 body { font-family: Helvetica, Arial, sans-serif; margin: 0; padding: 50px; background: #fff; font-size: 10pt; color: var(--text-color); }
+                
                 .header, .footer { display: none; }
-                .page-break { page-break-before: always; }
-
-                /* General Content Styles */
-                h1, .page-title { font-size: 16pt; color: var(--header-color); margin-bottom: 20px; }
+                
+                /* 2️⃣ START MODIFICATION: Changed 'page-break' class logic to 'major-section' for spacing */
+                /* Removed: .page-break { page-break-before: always; } */
+                .major-section { margin-top: 40px; margin-bottom: 20px; page-break-inside: avoid; }
+                /* 2️⃣ END MODIFICATION */
+                
+                h1, .page-title { font-size: 16pt; color: var(--header-color); margin-bottom: 15px; border-bottom: 2px solid var(--primary-color); padding-bottom: 5px; }
                 h2 { font-size: 22pt; color: var(--header-color); margin: 0 0 5px 0; }
                 p { margin: 0; }
-                h3 { font-size: 10pt; color: var(--label-color); margin: 15px 0 5px 0; padding-left: 15px; }
-
                 .header-content { display: flex; justify-content: space-between; align-items: flex-start; }
-                .profile-placeholder { width: 120px; height: 120px; background: #EAEAEA; display: flex; align-items: center; justify-content: center; font-size: 9pt; color: var(--text-color); }
-                .patient-identifier { margin-top: 20px; margin-bottom: 20px; }
-                
                 .section-header { background-color: var(--primary-color); color: white; font-weight: bold; padding: 7px 15px; margin-top: 20px; margin-bottom: 15px; font-size: 12pt; border-radius: 3px; }
-                
-                .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 40px; padding-left: 15px; }
-                .info-grid.sub-section { margin-top: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
-                .info-item { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; }
-                .info-item.full-width { grid-column: 1 / -1; }
-                .info-item .label { font-weight: bold; color: var(--label-color); font-size: 9pt; white-space: nowrap; margin-right: 10px; }
-                .info-item .value { font-size: 9pt; text-align: right; }
-                
-                .info-item.section-title .label { font-size: 10pt; color: var(--header-color); border-bottom: 1px solid var(--border-color); width: 100%; }
-
-                .complaint-grid { display: grid; grid-template-columns: 3fr 2fr; gap: 10px 40px; padding-left: 15px; }
-                
-                .sub-section { margin-bottom: 15px; }
-                .eye-data-table { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr; gap: 5px 15px; padding: 0 15px; font-size: 9pt; }
-                .eye-data-table .table-header { grid-column: 1 / -1; display: contents; font-weight: bold; color: var(--label-color); }
-                .eye-data-table .table-row { grid-column: 1 / -1; display: contents; }
-                .eye-data-table .table-row .value, .eye-data-table .table-row .label { border-bottom: 1px solid #f3f3f3; padding-bottom: 5px; }
-                .eye-data-table .table-row .label { font-weight: bold; color: var(--label-color); }
-
-                 .paragraph-block {
-                    padding: 0 15px;
-                    font-size: 9pt;
-                    line-height: 1.5;
-                }
-                .checklist-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr 1fr; /* 3 columns */
-                    gap: 10px 20px;
-                    padding: 0 15px;
-                    font-size: 9pt;
-                }
-                .check-item {
-                    display: flex;
-                    align-items: center;
-                }
-                .check-icon {
-                    color: #38A169; /* Green */
-                    font-weight: bold;
-                    margin-right: 8px;
-                }
-                .cross-icon {
-                    color: #E53E3E; /* Red */
-                    font-weight: bold;
-                    margin-right: 8px;
-                }
+                .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 40px; padding-left: 15px; }
+                .info-item { display: flex; justify-content: space-between; align-items: baseline; padding: 2px 0; }
+                .info-item .label { font-weight: bold; color: var(--label-color); white-space: nowrap; margin-right: 10px; }
+                .eye-data-table { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr; gap: 5px 15px; padding: 0 15px; margin-bottom: 15px; }
+                .eye-data-table .table-row .value { border-bottom: 1px solid #f3f3f3; }
+                .checklist-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 0 15px; }
             </style>
         </head>
         <body>
@@ -1145,7 +863,6 @@ export function getFullHtml(patient, visit, clinicInfo) {
                 ? generatePlanOfManagementHtml(visit.planOfManagement)
                 : ""
             }
-
         </body>
         </html>
     `;

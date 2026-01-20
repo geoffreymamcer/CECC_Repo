@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import instance from "../../api/axios"; // <-- ADD THIS LINE (adjust path if needed)
+import instance from "../../api/axios";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -17,6 +17,9 @@ import EyeConditionChart from "./EyeConditionChart";
 import VisitGrowthChart from "./VisitGrowthChart";
 import AgeGroupChart from "./AgeGroupChart";
 import GeographicDistribution from "./GeographicDistribution";
+import ClinicalCorrelationChart from "./ClinicalCorrelationChart";
+import PeakHoursChart from "./PeakHoursChart";
+import ServiceDistributionChart from "./ServiceDistributionChart";
 
 ChartJS.register(
   CategoryScale,
@@ -83,7 +86,6 @@ const getLast7WeeksKeys = () => {
     const d = new Date(today);
     d.setDate(today.getDate() - i * 7);
     const [year, weekNo] = getWeekNumber(d);
-    // Format as YYYY-WW (e.g., "2025-43") to match the backend's %Y-%U format
     keys.push(`${year}-${String(weekNo - 1).padStart(2, "0")}`);
   }
   return keys;
@@ -107,7 +109,6 @@ const getLast12MonthsKeys = () => {
     const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, "0");
-    // Format as YYYY-MM (e.g., "2025-10") to match the backend's %Y-%m format
     keys.push(`${yyyy}-${mm}`);
   }
   return keys;
@@ -122,38 +123,44 @@ const PatientAnalytics = () => {
   const [visitGrowthData, setVisitGrowthData] = useState(null);
   const [ageGroups, setAgeGroups] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [correlationData, setCorrelationData] = useState([]);
+  const [peakHoursData, setPeakHoursData] = useState([]);
+  const [serviceData, setServiceData] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        // 👇 START OF CHANGE 🚀
         const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-        // The 'headers' object is no longer needed here.
-        // The 'api' instance handles the Authorization token automatically.
-        // We only need to pass the custom timezone header where required.
+        const [
+          eyeConditionRes,
+          visitGrowthRes,
+          ageGroupRes,
+          geoLocationRes,
+          correlationRes,
+          peakHoursRes,
+          serviceRes,
+        ] = await Promise.all([
+          instance.get("/analytics/eye-conditions"),
+          instance.get(`/analytics/visit-growth?timeFrame=${timeFrame}`, {
+            headers: { "X-User-Timezone": userTimezone },
+          }),
+          instance.get("/analytics/age-group-distribution"),
+          instance.get("/analytics/geographic-distribution"),
+          instance.get("/analytics/clinical-correlation"),
+          instance.get("/analytics/peak-hours"),
+          instance.get("/analytics/service-distribution"),
+        ]);
 
-        const [eyeConditionRes, visitGrowthRes, ageGroupRes, geoLocationRes] =
-          await Promise.all([
-            instance.get("/analytics/eye-conditions"), // Use 'api', no headers needed
-            instance.get(
-              `/analytics/visit-growth?timeFrame=${timeFrame}`,
-              { headers: { "X-User-Timezone": userTimezone } } // Pass custom header only where needed
-            ),
-            instance.get("/analytics/age-group-distribution"), // Use 'api', no headers needed
-            instance.get("/analytics/geographic-distribution"), // Use 'api', no headers needed
-          ]);
+        setEyeConditions(eyeConditionRes.data || []);
+        setAgeGroups(ageGroupRes.data || []);
+        setLocations(geoLocationRes.data || []);
+        setCorrelationData(correlationRes.data || []);
+        setPeakHoursData(peakHoursRes.data || []);
+        setServiceData(serviceRes.data || []);
 
-        // Handle eye condition data
-        setEyeConditions(
-          eyeConditionRes.data && eyeConditionRes.data.length > 0
-            ? eyeConditionRes.data
-            : []
-        );
-
-        // Handle visit growth data
         if (visitGrowthRes.data) {
           let labels = [];
           let dataKeys = [];
@@ -174,21 +181,9 @@ const PatientAnalytics = () => {
         } else {
           setVisitGrowthData(null);
         }
-
-        setLocations(
-          geoLocationRes.data && geoLocationRes.data.length > 0
-            ? geoLocationRes.data
-            : []
-        );
-
-        // --- NEW --- Handle age group data
-        setAgeGroups(
-          ageGroupRes.data && ageGroupRes.data.length > 0
-            ? ageGroupRes.data
-            : []
-        );
       } catch (err) {
-        // ... (error handling is unchanged)
+        console.error("Failed to fetch analytics data", err);
+        setError("Failed to load analytics data.");
       } finally {
         setLoading(false);
       }
@@ -197,17 +192,13 @@ const PatientAnalytics = () => {
     fetchData();
   }, [timeFrame]);
 
-  // Calculate total for percentages
-  const calculateTotal = (data) =>
-    data.reduce((sum, item) => sum + item.value, 0);
-
-  // Get max value for scaling
   const getMaxValue = (data) => {
-    if (!data || data.length === 0) return 1; // Return 1 to avoid division by zero
+    if (!data || data.length === 0) return 1;
     return Math.max(...data.map((item) => item.patients));
   };
+
   return (
-    <div className="p-4 md:p-6 h-screen overflow-y-auto">
+    <div className="p-4 md:p-6 h-screen overflow-y-auto bg-gray-50/50">
       <AnalyticsHeader />
       {loading ? (
         <div className="flex justify-center items-center h-96">
@@ -216,48 +207,45 @@ const PatientAnalytics = () => {
       ) : error ? (
         <div className="text-center text-red-500 p-8">{error}</div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* --- MODIFIED --- Pass dynamic data to the component */}
-          {eyeConditions.length > 0 ? (
+        <div className="space-y-6">
+          {/* Top Row: Visit Growth & Service Distribution */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <VisitGrowthChart
+                timeFrame={timeFrame}
+                setTimeFrame={setTimeFrame}
+                visitData={visitGrowthData}
+              />
+            </div>
+            <div>
+              <ServiceDistributionChart data={serviceData} />
+            </div>
+          </div>
+
+          {/* Middle Row: Eye Conditions & Age Groups */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <EyeConditionChart eyeConditions={eyeConditions} />
-          ) : (
-            <div className="bg-white rounded-2xl shadow-lg p-6 flex justify-center items-center">
-              <p className="text-gray-500">No eye condition data available.</p>
-            </div>
-          )}
-          {visitGrowthData ? (
-            <VisitGrowthChart
-              timeFrame={timeFrame}
-              setTimeFrame={setTimeFrame}
-              visitData={visitGrowthData}
-            />
-          ) : (
-            <div className="bg-white rounded-2xl shadow-lg p-6 flex justify-center items-center">
-              <p className="text-gray-500">No visit growth data available.</p>
-            </div>
-          )}
-          {ageGroups.length > 0 ? (
             <AgeGroupChart
               ageGroups={ageGroups}
               getMaxValue={() => getMaxValue(ageGroups)}
             />
-          ) : (
-            <div className="bg-white rounded-2xl shadow-lg p-6 flex justify-center items-center">
-              <p className="text-gray-500">
-                No patient age group data available.
-              </p>
-            </div>
-          )}
-          {locations.length > 0 ? (
-            <GeographicDistribution locations={locations} />
-          ) : (
-            <div className="bg-white rounded-2xl shadow-lg p-6 flex justify-center items-center min-h-[400px]">
-              <p className="text-gray-500">No geographic data available.</p>
-            </div>
-          )}
+          </div>
+
+          {/* Deep Insight Row: Clinical Correlation & Maps */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+             <ClinicalCorrelationChart data={correlationData} />
+             <GeographicDistribution locations={locations} />
+          </div>
+
+          {/* Operational Insight: Peak Hours (Full Width) */}
+          <div className="w-full">
+            <PeakHoursChart data={peakHoursData} />
+          </div>
         </div>
       )}
-      <SummaryCards loading={loading} />
+      <div className="mt-8">
+        <SummaryCards loading={loading} />
+      </div>
     </div>
   );
 };

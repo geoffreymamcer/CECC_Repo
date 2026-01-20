@@ -23,6 +23,54 @@ import provinces from "../../services/phAddress/province.json";
 import cities from "../../services/phAddress/city.json";
 import barangays from "../../services/phAddress/barangay.json";
 
+const isObjectEmpty = (obj) => {
+  if (!obj) return true;
+
+  return Object.entries(obj).every(([key, value]) => {
+    // 1. Ignore MongoDB Metadata fields (The reason tabs were always showing)
+    if (
+      [
+        "_id",
+        "patientId",
+        "visitId",
+        "appointmentId",
+        "createdAt",
+        "updatedAt",
+        "__v",
+      ].includes(key)
+    ) {
+      return true; // Treat these as "empty" / ignore them
+    }
+
+    // 2. Standard Empty Checks
+    if (value === null || value === undefined || value === "") return true;
+
+    // 3. Treat 'false' boolean as empty (e.g., unchecked diagnostic tests)
+    if (value === false) return true;
+
+    // 4. Handle Arrays (e.g., planManagement array)
+    if (Array.isArray(value)) {
+      return value.length === 0 || value.every((item) => isObjectEmpty(item));
+    }
+
+    // 5. Recursive check for nested objects
+    if (typeof value === "object") {
+      return isObjectEmpty(value);
+    }
+
+    // If we get here, it's a real value (true, number, or non-empty string)
+    return false;
+  });
+};
+
+// These wrappers remain the same, but now rely on the smarter isObjectEmpty
+const isCaseHistoryEmpty = (data) => isObjectEmpty(data);
+const isClinicalExamEmpty = (data) => isObjectEmpty(data);
+const isBinocularEmpty = (data) => isObjectEmpty(data);
+const isSlitLampEmpty = (data) => isObjectEmpty(data);
+const isDiagnosticEmpty = (data) => isObjectEmpty(data);
+const isPlanManagementEmpty = (data) => isObjectEmpty(data);
+
 const PatientInformationModal = ({
   patient,
   handleCloseModal,
@@ -235,6 +283,52 @@ const PatientInformationModal = ({
   const [clinicalExaminationData, setClinicalExaminationData] = useState(
     initialClinicalExamState
   );
+
+  const visibleTabs = useMemo(() => {
+    const baseTabs = [{ id: "personal", label: "Personal Details" }];
+
+    // Check strict emptiness logic
+    if (isEditing || !isCaseHistoryEmpty(caseHistoryData)) {
+      baseTabs.push({ id: "caseHistory", label: "Case History" });
+    }
+    if (isEditing || !isClinicalExamEmpty(clinicalExaminationData)) {
+      baseTabs.push({
+        id: "clinicalExamination",
+        label: "Clinical Examination",
+      });
+    }
+    if (isEditing || !isBinocularEmpty(basicBinocularTestsData)) {
+      baseTabs.push({ id: "binocularTests", label: "Binocular Tests" });
+    }
+    if (isEditing || !isSlitLampEmpty(slitLampData)) {
+      baseTabs.push({ id: "slitLamp", label: "Slit Lamp" });
+    }
+    if (isEditing || !isDiagnosticEmpty(diagnosticPlanData)) {
+      baseTabs.push({ id: "diagnosticPlan", label: "Diagnostic Plan" });
+    }
+    if (isEditing || !isPlanManagementEmpty(planOfManagementData)) {
+      baseTabs.push({ id: "planOfManagement", label: "Plan of Management" });
+    }
+
+    baseTabs.push({ id: "invoice", label: "Invoice" });
+    baseTabs.push({ id: "downloadables", label: "Downloadables" });
+
+    return baseTabs;
+  }, [
+    isEditing,
+    caseHistoryData,
+    clinicalExaminationData,
+    basicBinocularTestsData,
+    slitLampData,
+    diagnosticPlanData,
+    planOfManagementData,
+  ]);
+
+  useEffect(() => {
+    if (!visibleTabs.find((t) => t.id === activeTab)) {
+      setActiveTab("personal");
+    }
+  }, [visibleTabs, activeTab]);
 
   const refreshInvoices = async () => {
     try {
@@ -988,7 +1082,7 @@ const PatientInformationModal = ({
           <div className="border-b border-gray-200 mb-6">
             <div className="overflow-x-auto">
               <div className="flex space-x-6">
-                {tabs.map((tab) => (
+                {visibleTabs.map((tab) => (
                   <button
                     key={tab.id}
                     className={`pb-3 px-1 font-medium whitespace-nowrap transition-colors ${

@@ -8,10 +8,15 @@ import {
   getInventoryStats,
   reduceStock,
   getProductTypes,
+  getFeaturedProducts,
+  getRecommendedProducts,
 } from "../controllers/InventoryController.js";
 import { auth } from "../middleware/auth.js";
 
 const router = express.Router();
+
+router.get("/featured", getFeaturedProducts);
+router.get("/recommendations", auth, getRecommendedProducts);
 
 router.get("/", auth, getProducts);
 router.get("/stats", auth, getInventoryStats);

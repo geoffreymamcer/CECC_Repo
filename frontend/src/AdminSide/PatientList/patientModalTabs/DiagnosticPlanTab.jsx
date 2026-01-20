@@ -1,5 +1,6 @@
 import React from "react";
 import { FaVial } from "react-icons/fa";
+import useDiagnoses from "../../../hooks/useDiagnoses";
 
 // Helper to safely get nested values from the data object
 const getNestedValue = (obj, path) => {
@@ -62,6 +63,8 @@ const DiagnosticPlanTab = ({
   diagnosticPlanData,
   handleDiagnosticPlanChange,
 }) => {
+  const { diagnoses } = useDiagnoses(); // Dynamic diagnoses
+
   const isDiagnosticPlanEmpty =
     !diagnosticPlanData ||
     (Object.keys(diagnosticPlanData.diagnosticTests || {}).every(
@@ -213,16 +216,36 @@ const DiagnosticPlanTab = ({
           <div className="p-4 border rounded-lg">
             <h5 className="font-semibold mb-3 text-gray-700">Assessment</h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <DiagnosticPlanInput
-                name="assessment.primaryImpression"
-                label="Primary Impression"
-                value={getNestedValue(
-                  diagnosticPlanData,
-                  "assessment.primaryImpression"
-                )}
-                onChange={handleDiagnosticPlanChange}
-                isEditing={isEditing}
-              />
+              <div>
+                <label
+                  className="text-sm text-gray-600 mb-1 block"
+                  htmlFor="assessment.primaryImpression"
+                >
+                  Primary Impression
+                </label>
+                <input
+                  list="diagnosis-options"
+                  type="text"
+                  id="assessment.primaryImpression"
+                  name="assessment.primaryImpression"
+                  value={
+                    getNestedValue(
+                      diagnosticPlanData,
+                      "assessment.primaryImpression"
+                    ) || ""
+                  }
+                  onChange={handleDiagnosticPlanChange}
+                  disabled={!isEditing}
+                  className="font-medium w-full p-2 border border-gray-200 rounded-md disabled:bg-gray-100 focus:ring-deep-red focus:border-deep-red"
+                  placeholder="Select or type..."
+                />
+                <datalist id="diagnosis-options">
+                  {diagnoses.map((d) => (
+                    <option key={d} value={d} />
+                  ))}
+                </datalist>
+              </div>
+
               <DiagnosticPlanInput
                 name="assessment.secondaryImpression"
                 label="Secondary Impression"

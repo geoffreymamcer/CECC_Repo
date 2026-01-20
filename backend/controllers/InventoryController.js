@@ -1,4 +1,5 @@
 import Product from "../models/Inventory.js";
+import DiagnosticAssessmentPlan from "../models/DiagnosticAssessmentPlan.js";
 
 // Get products with pagination and filtering
 export const getProducts = async (req, res) => {
@@ -76,6 +77,7 @@ export const createProduct = async (req, res) => {
     availableStocks,
     productImage,
     isPrescriptionTableRequired,
+    tags, // Add tags to destructuring
   } = req.body;
 
   const stocksStatus = availableStocks < 10 ? "low" : "in stock";
@@ -89,7 +91,8 @@ export const createProduct = async (req, res) => {
     availableStocks,
     stocksStatus,
     productImage,
-    isPrescriptionTableRequired, // <-- Add this
+    isPrescriptionTableRequired,
+    tags: tags || [], // Ensure tags are saved, default to empty array
   });
 
   try {
@@ -164,7 +167,7 @@ export const updateProduct = async (req, res) => {
 
     const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      { ...req.body, tags: req.body.tags || [] }, // Explicitly include tags
       { new: true, runValidators: true }
     );
     if (!updatedProduct) {
@@ -218,5 +221,128 @@ export const getProductTypes = async (req, res) => {
     res.json(types.sort()); // Sort them alphabetically for a clean dropdown
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const getFeaturedProducts = async (req, res) => {
+  try {
+    const featuredProducts = await Product.aggregate([
+      // 1. Sort by newest first (optional, ensures you get recent items)
+      { $sort: { createdAt: -1 } },
+
+      // 2. Group by productType and take the first document found
+      {
+        $group: {
+          _id: "$productType",
+          product: { $first: "$$ROOT" },
+        },
+      },
+
+      // 3. Replace the root with the product document
+      { $replaceRoot: { newRoot: "$product" } },
+
+      // 4. (Optional) Limit the total number if you have too many categories
+      { $limit: 6 },
+    ]);
+
+    res.status(200).json(featuredProducts);
+  } catch (error) {
+    console.error("Error fetching featured products:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get recommended products based on diagnosis
+export const getRecommendedProducts = async (req, res) => {
+  try {
+    let patientId = req.user._id.toString();
+    console.log(`[DEBUG] Initial Patient ID from Auth: ${patientId}`);
+    
+    // Attempt to resolve the correct Profile ID
+    // Check if there is a Profile with this ID directly, or matching email
+    // This bridges the gap between PatientAuth (ObjectId) and Profile (String ID)
+    const profile = await import("../models/Profile.js").then(m => m.default.findOne({
+        $or: [
+            { _id: patientId }, 
+            { email: req.user.email },
+            { patientId: patientId }
+        ]
+    }));
+
+    if (profile) {
+        console.log(`[DEBUG] Resolved Profile ID: ${profile._id}`);
+        patientId = profile._id;
+    } else {
+        console.log("[DEBUG] No linked Profile found. Using Auth ID.");
+    }
+
+    // 1. Find the latest diagnosis for this patient
+    // Use the resolved patientId (which should match the format in DiagnosticAssessmentPlan)
+    const latestDiagnosis = await DiagnosticAssessmentPlan.findOne({
+      patientId: patientId,
+    })
+      .sort({ createdAt: -1 })
+      .select("assessment.primaryImpression");
+
+    console.log("[DEBUG] Latest Diagnosis Record:", latestDiagnosis);
+
+    let diagnosis = latestDiagnosis?.assessment?.primaryImpression;
+    let query = {};
+    let recommendationReason = "";
+    let products = [];
+
+    if (diagnosis) {
+      console.log(`[DEBUG] Raw Diagnosis String: "${diagnosis}"`);
+      // Simple keyword matching: split diagnosis into words and search tags
+      // Filter out common small words to improve matching quality
+      // ALSO: clean punctuation (like "Primary:") to just "Primary"
+      const diagnosisKeywords = diagnosis
+        .split(/[\s,:]+/) // Split by space, comma, or colon
+        .filter((w) => w.length > 3)
+        .map((w) => new RegExp(w, "i"));
+
+      console.log("[DEBUG] Generated Keywords Regex:", diagnosisKeywords);
+
+      if (diagnosisKeywords.length > 0) {
+        query = {
+          tags: { $in: diagnosisKeywords },
+        };
+        recommendationReason = `Recommended based on your diagnosis: ${diagnosis}`;
+        products = await Product.find(query).limit(6).lean();
+        console.log(`[DEBUG] Products found by matching tags: ${products.length}`);
+      }
+    } else {
+        console.log("[DEBUG] No diagnosis found for patient.");
+    }
+
+    // 4. Fallback if no matching products or no diagnosis
+    if (products.length === 0) {
+      console.log("[DEBUG] No specific matches. Trying 'general' fallback.");
+      // Try finding products with "general" tag or "wellness"
+      products = await Product.find({
+        tags: { $in: [/general/i, /wellness/i] },
+      })
+        .limit(6)
+        .lean();
+
+      recommendationReason = diagnosis
+        ? `We couldn't find specific products for ${diagnosis}, but here are some popular items.`
+        : "Recommended for your general wellness.";
+
+      // Second fallback: just top newest if specific fallback tags not found
+      if (products.length === 0) {
+        console.log("[DEBUG] No 'general' matches. Returning top featured.");
+        products = await Product.find().sort({ createdAt: -1 }).limit(6).lean();
+        recommendationReason = "Top Featured Products";
+      }
+    }
+
+    res.json({
+      products,
+      recommendationReason,
+    });
+  } catch (error) {
+    console.error("Error fetching recommendations:", error);
+    res.status(500).json({ message: "Error fetching recommendations" });
   }
 };

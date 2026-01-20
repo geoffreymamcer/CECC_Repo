@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Upload, Image as ImageIcon } from "lucide-react";
 import instance from "../../api/axios";
+import useDiagnoses from "../../hooks/useDiagnoses";
 
 const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
   const initialFormState = {
@@ -15,11 +16,13 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
     productImage: "", // maps to productImage
     isPrescriptionRequired: false,
     customType: "",
+    tags: [], // maps to tags
   };
 
   const [formData, setFormData] = useState(initialFormState);
   const [imagePreview, setImagePreview] = useState(null);
   const [productTypes, setProductTypes] = useState([]);
+  const { diagnoses } = useDiagnoses(); // Dynamic diagnoses
 
   useEffect(() => {
     const fetchProductTypes = async () => {
@@ -77,6 +80,17 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
     }
   };
 
+  const handleTagChange = (tag) => {
+    setFormData((prev) => {
+      const currentTags = prev.tags || [];
+      if (currentTags.includes(tag)) {
+        return { ...prev, tags: currentTags.filter((t) => t !== tag) };
+      } else {
+        return { ...prev, tags: [...currentTags, tag] };
+      }
+    });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -112,6 +126,7 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
       stocksStatus: formData.status,
       productImage: formData.productImage || "",
       isPrescriptionTableRequired: formData.isPrescriptionRequired,
+      tags: formData.tags || [],
     };
 
     // Validate the product data matches the schema
@@ -357,6 +372,33 @@ const AddProductModal = ({ isOpen, onClose, onAddProduct }) => {
                 <option value="out of stock">Out of Stock</option>
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Recommended For (Tags)
+              </label>
+              <div className="border border-gray-300 rounded-lg p-3 max-h-40 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-2">
+                  {diagnoses.map((diagnosis) => (
+                    <div key={diagnosis} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id={`tag-${diagnosis}`}
+                        checked={(formData.tags || []).includes(diagnosis)}
+                        onChange={() => handleTagChange(diagnosis)}
+                        className="h-4 w-4 rounded border-gray-300 text-deep-red focus:ring-deep-red"
+                      />
+                      <label
+                        htmlFor={`tag-${diagnosis}`}
+                        className="ml-2 text-sm text-gray-700 cursor-pointer"
+                      >
+                        {diagnosis}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Product Image

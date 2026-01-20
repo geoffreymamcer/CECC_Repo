@@ -36,6 +36,7 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
         description: "",
         quantity: 1,
         unitPrice: 0,
+        basePrice: 0,
         discount: 0,
         total: 0,
         requiresPrescription: false, // Renamed from isLens for clarity
@@ -43,6 +44,7 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
         tint: "",
       },
     ],
+    discountType: "None",
     amountPaid: 0,
     notes: "",
   });
@@ -155,7 +157,6 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
 
   // Select a patient from search results
   const selectPatient = (patient) => {
-    // Not used when patientId is provided; keep for future enhancements
     setInvoiceData((prev) => ({
       ...prev,
       patientId: patient.id,
@@ -174,6 +175,7 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
       description: "",
       quantity: 1,
       unitPrice: 0,
+      basePrice: 0,
       discount: 0,
       total: 0,
       requiresPrescription: false, // Match the new structure
@@ -196,6 +198,29 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
     }
   };
 
+  // Helper to calculate price based on prescription (Sphere)
+  const calculateAdjustedPrice = (basePrice, prescription) => {
+    const price = parseFloat(basePrice) || 0;
+    if (!prescription) return price;
+
+    const getSph = (p) => {
+      if (!p) return 0;
+      // Check both 'sph' (schema) and 'Sph' (just in case)
+      const val = p.sph || p.Sph;
+      return val ? Math.abs(parseFloat(val) || 0) : 0;
+    };
+
+    const rightSph = getSph(prescription.rightEye);
+    const leftSph = getSph(prescription.leftEye);
+    const maxSph = Math.max(rightSph, leftSph);
+
+    let surcharge = 0;
+    if (maxSph > 6) surcharge = 600;
+    else if (maxSph > 3) surcharge = 300;
+
+    return price + surcharge;
+  };
+
   // Handle item field changes
   const handleItemChange = (id, field, value) => {
     setInvoiceData((prev) => {
@@ -207,12 +232,17 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
             const selectedProduct = products.find((p) => p.name === value);
             if (selectedProduct) {
               updatedItem.description = value;
-              updatedItem.unitPrice = selectedProduct.price;
-              // Set the flag based on the product data from the API
+              updatedItem.basePrice = selectedProduct.price;
               updatedItem.requiresPrescription =
                 selectedProduct.requiresPrescription;
+              // Calculate initial price
+              updatedItem.unitPrice = calculateAdjustedPrice(
+                selectedProduct.price,
+                updatedItem.prescription
+              );
             } else {
               updatedItem.description = value;
+              updatedItem.basePrice = 0;
               updatedItem.unitPrice = 0;
               // Default to false if no product is selected
               updatedItem.requiresPrescription = false;
@@ -245,7 +275,25 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
             ...item.prescription,
             [eye]: { ...item.prescription[eye], [toSchemaKey(field)]: value },
           };
-          return { ...item, prescription: updatedPrescription };
+
+          // Re-calculate price based on new prescription
+          // Use basePrice if available, else current unitPrice (fallback)
+          const base =
+            item.basePrice !== undefined ? item.basePrice : item.unitPrice;
+          const newUnitPrice = calculateAdjustedPrice(
+            base,
+            updatedPrescription
+          );
+
+          const quantity = parseFloat(item.quantity) || 0;
+          const discount = parseFloat(item.discount) || 0;
+
+          return {
+            ...item,
+            prescription: updatedPrescription,
+            unitPrice: newUnitPrice,
+            total: quantity * newUnitPrice - discount,
+          };
         }
         return item;
       });
@@ -266,14 +314,20 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
     });
   };
 
-  // Calculate subtotal
   const subtotal = invoiceData.items.reduce(
     (sum, item) => sum + (item.total || 0),
     0
   );
 
-  // Calculate total amount due
-  const totalAmountDue = subtotal - parseFloat(invoiceData.amountPaid || 0);
+  // Calculate Global Discount based on Type
+  const globalDiscountRate =
+    invoiceData.discountType === "PWD" ||
+    invoiceData.discountType === "Senior Citizen"
+      ? 0.2
+      : 0;
+  const globalDiscountAmount = subtotal * globalDiscountRate;
+
+  const totalAmountDue = subtotal - globalDiscountAmount;
 
   // State for invoice creation
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -304,6 +358,9 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
           leftEye: it.prescription?.leftEye || {},
         })),
         notes: invoiceData.notes,
+        discountType: invoiceData.discountType,
+        totalAmount: totalAmountDue,
+        amountPaid: totalAmountDue,
       };
 
       const res = await instance.post("/invoices", payload); // Use api instance
@@ -890,44 +947,58 @@ const InvoiceInputModal = ({ onClose, currentUser, patientId }) => {
                   <div className="md:col-span-2">
                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                       <h4 className="font-medium text-[#7F0000] mb-3">
-                        Payment Information
+                        Payment Calculation
                       </h4>
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
                           <span className="text-gray-700">Subtotal:</span>
                           <span className="font-medium">
-                            PHP{subtotal.toFixed(2)}
+                            PHP {subtotal.toFixed(2)}
                           </span>
                         </div>
 
+                        {/* 4️⃣ START MODIFICATION: Discount Dropdown */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Amount Paid (PHP)
+                            Discount Type
                           </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            max={subtotal}
-                            value={invoiceData.amountPaid}
+                          <select
+                            value={invoiceData.discountType}
                             onChange={(e) =>
                               setInvoiceData({
                                 ...invoiceData,
-                                amountPaid: e.target.value,
+                                discountType: e.target.value,
                               })
                             }
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-[#7F0000] focus:border-[#7F0000]"
-                          />
+                          >
+                            <option value="None">None</option>
+                            <option value="PWD">PWD (20%)</option>
+                            <option value="Senior Citizen">
+                              Senior Citizen (20%)
+                            </option>
+                          </select>
+                        </div>
+                        {/* 4️⃣ END MODIFICATION */}
+
+                        <div className="flex justify-between items-center text-sm text-gray-600">
+                          <span>Less Discount:</span>
+                          <span>- PHP {globalDiscountAmount.toFixed(2)}</span>
                         </div>
 
+                        {/* 5️⃣ START MODIFICATION: Removed Amount Paid Input, Show Final Total */}
                         <div className="flex justify-between items-center border-t border-gray-300 pt-3">
                           <span className="text-lg font-semibold text-[#7F0000]">
                             Total Amount Due:
                           </span>
-                          <span className="text-lg font-semibold">
-                            PHP{Math.max(totalAmountDue, 0).toFixed(2)}
+                          <span className="text-xl font-bold text-[#7F0000]">
+                            PHP {totalAmountDue.toFixed(2)}
                           </span>
                         </div>
+                        <p className="text-xs text-gray-500 italic text-right">
+                          * Invoice assumes full payment upon generation.
+                        </p>
+                        {/* 5️⃣ END MODIFICATION */}
                       </div>
                     </div>
                   </div>

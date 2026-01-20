@@ -94,6 +94,12 @@ const planOfManagementSchema = new mongoose.Schema(
       time: { type: String, default: "" },
       others: { type: String, default: "" },
     },
+    recommendedProducts: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Inventory",
+      },
+    ],
     ocularHygiene: {
       increaseOutdoorActivities: { type: Boolean, default: false },
       stopDigitalDevices: { type: Boolean, default: false },

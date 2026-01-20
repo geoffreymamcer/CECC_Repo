@@ -449,3 +449,170 @@ export const getVisitGrowth = async (req, res) => {
   }
 };
 */
+export const getClinicalCorrelation = async (req, res) => {
+  try {
+    // 1. Get all Diagnostic Plans with a valid primary impression
+    const diagnoses = await DiagnosticAssessmentPlan.find({
+      "assessment.primaryImpression": { $ne: null, $ne: "" },
+    }).select("patientId assessment.primaryImpression");
+
+    // 2. Extract unique patient IDs to fetch profiles
+    const patientIds = [...new Set(diagnoses.map((d) => d.patientId))];
+
+    // 3. Fetch Profiles for these patients to get their Age Group
+    const profiles = await Profile.find({
+      patientId: { $in: patientIds },
+    }).select("patientId ageCategory");
+
+    // Helper to normalize Age Groups
+    const normalizeAgeGroup = (age) => {
+      if (!age) return "Unknown";
+      const normalized = age.toLowerCase();
+      if (normalized.includes("child")) return "Child";
+      if (normalized.includes("teen")) return "Teen";
+      if (normalized.includes("young adult")) return "Young Adult";
+      if (normalized.includes("middle") || normalized.includes("adult"))
+        return "Adult";
+      if (normalized.includes("senior") || normalized.includes("elder"))
+        return "Senior";
+      return "Unknown";
+    };
+
+    // Map patientId -> ageCategory (Normalized)
+    const patientAgeMap = {};
+    profiles.forEach((p) => {
+      patientAgeMap[p.patientId] = normalizeAgeGroup(p.ageCategory);
+    });
+
+    // 4. Build the Correlation Matrix
+    // Structure: { "Myopia": { "Child": 5, "Adult": 2 }, "Glaucoma": { ... } }
+    const correlationMatrix = {};
+
+    diagnoses.forEach((d) => {
+      const condition = d.assessment.primaryImpression;
+      const ageGroup = patientAgeMap[d.patientId] || "Unknown";
+
+      if (!correlationMatrix[condition]) {
+        correlationMatrix[condition] = {};
+      }
+      if (!correlationMatrix[condition][ageGroup]) {
+        correlationMatrix[condition][ageGroup] = 0;
+      }
+      correlationMatrix[condition][ageGroup]++;
+    });
+
+    // 5. Format for Frontend Grid
+    // We want a consistent list of X-Axis (Age Groups) and Y-Axis (Conditions)
+    const allAgeGroups = [
+      "Child",
+      "Teen",
+      "Young Adult",
+      "Adult",
+      "Senior",
+      "Unknown",
+    ];
+
+    // Get top 10 conditions to keep the chart readable
+    const topConditions = Object.keys(correlationMatrix)
+      .sort((a, b) => {
+        const totalA = Object.values(correlationMatrix[a]).reduce(
+          (sum, v) => sum + v,
+          0
+        );
+        const totalB = Object.values(correlationMatrix[b]).reduce(
+          (sum, v) => sum + v,
+          0
+        );
+        return totalB - totalA;
+      })
+      .slice(0, 10);
+
+    const heatmapData = topConditions.map((condition) => {
+      const row = { condition };
+      allAgeGroups.forEach((age) => {
+        row[age] = correlationMatrix[condition][age] || 0;
+      });
+      return row;
+    });
+
+    res.status(200).json(heatmapData);
+  } catch (error) {
+    console.error("Error fetching clinical correlation:", error);
+    res.status(500).json({ message: "Error fetching clinical correlation" });
+  }
+};
+
+export const getPeakHours = async (req, res) => {
+  try {
+    const appointments = await Appointment.find({
+      status: { $ne: "cancelled" },
+    }).select("appointmentDate appointmentTime");
+
+    // Grid: 7 Days x Hours (e.g. 8AM to 5PM)
+    const daysOfWeek = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+    // Define operational hours range for the grid (e.g., 08:00 to 17:00)
+    // We will parse the time string "HH:MM AM/PM"
+    const grid = {};
+
+    appointments.forEach((appt) => {
+      const date = new Date(appt.appointmentDate);
+      const dayName = daysOfWeek[date.getDay()];
+
+      // Normalize time to Hour (24h format)
+      // Expecting format like "10:00 AM"
+      const timeParts = appt.appointmentTime.split(/[:\s]+/); // ["10", "00", "AM"]
+      let hour = parseInt(timeParts[0]);
+      const meridian = timeParts[2]; // "AM" or "PM"
+
+      if (meridian === "PM" && hour !== 12) hour += 12;
+      if (meridian === "AM" && hour === 12) hour = 0;
+
+      const hourLabel = `${hour}:00`; // Simplify to hour buckets
+
+      if (!grid[dayName]) grid[dayName] = {};
+      if (!grid[dayName][hourLabel]) grid[dayName][hourLabel] = 0;
+
+      grid[dayName][hourLabel]++;
+    });
+
+    res.status(200).json(grid);
+  } catch (error) {
+    console.error("Error fetching peak hours:", error);
+    res.status(500).json({ message: "Error fetching peak hours" });
+  }
+};
+
+export const getServiceDistribution = async (req, res) => {
+  try {
+    const serviceData = await Appointment.aggregate([
+      {
+        $match: { status: { $ne: "cancelled" } },
+      },
+      {
+        $group: {
+          _id: "$serviceType",
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { count: -1 } },
+    ]);
+
+    const formattedData = serviceData.map((item) => ({
+      name: item._id,
+      value: item.count,
+    }));
+
+    res.status(200).json(formattedData);
+  } catch (error) {
+    console.error("Error fetching service distribution:", error);
+    res.status(500).json({ message: "Error fetching service distribution" });
+  }
+};

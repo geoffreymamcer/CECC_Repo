@@ -595,11 +595,10 @@ const Appointments = () => {
               <FiCheckCircle />
             </div>
             <h3 className="text-2xl font-extrabold text-gray-800 mb-2">
-              Booking Confirmed!
+              Booking Requested!
             </h3>
             <p className="text-gray-500 mb-8">
-              Your appointment has been successfully scheduled. A confirmation
-              email has been sent to you.
+              Your appointment request has been received. You will receive a notification once it is confirmed by our staff.
             </p>
 
             <div className="flex flex-col gap-3">

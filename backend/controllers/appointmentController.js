@@ -30,6 +30,8 @@ export const getAllAppointments = async (req, res) => {
 
 export const createAppointment = async (req, res) => {
   try {
+    const MAX_CAPACITY = 5;
+
     const {
       appointmentDate,
       appointmentTime,
@@ -38,6 +40,7 @@ export const createAppointment = async (req, res) => {
       visitStatus,
       additionalNotes,
       fullName: manualFullName,
+      forceBooking, // Flag for admin override
     } = req.body;
 
     const user = await User.findById(req.user.id);
@@ -48,12 +51,40 @@ export const createAppointment = async (req, res) => {
       });
     }
 
+    // --- CHECK AVAILABILITY ---
+    // Count existing active appointments (not cancelled) for this slot
+    const currentBookings = await Appointment.countDocuments({
+      appointmentDate: appointmentDate,
+      appointmentTime: appointmentTime,
+      status: { $ne: "cancelled" },
+    });
+
+    const isSlotFull = currentBookings >= MAX_CAPACITY;
+    const isAdmin = user.role === "admin" || user.role === "owner";
+
+    // HARD LIMIT for Patients
+    if (!isAdmin && isSlotFull) {
+      return res.status(400).json({
+        status: "error",
+        message: "This time slot is fully booked. Please choose another time.",
+      });
+    }
+
+    // SOFT LIMIT for Admins (requires forceBooking flag)
+    if (isAdmin && isSlotFull && !forceBooking) {
+      return res.status(409).json({
+        status: "warning",
+        message: `Slot is full (${currentBookings}/${MAX_CAPACITY}). Do you want to overbook?`,
+        currentLoad: currentBookings,
+        maxCapacity: MAX_CAPACITY,
+      });
+    }
+
     let finalFullName;
     let finalPatientId;
     let finalPhoneNumber;
 
-    const isAdminBooking =
-      (user.role === "admin" || user.role === "owner") && manualFullName;
+    const isAdminBooking = isAdmin && manualFullName;
 
     if (isAdminBooking) {
       finalFullName = manualFullName;
@@ -68,6 +99,12 @@ export const createAppointment = async (req, res) => {
       finalPhoneNumber = user.phone_number;
     }
 
+    // Determine Status and Type
+    // Online bookings -> Pending
+    // Walk-in/Admin bookings -> Confirmed
+    const appointmentStatus = isAdminBooking ? "confirmed" : "pending";
+    const appointmentType = isAdminBooking ? "walk-in" : "online";
+
     const appointment = await Appointment.create({
       patientId: finalPatientId,
       fullName: finalFullName,
@@ -77,6 +114,8 @@ export const createAppointment = async (req, res) => {
       serviceType,
       visitStatus,
       notes: notes || additionalNotes || "",
+      status: appointmentStatus,
+      type: appointmentType,
     });
 
     if (!isAdminBooking) {

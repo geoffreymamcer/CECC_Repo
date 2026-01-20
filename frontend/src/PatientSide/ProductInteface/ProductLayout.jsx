@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Eye, X } from "lucide-react";
+import { Eye, X, Sparkles } from "lucide-react";
 import ProductCard from "./ProductCard";
 import SearchFilterBar from "./SearchFilterBar";
-import ProductDetailsModal from "./ProductDetailsModal"; // New component
+import ProductDetailsModal from "./ProductDetailsModal";
 import instance from "../../api/axios";
+import useProductRecommendations from "../../hooks/useProductRecommendations";
 
 const PRODUCT_LOADING_DURATION = 800;
 
@@ -17,6 +18,12 @@ const ProductInterface = () => {
   const [loading, setLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState(null);
+
+  const {
+    products: rawRecommendations,
+    loading: recLoading,
+    recommendationReason,
+  } = useProductRecommendations();
 
   const categories = ["All", ...new Set(allProducts.map((p) => p.category))];
 
@@ -137,6 +144,35 @@ const ProductInterface = () => {
               categories={categories}
             />
           </div>
+
+          {/* Recommendations Section */}
+          {!recLoading && rawRecommendations && rawRecommendations.length > 0 && (
+            <div className="mb-12 animate-fade-in-up">
+              <div className="flex items-center gap-2 mb-6">
+                <Sparkles className="text-yellow-500" size={24} />
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Recommended for You
+                  </h2>
+                  {recommendationReason && (
+                    <p className="text-sm text-gray-500">
+                      {recommendationReason}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {rawRecommendations.map(mapBackendProduct).map((product) => (
+                  <ProductCard
+                    key={`rec-${product.id}`}
+                    product={product}
+                    onClick={() => setSelectedProduct(product)}
+                  />
+                ))}
+              </div>
+              <div className="my-8 border-b border-gray-200"></div>
+            </div>
+          )}
 
           {/* Product Grid */}
           {error ? (

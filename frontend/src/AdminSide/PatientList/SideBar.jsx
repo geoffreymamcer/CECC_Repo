@@ -9,17 +9,24 @@ import {
 } from "react-icons/fa";
 import { MdDashboard, MdPeople } from "react-icons/md";
 
+import { useAuth } from "../../context/AuthContext";
+
 const SideBar = ({ activeTab, setActiveTab, sidebarOpen, setSidebarOpen }) => {
-  const navItems = [
+  const { user } = useAuth();
+  const isOwner = user?.role === "owner";
+
+  const allNavItems = [
     { name: "Dashboard", icon: <MdDashboard className="text-xl" /> },
     { name: "Patient List", icon: <MdPeople className="text-xl" /> },
     { name: "Patient Analytics", icon: <FaChartLine className="text-xl" /> },
-    { name: "Financial Reports", icon: <FaChartLine className="text-xl" /> },
+    { name: "Financial Reports", icon: <FaChartLine className="text-xl" />, restricted: true },
     { name: "Appointments", icon: <FaCalendarAlt className="text-xl" /> },
     { name: "Inventory", icon: <FaBox className="text-xl" /> },
     { name: "Color Vision Test", icon: <FaEye className="text-xl" /> },
-    { name: "Account Control", icon: <MdPeople className="text-xl" /> },
+    { name: "Account Control", icon: <MdPeople className="text-xl" />, restricted: true },
   ];
+
+  const navItems = allNavItems.filter(item => !item.restricted || isOwner);
 
   return (
     <div

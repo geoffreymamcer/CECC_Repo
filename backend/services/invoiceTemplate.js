@@ -1,3 +1,5 @@
+// backend/services/invoiceTemplate.js
+
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -95,7 +97,9 @@ function generateCopyHtml(type, invoice, logoBase64) {
     const item = invoice.items[i];
     itemRows += `
             <tr>
-                <td>${item?.itemName || ""}</td>
+                <td style="text-align: left; padding-left: 5px;">${
+                  item?.itemName || ""
+                }</td>
                 <td>${item?.qty || ""}</td>
                 <td>${
                   item?.unitPrice ? formatCurrency(item.unitPrice) : ""
@@ -184,7 +188,13 @@ function generateCopyHtml(type, invoice, logoBase64) {
             
             <table class="items-table">
                 <thead>
-                    <tr><th>Item Description</th><th>Quantity</th><th>Unit Price</th><th>Discount</th><th>Total</th></tr>
+                    <tr>
+                      <th style="width: 40%;">Item Description</th>
+                      <th style="width: 10%;">Quantity</th>
+                      <th style="width: 15%;">Unit Price</th>
+                      <th style="width: 15%;">Discount</th>
+                      <th style="width: 20%;">Total</th>
+                    </tr>
                 </thead>
                 <tbody>${itemRows}</tbody>
             </table>
@@ -257,49 +267,63 @@ export function getInvoiceHtml(invoice, logoBase64) {
                 }
                 html { -webkit-print-color-adjust: exact; }
                 body { font-family: Arial, sans-serif; font-size: 8.5pt; color: #333; margin: 0; }
-                .page { padding: 0; } /* Padding is handled by Puppeteer margin */
+                .page { padding: 0; }
 
-                /* --- MODIFIED --- Reduced bottom spacing */
+                /* 1️⃣ START MODIFICATION: Updated Styles to Match Service Invoice */
                 .copy-container { 
-                    padding-bottom: 5mm; /* Drastically reduced from 15mm */
-                    margin-bottom: 5mm;  /* Drastically reduced from 15mm */
-                    border-bottom: 1.5px dashed #ccc; 
+                    padding-bottom: 5mm; 
+                    margin-bottom: 5mm;
+                    border-bottom: 2px dashed #ccc; 
+                    page-break-inside: avoid;
                 }
                 .copy-container:last-child { border-bottom: none; margin-bottom: 0; }
                 
-                .header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px solid var(--deep-red); padding-bottom: 4px; }
-                .logo { width: 70px; }
-                .header-center { flex: 1; text-align: center; line-height: 1.2; padding: 0 10px; }
-                .clinic-name { margin: 0; font-size: 14pt; color: var(--dark-red); }
-                .header-center p { margin: 0; font-size: 7.5pt; }
-                .header-right { flex: 0 0 140px; text-align: right; font-size: 7.5pt; }
+                .header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px solid var(--deep-red); padding-bottom: 8px; margin-bottom: 15px; }
+                .logo { width: 80px; }
+                .header-center { flex: 1; text-align: center; padding: 0 15px; }
+                .header-center h2 { margin: 0 0 5px 0; color: var(--dark-red); font-size: 14pt; }
+                .header-center p { margin: 0; font-size: 8pt; color: #555; }
+                .header-right { text-align: right; font-size: 8pt; color: #555; }
 
-                .title-bar h3 { font-size: 14pt; font-weight: bold; margin: 3px 0 8px 0; color: var(--deep-red); text-align: right; }
+                .title-bar h3 { font-size: 12pt; font-weight: bold; margin: 0 0 15px 0; color: var(--deep-red); text-align: right; letter-spacing: 1px; }
                 
-                .details-grid { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 9pt; }
-                .details-col { width: 48%; display: flex; flex-direction: column; gap: 3px; }
+                .details-grid { display: flex; justify-content: space-between; margin-bottom: 20px; }
+                .details-col { width: 48%; display: flex; flex-direction: column; gap: 5px; }
                 .detail-item { display: flex; align-items: flex-end; }
-                .detail-item strong { flex: 0 0 90px; }
-                .line-input { flex: 1; border-bottom: 0.5px solid #333; padding: 0 2px; }
+                .detail-item strong { flex: 0 0 90px; color: #444; }
+                .line-input { flex: 1; border-bottom: 1px solid #ddd; padding: 0 5px; font-weight: bold; color: #000; }
 
-                .prescription-table, .items-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-                th, td { border: 1px solid #555; text-align: center; padding: 2px; } /* Reduced padding */
-                .items-table th { background-color: #f0f0f0; }
+                /* Tables */
+                .prescription-table, .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                
+                /* Header Style Match */
+                .items-table th, .prescription-table th { 
+                    background-color: var(--deep-red); 
+                    color: white; 
+                    padding: 8px; 
+                    font-weight: bold; 
+                    font-size: 8pt; 
+                    border: 1px solid var(--deep-red); 
+                }
+                
+                td { border: 1px solid #ddd; padding: 6px; text-align: center; vertical-align: middle; }
                 .items-table td:first-child { text-align: left; }
                 .items-table td:not(:first-child) { text-align: right; }
 
-                /* --- MODIFIED --- Reduced top margin and gap */
-                .footer-grid { display: flex; justify-content: space-between; margin-top: 10px; font-size: 9pt; }
-                .footer-col { display: flex; flex-direction: column; }
-                .footer-col.left { width: 33%; gap: 6px; } /* Reduced gap */
-                .footer-col.center { width: 33%; align-items: center; justify-content: flex-end; gap: 15px; text-align: center; } /* Reduced gap */
+                /* Footer */
+                .footer-grid { display: flex; justify-content: space-between; margin-top: 10px; }
+                .footer-col.left { width: 33%; gap: 8px; }
+                .footer-col.center { width: 33%; align-items: center; justify-content: flex-end; gap: 20px; text-align: center; }
                 .footer-col.right { width: 33%; align-items: flex-end; }
 
-                .signature-line { border-top: 1px solid #333; padding-top: 2px; width: 180px; }
-                .total-row { display: flex; justify-content: space-between; width: 220px; padding: 1px 0; } /* Reduced padding */
-                .total-row.total-due { font-weight: bold; font-size: 10pt; color: var(--deep-red); border-top: 1px solid #333; padding-top: 3px; margin-top: 3px; }
+                .signature-line { border-top: 1px solid #333; padding-top: 5px; width: 180px; }
+                
+                .total-row { display: flex; justify-content: space-between; width: 220px; padding: 4px 0; border-bottom: 1px solid #eee; }
+                .total-row.total-due { font-weight: bold; font-size: 11pt; color: var(--deep-red); border-top: 2px solid var(--deep-red); border-bottom: none; margin-top: 5px; padding-top: 5px; }
                 .total-row span:first-child { margin-right: 10px; }
-                .lab-details { margin-top: 10px; display: flex; flex-direction: column; gap: 3px; }
+                
+                .lab-details { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+                /* 1️⃣ END MODIFICATION */
             </style>
         </head>
         <body>

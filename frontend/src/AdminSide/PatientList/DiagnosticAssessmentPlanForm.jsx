@@ -1,5 +1,6 @@
 // src/components/DiagnosticAssessmentPlanForm.jsx
 import React from "react";
+import useDiagnoses from "../../hooks/useDiagnoses";
 
 // A reusable component for input fields in the Plan/Management section
 const ManagementInput = ({ label, value, onChange }) => (
@@ -33,6 +34,8 @@ const DiagnosticAssessmentPlanForm = ({
   diagnosticPlan,
   setDiagnosticPlan,
 }) => {
+  const { diagnoses } = useDiagnoses();
+
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target;
     setDiagnosticPlan((prev) => ({
@@ -130,10 +133,11 @@ const DiagnosticAssessmentPlanForm = ({
             >
               Primary Impression:
             </label>
-            <textarea
+            <input
+              list="diagnosis-options-form"
+              type="text"
               id="primary-impression"
-              rows="3"
-              placeholder="Enter primary impression..."
+              placeholder="Select or type primary impression..."
               value={diagnosticPlan.assessment.primaryImpression}
               onChange={(e) =>
                 handleTextChange(
@@ -143,7 +147,12 @@ const DiagnosticAssessmentPlanForm = ({
                 )
               }
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-[#7F0000] focus:border-[#7F0000] transition"
-            ></textarea>
+            />
+            <datalist id="diagnosis-options-form">
+              {diagnoses.map((d) => (
+                <option key={d} value={d} />
+              ))}
+            </datalist>
           </div>
           <div>
             <label
